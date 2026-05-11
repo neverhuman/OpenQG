@@ -2,23 +2,31 @@
 version: v1
 intent: daemon
 confirm: RUN_FOREVER
+
 job:
   name: openqg-benchmark-nightly
   objective: Re-run smoke and full benchmark lanes and archive the scorecard evidence.
+
 loop:
   policy: forever
   sleep: 24h
+
 stop:
-  any:
+  all:
     - shell:
-        command: "test -f .halt-benchmark-nightly"
-        timeout: 5s
+        command: "test -f .halt-benchmark-nightly || (test -s target/openqg/bench-smoke/scorecard.json && test -f target/openqg/benchmarks/nightly/latest/complete.ok)"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
 checkpoint:
   when: after_verified_change
+
 permissions:
   git_push: deny
+
 ui:
-  mode: gold
+  theme: jekko-gold
+  banner: OpenQG benchmark nightly
 <<<END_ZYAL id=openqg-benchmark-nightly>>>
 ZYAL_ARM RUN_FOREVER id=openqg-benchmark-nightly
-

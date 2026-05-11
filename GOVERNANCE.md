@@ -7,7 +7,7 @@ OpenQG is organized around explicit ownership boundaries:
 - `data/registry/`: source manifests for public datasets
 - `benchmarks/`: suite definitions and KPI policy
 - `theories/`: candidate theory manifests and adapters
-- `ops/zyal/`: long-running host-owned runbooks
+- `agent/zyal/`: long-running host-owned runbooks
 
 Generated outputs must stay under declared output directories:
 

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Debug, Subcommand)]
 pub enum ZyalCommand {
     Validate {
-        #[arg(long, default_value = "ops/zyal")]
+        #[arg(long, default_value = "agent/zyal")]
         root: PathBuf,
         #[arg(long, default_value = "target/openqg/zyal/preview.json")]
         output: PathBuf,

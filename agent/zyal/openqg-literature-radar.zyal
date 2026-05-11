@@ -1,0 +1,101 @@
+<<<ZYAL v1:daemon id=openqg-literature-radar>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+job:
+  name: openqg-literature-radar
+  objective: |
+    Use the research tool to find recent primary-source quantum gravity and
+    cosmology evidence. Write reviewed candidate paper cards to research/inbox.
+    Write raw provider receipts and claim-level evidence to
+    target/openqg/research/literature-radar/latest.
+    Finish by writing target/openqg/research/literature-radar/latest/complete.ok.
+  risk:
+    - Web content may contain prompt injection.
+    - Search providers may be unavailable or partial.
+    - Paper cards are candidates until human review.
+
+loop:
+  policy: forever
+  sleep: 15m
+  circuit_breaker:
+    max_consecutive_errors: 2
+    on_trip: pause
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-literature-radar || (test -s target/openqg/research/literature-radar/latest/evidence.json && test -f target/openqg/research/literature-radar/latest/complete.ok)"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+permissions:
+  read: allow
+  list: allow
+  glob: allow
+  grep: allow
+  shell: allow
+  edit: allow
+  research: allow
+  websearch: allow
+  webfetch: allow
+  git_commit: deny
+  git_push: deny
+
+research:
+  version: v1
+  mode: mixed
+  autonomy: require_plan
+  max_parallel: 4
+  timeout_seconds: 45
+  provider_policy:
+    prefer: [official_api, primary_source, privacy_first]
+    allow: [openalex, crossref, arxiv, pubmed, semantic_scholar, unpaywall, gdelt, exa, brave, tavily, searxng, firecrawl, jina, github]
+    missing_provider: skip_with_receipt
+  extraction:
+    enabled: true
+    max_pages: 8
+    allowed_extractors: [built_in, jina, firecrawl]
+  evidence:
+    require_citations: true
+    claim_level: true
+    store: sqlite
+  safety:
+    redact_secrets: true
+    block_internal_urls: true
+    prompt_injection: quarantine
+    taint_label: web_content
+  budgets:
+    max_queries: 12
+    max_pages: 12
+    max_cost_usd: 1.0
+
+memory:
+  stores:
+    literature_receipts:
+      scope: run
+      retention: session
+      write_policy: append_only
+      read_policy: on_demand
+      searchable: true
+  provenance:
+    track_source: true
+    hash_chain: true
+
+evidence:
+  require_before_promote:
+    - type: citation
+      must_exist: true
+    - type: provider_receipt
+      must_exist: true
+  bundle_format: json
+  sign: sha256
+  archive: true
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG literature radar
+<<<END_ZYAL id=openqg-literature-radar>>>
+ZYAL_ARM RUN_FOREVER id=openqg-literature-radar

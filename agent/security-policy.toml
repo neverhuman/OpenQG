@@ -1,18 +1,17 @@
-advisory_tools = ["gitleaks", "cargo-audit", "syft"]
-enabled_tools = ["gitleaks", "cargo-audit"]
+advisory_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
+enabled_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
 required_tools = ["gitleaks"]
 schema_version = "1.0.0"
 
 [profiles.ci]
-advisory_tools = ["cargo-audit", "syft"]
-enabled_tools = ["gitleaks", "cargo-audit", "syft"]
+advisory_tools = ["cargo-audit", "syft", "actionlint", "npm-audit"]
+enabled_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
 required_tools = ["gitleaks"]
 
 [profiles.local]
-advisory_tools = ["gitleaks", "cargo-audit"]
-enabled_tools = ["gitleaks", "cargo-audit"]
+advisory_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
+enabled_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
 required_tools = []
 
 [severity_thresholds]
 fail_lane_on = "high"
-

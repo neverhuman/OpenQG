@@ -1,7 +1,7 @@
 /target
 /reports/releases/draft/*
+/.jekko/
 /.DS_Store
 **/*.lock.json
 **/*.bak
 **/*.tmp
-

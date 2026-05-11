@@ -1,4 +1,4 @@
-use crate::util::{generated_json_text, write_generated_json};
+use crate::util::{generated_json_text, sha256_digest, write_generated_json};
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
@@ -22,6 +22,18 @@ struct RegistryEntry {
     name: String,
     source: PathBuf,
     output: PathBuf,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct SchemaWitness {
+    name: String,
+    source: String,
+    output: String,
+    tool: String,
+    command: String,
+    checked: bool,
+    source_sha256: String,
+    output_sha256: String,
 }
 
 pub fn sync(root: &Path, registry: &Path) -> Result<()> {
@@ -60,6 +72,8 @@ fn sync_entry(root: &Path, registry: &Registry, entry: &RegistryEntry) -> Result
 
 fn check_entry(root: &Path, registry: &Registry, entry: &RegistryEntry) -> Result<()> {
     let schema = load_schema(root, entry)?;
+    let source_path = resolve(root, &entry.source);
+    let source_sha256 = sha256_digest(&fs::read(&source_path)?);
     let json = yaml_to_json(schema)?;
     let expected = generated_json_text(&registry.tool, &registry.sync_command, &json)?;
     let output = resolve(root, &entry.output);
@@ -73,6 +87,7 @@ fn check_entry(root: &Path, registry: &Registry, entry: &RegistryEntry) -> Resul
             entry.source.display()
         );
     }
+    write_witness(root, registry, entry, &actual, source_sha256)?;
     Ok(())
 }
 
@@ -99,6 +114,30 @@ fn load_schema(root: &Path, entry: &RegistryEntry) -> Result<YamlValue> {
     let text = fs::read_to_string(&path)
         .with_context(|| format!("read schema spec {}", path.display()))?;
     serde_yaml::from_str(&text).with_context(|| format!("parse schema spec {}", path.display()))
+}
+
+fn write_witness(
+    root: &Path,
+    registry: &Registry,
+    entry: &RegistryEntry,
+    output_text: &str,
+    source_sha256: String,
+) -> Result<()> {
+    let witness = SchemaWitness {
+        name: entry.name.clone(),
+        source: entry.source.display().to_string(),
+        output: entry.output.display().to_string(),
+        tool: registry.tool.clone(),
+        command: registry.sync_command.clone(),
+        checked: true,
+        source_sha256,
+        output_sha256: sha256_digest(output_text.as_bytes()),
+    };
+    let witness_path = root
+        .join("target/openqg/contracts")
+        .join(format!("{}.witness.json", entry.name));
+    write_generated_json(&witness_path, &registry.tool, "just schema-check", &witness)?;
+    Ok(())
 }
 
 fn yaml_to_json(schema: YamlValue) -> Result<JsonValue> {

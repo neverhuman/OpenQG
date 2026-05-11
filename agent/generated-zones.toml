@@ -3,117 +3,249 @@ path = "target/"
 command = "just release-check"
 source = "just targets"
 read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "target/openqg/bench-smoke/scorecard.json"
 command = "just bench-smoke"
 source = "just bench-smoke"
 read_only = false
+write_policy = "generator_only"
 
 [[zone]]
 path = "target/openqg/data/locks/data-lock.json"
 command = "just data-verify"
 source = "just data-verify"
 read_only = false
+write_policy = "generator_only"
 
 [[zone]]
 path = "target/openqg/zyal/preview.json"
 command = "just zyal-validate"
 source = "just zyal-validate"
 read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/zyal/jekko-preview.jsonl"
+command = "just zyal-jekko-preview"
+source = "just zyal-jekko-preview"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/research/literature-radar/latest/"
+command = "rtk jekko daemon start -f agent/zyal/openqg-literature-radar.zyal"
+source = "agent/zyal/openqg-literature-radar.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/research/knowledge-hardening/latest/"
+command = "rtk jekko daemon start -f agent/zyal/openqg-knowledge-hardening.zyal"
+source = "agent/zyal/openqg-knowledge-hardening.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/benchmarks/nightly/latest/"
+command = "rtk jekko daemon start -f agent/zyal/openqg-benchmark-nightly.zyal"
+source = "agent/zyal/openqg-benchmark-nightly.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/data/refresh/latest/"
+command = "rtk jekko daemon start -f agent/zyal/openqg-data-refresh.zyal"
+source = "agent/zyal/openqg-data-refresh.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/hypothesis/latest/"
+command = "rtk jekko daemon start -f agent/zyal/openqg-hypothesis-tournament.zyal"
+source = "agent/zyal/openqg-hypothesis-tournament.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/theory-incubator/latest/"
+command = "rtk jekko daemon start -f agent/zyal/openqg-theory-incubator.zyal"
+source = "agent/zyal/openqg-theory-incubator.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/openqg/contracts/benchmark-suite.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/benchmark-suite.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/dataset.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/dataset.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/observable.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/observable.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/prediction.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/prediction.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/release.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/release.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/scorecard.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/scorecard.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/theory.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/theory.schema.json"
+read_only = false
+write_policy = "generator_only"
 
 [[zone]]
 path = "target/jankurai/repo-score.json"
 command = "just score"
 source = "just score"
 read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "target/jankurai/repo-score.md"
 command = "just score"
 source = "just score"
 read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/jankurai/accepted-baseline.json"
+command = "jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md"
+source = "jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/jankurai/accepted-baseline.md"
+command = "jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md"
+source = "jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md"
+read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "target/jankurai/security/evidence.json"
 command = "just security"
 source = "just security"
 read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "target/jankurai/security/lane-status.txt"
 command = "just security"
 source = "just security"
 read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "reports/releases/draft/"
 command = "just release-pack"
 source = "just release-pack"
 read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "contracts/generated/"
 command = "just schema-sync"
 source = "contracts/registry.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/"
 command = "just schema-sync"
 source = "contracts/registry.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/benchmark-suite.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/benchmark-suite.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/dataset.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/dataset.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/observable.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/observable.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/prediction.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/prediction.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/release.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/release.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/scorecard.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/scorecard.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "contracts/generated/schemas/theory.schema.json"
 command = "just schema-sync"
 source = "contracts/specs/theory.yml"
 read_only = true
+write_policy = "generator_only"
 
 [[zone]]
 path = "agent/repo-score.json"
 command = "just score"
 source = "installed jankurai binary"
 read_only = false
+write_policy = "auditor_output"
 
 [[zone]]
 path = "agent/repo-score.md"
 command = "just score"
 source = "installed jankurai binary"
 read_only = false
+write_policy = "auditor_output"

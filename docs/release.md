@@ -7,6 +7,9 @@ OpenQG releases are evidence-gated, reproducible from declared commands, and imm
 - benchmark version
 - `target/openqg/data/locks/data-lock.json`
 - `target/openqg/bench-smoke/scorecard.json`
+- `target/openqg/contracts/*.witness.json`
+- `target/openqg/zyal/preview.json`
+- `target/openqg/zyal/jekko-preview.jsonl`
 - `target/jankurai/repo-score.json`
 - `target/jankurai/repo-score.md`
 - `target/jankurai/security/evidence.json`
@@ -23,6 +26,17 @@ OpenQG releases are evidence-gated, reproducible from declared commands, and imm
 
 `just release-check` is the release gate. It runs `just check`, then `just score`, then `just release-pack`.
 
+## Launch Gate
+
+Before publication, the release must have:
+
+- a backup or restore-point receipt for the release data surface
+- a rollback path that can be executed without rewriting published artifacts
+- monitoring or alerting evidence for the release window
+- rate-limit or abuse-control evidence when the release exposes a public interface
+- integrity evidence from generated headers, hashes, and immutable draft artifacts
+- provenance evidence that ties the draft bundle back to the exact source commit
+
 ## Release Evidence
 
 - `just check` must produce the validation evidence for schema, data, benchmark, ZYAL, and security lanes
@@ -36,7 +50,9 @@ OpenQG releases are evidence-gated, reproducible from declared commands, and imm
 
 - `target/openqg/data/locks/data-lock.json`
 - `target/openqg/bench-smoke/scorecard.json`
+- `target/openqg/contracts/*.witness.json`
 - `target/openqg/zyal/preview.json`
+- `target/openqg/zyal/jekko-preview.jsonl`
 - `target/jankurai/repo-score.json`
 - `target/jankurai/repo-score.md`
 - `target/jankurai/security/evidence.json`

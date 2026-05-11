@@ -19,7 +19,7 @@
 
 ## Phase 3: ZYAL Research Loops
 
-- add host-owned runbooks under `ops/zyal/`
+- add host-owned runbooks under `agent/zyal/`
 - validate runbooks before execution
 - keep runtime and preview behavior separable
 

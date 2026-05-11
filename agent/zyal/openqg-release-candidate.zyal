@@ -2,23 +2,31 @@
 version: v1
 intent: daemon
 confirm: RUN_FOREVER
+
 job:
   name: openqg-release-candidate
   objective: Assemble release evidence and pause for human approval before publication.
+
 loop:
   policy: bounded
   sleep: 1h
+
 stop:
-  any:
+  all:
     - shell:
-        command: "test -f .halt-release-candidate"
-        timeout: 5s
+        command: "test -f .halt-release-candidate || (test -s reports/releases/draft/release-manifest.json && test -s reports/releases/draft/release-manifest.md)"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
 checkpoint:
-  when: after_verified_change
+  when: manual
+
 permissions:
   git_push: deny
+
 ui:
-  mode: gold
+  theme: jekko-gold
+  banner: OpenQG release candidate
 <<<END_ZYAL id=openqg-release-candidate>>>
 ZYAL_ARM RUN_FOREVER id=openqg-release-candidate
-

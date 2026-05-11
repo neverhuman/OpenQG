@@ -124,6 +124,48 @@
     "contracts/generated/schemas/theory.schema.json": {
       "command": "just schema-check"
     },
+    "target/openqg/contracts/benchmark-suite.witness.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/dataset.witness.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/observable.witness.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/prediction.witness.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/release.witness.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/scorecard.witness.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/theory.witness.json": {
+      "command": "just schema-check"
+    },
+    "db/": {
+      "command": "just fast"
+    },
+    "db/AGENTS.md": {
+      "command": "just fast"
+    },
+    "db/README.md": {
+      "command": "just fast"
+    },
+    "db/migrations/": {
+      "command": "just fast"
+    },
+    "db/migrations/README.md": {
+      "command": "just fast"
+    },
+    "db/constraints/": {
+      "command": "just fast"
+    },
+    "db/constraints/README.md": {
+      "command": "just fast"
+    },
     "crates/openqg-core/Cargo.toml": {
       "command": "just fast"
     },
@@ -163,10 +205,13 @@
     "research/inbox/": {
       "command": "just fast"
     },
+    "research/knowledge/": {
+      "command": "just fast"
+    },
     "ops/AGENTS.md": {
       "command": "just fast"
     },
-    "ops/zyal/": {
+    "agent/zyal/": {
       "command": "just zyal-validate"
     },
     "crates/openqg-bench/": {

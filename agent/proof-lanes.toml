@@ -8,7 +8,15 @@ required_artifacts = []
 name = "schema-check"
 command = "just schema-check"
 purpose = "schema contract verification lane"
-required_artifacts = []
+required_artifacts = [
+  "target/openqg/contracts/benchmark-suite.witness.json",
+  "target/openqg/contracts/dataset.witness.json",
+  "target/openqg/contracts/observable.witness.json",
+  "target/openqg/contracts/prediction.witness.json",
+  "target/openqg/contracts/release.witness.json",
+  "target/openqg/contracts/scorecard.witness.json",
+  "target/openqg/contracts/theory.witness.json",
+]
 
 [[lane]]
 name = "check"
@@ -18,6 +26,14 @@ required_artifacts = [
   "target/openqg/data/locks/data-lock.json",
   "target/openqg/bench-smoke/scorecard.json",
   "target/openqg/zyal/preview.json",
+  "target/openqg/zyal/jekko-preview.jsonl",
+  "target/openqg/contracts/benchmark-suite.witness.json",
+  "target/openqg/contracts/dataset.witness.json",
+  "target/openqg/contracts/observable.witness.json",
+  "target/openqg/contracts/prediction.witness.json",
+  "target/openqg/contracts/release.witness.json",
+  "target/openqg/contracts/scorecard.witness.json",
+  "target/openqg/contracts/theory.witness.json",
   "target/jankurai/security/evidence.json",
   "target/jankurai/security/lane-status.txt",
 ]
@@ -39,6 +55,12 @@ name = "zyal-validate"
 command = "just zyal-validate"
 purpose = "ZYAL parsing lane"
 required_artifacts = ["target/openqg/zyal/preview.json"]
+
+[[lane]]
+name = "zyal-jekko-preview"
+command = "just zyal-jekko-preview"
+purpose = "Jekko compatibility preview lane"
+required_artifacts = ["target/openqg/zyal/jekko-preview.jsonl"]
 
 [[lane]]
 name = "score"

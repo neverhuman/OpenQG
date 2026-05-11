@@ -15,8 +15,8 @@ editable = [
   "data/registry/**",
   "benchmarks/**",
   "theories/**",
-  "ops/zyal/**",
   "docs/**",
+  "db/**",
   "crates/**",
   "python/ai-service/**",
 ]

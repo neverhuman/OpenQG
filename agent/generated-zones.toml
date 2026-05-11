@@ -139,6 +139,20 @@ read_only = false
 write_policy = "auditor_output"
 
 [[zone]]
+path = "target/jankurai/current-audit.json"
+command = "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+source = "agent/badge.toml"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "target/jankurai/current-audit.md"
+command = "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+source = "agent/badge.toml"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
 path = "target/jankurai/accepted-baseline.json"
 command = "jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md"
 source = "jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md"
@@ -163,6 +177,20 @@ write_policy = "auditor_output"
 path = "target/jankurai/security/lane-status.txt"
 command = "just security"
 source = "just security"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "agent/jankurai-badge.svg"
+command = "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+source = "agent/badge.toml"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
+path = "agent/jankurai-badge.json"
+command = "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+source = "agent/badge.toml"
 read_only = false
 write_policy = "auditor_output"
 

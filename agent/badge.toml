@@ -1,0 +1,12 @@
+# OpenQG README badge auto-update configuration.
+# When present, `jankurai audit` refreshes the badge artifacts after writing
+# the current audit report. Set `enabled = false` to disable.
+
+enabled = true
+score = "target/jankurai/current-audit.json"
+svg = "agent/jankurai-badge.svg"
+json = "agent/jankurai-badge.json"
+readme = "README.md"
+link = "target/jankurai/current-audit.md"
+update_readme = true
+label = "jankurai"

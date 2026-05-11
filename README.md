@@ -1,5 +1,9 @@
 # OpenQG
 
+<!-- jankurai-badge:start -->
+[![Jankurai score: 90/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)
+<!-- jankurai-badge:end -->
+
 OpenQG is an evidence-gated benchmark and control plane for interpretable
 unified-physics theories.
 
@@ -9,25 +13,6 @@ is intentionally conservative: baseline physics stays anchored to
 `SM + GR + LambdaCDM + massive neutrinos`, public data is tracked through
 manifests instead of raw dumps, and candidate theories must expose named
 physical parameters.
-
-## Status
-
-| Signal | Score | State |
-| --- | ---: | --- |
-| Jankurai audit | `90` | pass |
-| Repo benchmark score | `99` | pass |
-| Release | `v0.0.1` | candidate |
-| Smoke benchmark | `benchmark-v0.1.0` | pass |
-| Draft release pack | generated | `approved: false` |
-
-Evidence artifacts:
-
-- `target/jankurai/current-audit.json`
-- `target/jankurai/current-audit.md`
-- `target/jankurai/repo-score.json`
-- `target/jankurai/repo-score.md`
-- `target/openqg/bench-smoke/scorecard.json`
-- `reports/releases/draft/release-manifest.json`
 
 ## Quick Start
 

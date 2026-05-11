@@ -79,6 +79,9 @@
     "agent/standard-version.toml": {
       "command": "just fast"
     },
+    "agent/badge.toml": {
+      "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
     "agent/test-map.json": {
       "command": "just fast"
     },

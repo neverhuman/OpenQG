@@ -1,0 +1,27 @@
+id: asymptotic-safety
+name: Asymptotic safety scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Quantum-scale-symmetry scaffold with an RG fixed-point control parameter.
+citations:
+  - title: Asymptotic safety search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=asymptotic+safety+gravity&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: UV fixed-point scale
+    symbol: k*
+    unit: GeV
+    physical_meaning: Renormalization-group scale where the fixed point is approached
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: to be inferred from RG flow
+  - name: Newton coupling at reference scale
+    symbol: Gk0
+    unit: GeV^-2
+    physical_meaning: Gravitational coupling at the matching scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: matched to low-energy gravity
+adapter:
+  command: openqg-theory predict --manifest theories/asymptotic-safety/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/asymptotic-safety/predictions.jsonl
+

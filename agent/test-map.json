@@ -1,0 +1,197 @@
+{
+  "workspace": "openqg",
+  "tests": {
+    "README.md": {
+      "command": "just fast"
+    },
+    "AGENTS.md": {
+      "command": "just fast"
+    },
+    ".gitignore": {
+      "command": "just fast"
+    },
+    "CITATION.cff": {
+      "command": "just fast"
+    },
+    "CODE_OF_CONDUCT.md": {
+      "command": "just fast"
+    },
+    "CONTRIBUTING.md": {
+      "command": "just fast"
+    },
+    "GOVERNANCE.md": {
+      "command": "just fast"
+    },
+    "MISSION.md": {
+      "command": "just fast"
+    },
+    "SECURITY.md": {
+      "command": "just fast"
+    },
+    "Cargo.toml": {
+      "command": "just fast"
+    },
+    "Cargo.lock": {
+      "command": "just fast"
+    },
+    "CHANGELOG.md": {
+      "command": "just fast"
+    },
+    "Justfile": {
+      "command": "just release-check"
+    },
+    "rust-toolchain.toml": {
+      "command": "just fast"
+    },
+    "agent/AGENTS.md": {
+      "command": "just fast"
+    },
+    "agent/JANKURAI_STANDARD.md": {
+      "command": "just fast"
+    },
+    "agent/MASTER_PLAN.md": {
+      "command": "just fast"
+    },
+    "agent/audit-policy.toml": {
+      "command": "just fast"
+    },
+    "agent/boundaries.toml": {
+      "command": "just fast"
+    },
+    "agent/generated-zones.toml": {
+      "command": "just fast"
+    },
+    "agent/owner-map.json": {
+      "command": "just fast"
+    },
+    "agent/proof-lanes.toml": {
+      "command": "just fast"
+    },
+    "agent/repo-score.json": {
+      "command": "just score"
+    },
+    "agent/repo-score.md": {
+      "command": "just score"
+    },
+    "agent/security-policy.toml": {
+      "command": "just security"
+    },
+    "agent/standard-version.toml": {
+      "command": "just fast"
+    },
+    "agent/test-map.json": {
+      "command": "just fast"
+    },
+    "agent/tool-adoption.toml": {
+      "command": "just fast"
+    },
+    ".github/workflows/": {
+      "command": "just fast"
+    },
+    "contracts/AGENTS.md": {
+      "command": "just fast"
+    },
+    "contracts/generated/AGENTS.md": {
+      "command": "just fast"
+    },
+    "contracts/registry.yml": {
+      "command": "just schema-sync"
+    },
+    "contracts/specs/": {
+      "command": "just schema-sync"
+    },
+    "contracts/generated/schemas/": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/benchmark-suite.schema.json": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/dataset.schema.json": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/observable.schema.json": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/prediction.schema.json": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/release.schema.json": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/scorecard.schema.json": {
+      "command": "just schema-check"
+    },
+    "contracts/generated/schemas/theory.schema.json": {
+      "command": "just schema-check"
+    },
+    "crates/openqg-core/Cargo.toml": {
+      "command": "just fast"
+    },
+    "crates/openqg-core/src/lib.rs": {
+      "command": "just fast"
+    },
+    "data/registry/": {
+      "command": "just data-verify"
+    },
+    "data/fixtures/smoke/observables.jsonl": {
+      "command": "just data-verify"
+    },
+    "data/fixtures/smoke/predictions.jsonl": {
+      "command": "just data-verify"
+    },
+    "data/fixtures/smoke/": {
+      "command": "just data-verify"
+    },
+    "benchmarks/suites/": {
+      "command": "just bench-smoke"
+    },
+    "benchmarks/kpis.yml": {
+      "command": "just bench-smoke"
+    },
+    "docs/AGENTS.md": {
+      "command": "just fast"
+    },
+    "docs/": {
+      "command": "just fast"
+    },
+    "docs/release.md": {
+      "command": "just release-check"
+    },
+    "research/inbox/README.md": {
+      "command": "just fast"
+    },
+    "research/inbox/": {
+      "command": "just fast"
+    },
+    "ops/AGENTS.md": {
+      "command": "just fast"
+    },
+    "ops/zyal/": {
+      "command": "just zyal-validate"
+    },
+    "crates/openqg-bench/": {
+      "command": "just fast"
+    },
+    "crates/domain/": {
+      "command": "just fast"
+    },
+    "crates/domain/AGENTS.md": {
+      "command": "just fast"
+    },
+    "crates/openqg-core/": {
+      "command": "just fast"
+    },
+    "crates/openqg-data/": {
+      "command": "just fast"
+    },
+    "python/ai-service/": {
+      "command": "just fast"
+    },
+    "theories/": {
+      "command": "just fast"
+    },
+    "tools/security-lane.sh": {
+      "command": "just security"
+    }
+  }
+}

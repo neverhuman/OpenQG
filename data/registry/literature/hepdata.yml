@@ -1,0 +1,17 @@
+id: hepdata-literature
+title: HEPData publication tables
+source_url: https://www.hepdata.net/
+license: public-data
+citation: HEPData tables
+version: "2024"
+checksum_strategy: sha256-manifest
+access_method: api-manifest
+expected_columns:
+  - observable
+  - value
+  - uncertainty
+  - unit
+unit_map:
+  observable: dimensionless
+suite: particle
+

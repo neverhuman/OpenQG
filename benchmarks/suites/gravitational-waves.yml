@@ -1,0 +1,14 @@
+id: gravitational-waves
+title: Gravitational-wave suite
+description: Strong-field waveform and catalog consistency.
+benchmark_version: benchmark-v0.1.0
+fixture_observables: data/fixtures/smoke/observables.jsonl
+fixture_predictions: data/fixtures/smoke/predictions.jsonl
+baseline_theory: sm-gr-lcdm-mnu
+dataset_ids:
+  - gwosc-gravitational-waves
+observables:
+  - sum_mnu
+weights:
+  sum_mnu: 1.0
+

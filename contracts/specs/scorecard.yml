@@ -1,0 +1,15 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Scorecard
+type: object
+required:
+  - benchmark_version
+  - suite_id
+  - baseline_theory
+  - candidate_theory
+  - parameter_count
+  - observable_count
+  - matched_observable_count
+  - metrics
+  - findings
+  - generated_at
+additionalProperties: true

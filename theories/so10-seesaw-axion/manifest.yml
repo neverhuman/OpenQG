@@ -1,0 +1,27 @@
+id: so10-seesaw-axion
+name: SO(10) seesaw and axion scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Grand-unification scaffold with seesaw neutrino masses and a QCD axion sector.
+citations:
+  - title: SO10 seesaw search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=SO%2810%29+seesaw+axion&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Unified gauge coupling
+    symbol: g_U
+    unit: dimensionless
+    physical_meaning: Common gauge coupling at the unification scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by gauge-coupling matching
+  - name: Seesaw scale
+    symbol: M_N
+    unit: GeV
+    physical_meaning: Right-handed neutrino Majorana mass scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by neutrino masses
+adapter:
+  command: openqg-theory predict --manifest theories/so10-seesaw-axion/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/so10-seesaw-axion/predictions.jsonl
+

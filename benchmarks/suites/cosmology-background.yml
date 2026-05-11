@@ -1,0 +1,17 @@
+id: cosmology-background
+title: Cosmology background suite
+description: Expansion-history regression with public background data.
+benchmark_version: benchmark-v0.1.0
+fixture_observables: data/fixtures/smoke/observables.jsonl
+fixture_predictions: data/fixtures/smoke/predictions.jsonl
+baseline_theory: sm-gr-lcdm-mnu
+dataset_ids:
+  - planck-legacy-cosmology
+  - desi-dr1
+observables:
+  - h0
+  - omega_m
+weights:
+  h0: 1.0
+  omega_m: 1.0
+

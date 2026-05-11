@@ -1,0 +1,27 @@
+id: openqg-sacft
+name: OpenQG SACFT scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: OpenQG spectral-asymptotic causal field theory scaffold.
+citations:
+  - title: SACFT internal scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=spectral+asymptotic+causal+field+theory&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Spectral scale
+    symbol: Lambda_s
+    unit: GeV
+    physical_meaning: Geometric spectral cutoff scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by spectral action matching
+  - name: Causal regulator scale
+    symbol: ell_c
+    unit: m
+    physical_meaning: Regulator scale for the causal microscopic structure
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by the nonperturbative regulator
+adapter:
+  command: openqg-theory predict --manifest theories/openqg-sacft/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/openqg-sacft/predictions.jsonl
+

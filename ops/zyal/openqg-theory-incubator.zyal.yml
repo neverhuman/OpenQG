@@ -1,0 +1,24 @@
+<<<ZYAL v1:daemon id=openqg-theory-incubator>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+job:
+  name: openqg-theory-incubator
+  objective: Strengthen candidate theory manifests until they are benchmarkable and interpretable.
+loop:
+  policy: forever
+  sleep: 45m
+stop:
+  any:
+    - shell:
+        command: "test -f .halt-theory-incubator"
+        timeout: 5s
+checkpoint:
+  when: after_verified_change
+permissions:
+  git_push: deny
+ui:
+  mode: gold
+<<<END_ZYAL id=openqg-theory-incubator>>>
+ZYAL_ARM RUN_FOREVER id=openqg-theory-incubator
+

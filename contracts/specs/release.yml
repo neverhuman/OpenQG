@@ -1,0 +1,12 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Release Manifest
+type: object
+required:
+  - version
+  - benchmark_version
+  - scorecard_hash
+  - data_lock_hash
+  - candidate_hashes
+  - scorecard_path
+  - approved
+additionalProperties: true

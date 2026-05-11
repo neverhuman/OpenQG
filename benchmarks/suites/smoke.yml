@@ -1,0 +1,19 @@
+id: smoke
+title: Smoke suite
+description: Tiny committed fixtures for the baseline physics regression.
+benchmark_version: benchmark-v0.1.0
+fixture_observables: data/fixtures/smoke/observables.jsonl
+fixture_predictions: data/fixtures/smoke/predictions.jsonl
+baseline_theory: sm-gr-lcdm-mnu
+dataset_ids:
+  - nist-codata-constants
+  - planck-legacy-cosmology
+observables:
+  - h0
+  - omega_m
+  - sum_mnu
+weights:
+  h0: 1.0
+  omega_m: 1.0
+  sum_mnu: 1.0
+

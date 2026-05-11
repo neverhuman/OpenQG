@@ -1,0 +1,27 @@
+id: causal-set
+name: Causal set scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Discrete causal-order scaffold with sprinkling density and nonlocality scale.
+citations:
+  - title: Causal set search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=causal+set+theory&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Sprinkling density
+    symbol: rho
+    unit: l_P^-4
+    physical_meaning: Fundamental spacetime density of the causal set
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: set by the discrete spacetime ontology
+  - name: Nonlocality scale
+    symbol: ell_nl
+    unit: m
+    physical_meaning: Scale suppressing nonlocal corrections
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: derived from the continuum recovery choice
+adapter:
+  command: openqg-theory predict --manifest theories/causal-set/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/causal-set/predictions.jsonl
+

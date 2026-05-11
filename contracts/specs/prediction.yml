@@ -1,0 +1,9 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Prediction Record
+type: object
+required:
+  - observable_id
+  - value
+  - uncertainty
+  - unit
+additionalProperties: true

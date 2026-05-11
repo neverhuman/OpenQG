@@ -1,0 +1,4 @@
+{"observable_id":"h0","value":67.4,"uncertainty":0.5,"unit":"km s^-1 Mpc^-1","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"omega_m","value":0.315,"uncertainty":0.007,"unit":"dimensionless","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"sum_mnu","value":0.06,"uncertainty":0.02,"unit":"eV","theory_id":"sm-gr-lcdm-mnu"}
+

@@ -1,0 +1,25 @@
+[workspace]
+members = [
+  "crates/domain",
+  "crates/openqg-core",
+  "crates/openqg-data",
+  "crates/openqg-bench",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+version = "0.1.0"
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+glob = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.10"
+thiserror = "1"
+toml = "0.8"
+walkdir = "2"

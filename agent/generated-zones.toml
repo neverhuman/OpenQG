@@ -1,0 +1,119 @@
+[[zone]]
+path = "target/"
+command = "just release-check"
+source = "just targets"
+read_only = false
+
+[[zone]]
+path = "target/openqg/bench-smoke/scorecard.json"
+command = "just bench-smoke"
+source = "just bench-smoke"
+read_only = false
+
+[[zone]]
+path = "target/openqg/data/locks/data-lock.json"
+command = "just data-verify"
+source = "just data-verify"
+read_only = false
+
+[[zone]]
+path = "target/openqg/zyal/preview.json"
+command = "just zyal-validate"
+source = "just zyal-validate"
+read_only = false
+
+[[zone]]
+path = "target/jankurai/repo-score.json"
+command = "just score"
+source = "just score"
+read_only = false
+
+[[zone]]
+path = "target/jankurai/repo-score.md"
+command = "just score"
+source = "just score"
+read_only = false
+
+[[zone]]
+path = "target/jankurai/security/evidence.json"
+command = "just security"
+source = "just security"
+read_only = false
+
+[[zone]]
+path = "target/jankurai/security/lane-status.txt"
+command = "just security"
+source = "just security"
+read_only = false
+
+[[zone]]
+path = "reports/releases/draft/"
+command = "just release-pack"
+source = "just release-pack"
+read_only = false
+
+[[zone]]
+path = "contracts/generated/"
+command = "just schema-sync"
+source = "contracts/registry.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/"
+command = "just schema-sync"
+source = "contracts/registry.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/benchmark-suite.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/benchmark-suite.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/dataset.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/dataset.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/observable.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/observable.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/prediction.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/prediction.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/release.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/release.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/scorecard.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/scorecard.yml"
+read_only = true
+
+[[zone]]
+path = "contracts/generated/schemas/theory.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/theory.yml"
+read_only = true
+
+[[zone]]
+path = "agent/repo-score.json"
+command = "just score"
+source = "installed jankurai binary"
+read_only = false
+
+[[zone]]
+path = "agent/repo-score.md"
+command = "just score"
+source = "installed jankurai binary"
+read_only = false

@@ -1,0 +1,16 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Dataset Manifest
+type: object
+required:
+  - id
+  - title
+  - source_url
+  - license
+  - citation
+  - version
+  - checksum_strategy
+  - access_method
+  - expected_columns
+  - unit_map
+  - suite
+additionalProperties: true

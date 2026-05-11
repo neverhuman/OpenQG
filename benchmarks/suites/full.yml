@@ -1,0 +1,24 @@
+id: full
+title: Full benchmark umbrella
+description: Umbrella suite for the initial registry-backed benchmark set.
+benchmark_version: benchmark-v0.1.0
+fixture_observables: data/fixtures/smoke/observables.jsonl
+fixture_predictions: data/fixtures/smoke/predictions.jsonl
+baseline_theory: sm-gr-lcdm-mnu
+dataset_ids:
+  - nist-codata-constants
+  - pdg-particle-data
+  - planck-legacy-cosmology
+  - gwosc-gravitational-waves
+  - sparc-galaxy-rotation
+  - desi-dr1
+  - hepdata-literature
+observables:
+  - h0
+  - omega_m
+  - sum_mnu
+weights:
+  h0: 1.0
+  omega_m: 1.0
+  sum_mnu: 1.0
+

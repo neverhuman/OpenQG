@@ -1,0 +1,27 @@
+id: lqg-spinfoam-gft
+name: Loop quantum gravity / spin foam / group field theory scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Background-independent geometry scaffold with discrete area and volume parameters.
+citations:
+  - title: Spin foam search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=spin+foam+quantum+gravity&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Immirzi parameter
+    symbol: gamma
+    unit: dimensionless
+    physical_meaning: Loop-quantum-gravity Barbero-Immirzi parameter
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by geometric quantization convention
+  - name: Area gap
+    symbol: A_gap
+    unit: l_P^2
+    physical_meaning: Smallest discrete area eigenvalue
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: derived from the chosen quantum-geometry sector
+adapter:
+  command: openqg-theory predict --manifest theories/lqg-spinfoam-gft/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/lqg-spinfoam-gft/predictions.jsonl
+

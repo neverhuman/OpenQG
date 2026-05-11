@@ -1,0 +1,19 @@
+id: nist-codata-constants
+title: NIST CODATA constants
+source_url: https://www.nist.gov/pml/fundamental-physical-constants
+license: public-domain
+citation: NIST CODATA constants table
+version: "2022"
+checksum_strategy: sha256-manifest
+access_method: manual-download
+expected_columns:
+  - quantity
+  - value
+  - unit
+  - uncertainty
+unit_map:
+  c: m s^-1
+  h: J s
+  G: m^3 kg^-1 s^-2
+suite: constants
+

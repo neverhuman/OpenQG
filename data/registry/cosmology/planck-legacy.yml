@@ -1,0 +1,18 @@
+id: planck-legacy-cosmology
+title: Planck Legacy Archive
+source_url: https://www.cosmos.esa.int/web/planck/pla
+license: public-data
+citation: Planck Legacy Archive
+version: "2018"
+checksum_strategy: sha256-manifest
+access_method: archive-manifest
+expected_columns:
+  - parameter
+  - value
+  - uncertainty
+  - unit
+unit_map:
+  H0: km s^-1 Mpc^-1
+  Omega_m: dimensionless
+suite: cosmology
+

@@ -1,0 +1,25 @@
+workspace: openqg
+tool: openqg-contracts
+sync_command: just schema-sync
+entries:
+  - name: benchmark-suite
+    source: contracts/specs/benchmark-suite.yml
+    output: contracts/generated/schemas/benchmark-suite.schema.json
+  - name: dataset
+    source: contracts/specs/dataset.yml
+    output: contracts/generated/schemas/dataset.schema.json
+  - name: observable
+    source: contracts/specs/observable.yml
+    output: contracts/generated/schemas/observable.schema.json
+  - name: prediction
+    source: contracts/specs/prediction.yml
+    output: contracts/generated/schemas/prediction.schema.json
+  - name: release
+    source: contracts/specs/release.yml
+    output: contracts/generated/schemas/release.schema.json
+  - name: scorecard
+    source: contracts/specs/scorecard.yml
+    output: contracts/generated/schemas/scorecard.schema.json
+  - name: theory
+    source: contracts/specs/theory.yml
+    output: contracts/generated/schemas/theory.schema.json

@@ -1,0 +1,24 @@
+<<<ZYAL v1:daemon id=openqg-release-candidate>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+job:
+  name: openqg-release-candidate
+  objective: Assemble release evidence and pause for human approval before publication.
+loop:
+  policy: bounded
+  sleep: 1h
+stop:
+  any:
+    - shell:
+        command: "test -f .halt-release-candidate"
+        timeout: 5s
+checkpoint:
+  when: after_verified_change
+permissions:
+  git_push: deny
+ui:
+  mode: gold
+<<<END_ZYAL id=openqg-release-candidate>>>
+ZYAL_ARM RUN_FOREVER id=openqg-release-candidate
+

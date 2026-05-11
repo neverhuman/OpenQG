@@ -1,0 +1,4 @@
+{"observable_id":"h0","kind":"cosmology","value":67.4,"uncertainty":0.5,"unit":"km s^-1 Mpc^-1","source":"planck"}
+{"observable_id":"omega_m","kind":"cosmology","value":0.315,"uncertainty":0.007,"unit":"dimensionless","source":"planck"}
+{"observable_id":"sum_mnu","kind":"neutrino","value":0.06,"uncertainty":0.02,"unit":"eV","source":"cosmology"}
+

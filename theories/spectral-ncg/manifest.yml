@@ -1,0 +1,27 @@
+id: spectral-ncg
+name: Spectral noncommutative geometry scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Spectral action scaffold with a geometric cutoff and finite-geometry parameters.
+citations:
+  - title: Spectral action search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=spectral+action+standard+model&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Spectral cutoff
+    symbol: Lambda_s
+    unit: GeV
+    physical_meaning: Spectral action cutoff scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: boundary value for the heat-kernel expansion
+  - name: Higgs matching scale
+    symbol: mu_H
+    unit: GeV
+    physical_meaning: Scale where the spectral action matches the Higgs sector
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by matching to the low-energy effective action
+adapter:
+  command: openqg-theory predict --manifest theories/spectral-ncg/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/spectral-ncg/predictions.jsonl
+

@@ -1,0 +1,18 @@
+id: pdg-particle-data
+title: PDG API particle summary
+source_url: https://pdg.lbl.gov/api
+license: public-domain
+citation: Particle Data Group API
+version: "2024"
+checksum_strategy: sha256-manifest
+access_method: api-manifest
+expected_columns:
+  - particle
+  - mass
+  - width
+  - charge
+unit_map:
+  mass: GeV
+  width: GeV
+suite: particle
+

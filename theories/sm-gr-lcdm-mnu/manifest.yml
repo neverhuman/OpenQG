@@ -1,0 +1,38 @@
+id: sm-gr-lcdm-mnu
+name: Standard Model + GR + LambdaCDM + massive neutrinos
+status: baseline
+benchmark_suite: smoke
+description: Exact low-energy baseline used as the control plane reference model.
+citations:
+  - title: Planck 2018 cosmological parameters
+    authors:
+      - Planck Collaboration
+    year: 2020
+    url: https://arxiv.org/search/?query=Planck+2018+cosmological+parameters&searchtype=all
+observables:
+  - h0
+  - omega_m
+  - sum_mnu
+parameters:
+  - name: Hubble constant
+    symbol: H0
+    unit: km s^-1 Mpc^-1
+    physical_meaning: Present-day Hubble expansion rate
+    prior_or_fixed_value: 67.4
+    source_or_free_reason: anchored to public cosmology fits
+  - name: Matter density fraction
+    symbol: Omega_m
+    unit: dimensionless
+    physical_meaning: Total non-relativistic matter density fraction
+    prior_or_fixed_value: 0.315
+    source_or_free_reason: anchored to public cosmology fits
+  - name: Neutrino mass sum
+    symbol: sum_mnu
+    unit: eV
+    physical_meaning: Total neutrino mass scale
+    prior_or_fixed_value: 0.06
+    source_or_free_reason: minimal mass compatible with oscillation data
+adapter:
+  command: openqg-theory predict --manifest theories/sm-gr-lcdm-mnu/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/bench-smoke/predictions.jsonl
+  predictions_path: data/fixtures/smoke/predictions.jsonl
+

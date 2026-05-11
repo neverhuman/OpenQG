@@ -1,0 +1,27 @@
+id: string-holography
+name: String / holography unification scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: String-theory-inspired scaffold with named geometric parameters.
+citations:
+  - title: String phenomenology search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=string+phenomenology+review&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: String scale
+    symbol: Ms
+    unit: GeV
+    physical_meaning: Fundamental string excitation scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: expected to be fixed by UV consistency
+  - name: Compactification radius
+    symbol: Rc
+    unit: GeV^-1
+    physical_meaning: Dominant compactification length scale
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: set by geometry and flux choice
+adapter:
+  command: openqg-theory predict --manifest theories/string-holography/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/string-holography/predictions.jsonl
+

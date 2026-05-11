@@ -1,0 +1,10 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Observable Record
+type: object
+required:
+  - observable_id
+  - kind
+  - value
+  - uncertainty
+  - unit
+additionalProperties: true

@@ -1,0 +1,18 @@
+id: desi-dr1
+title: DESI Data Release 1
+source_url: https://data.desi.lbl.gov/doc/releases/dr1/
+license: public-data
+citation: DESI DR1
+version: "1"
+checksum_strategy: sha256-manifest
+access_method: release-manifest
+expected_columns:
+  - tracer
+  - z
+  - distance
+  - uncertainty
+unit_map:
+  z: dimensionless
+  distance: Mpc
+suite: cosmology
+

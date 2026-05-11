@@ -1,0 +1,43 @@
+[forbidden]
+paths = [
+  "target/**",
+  "reports/releases/draft/**",
+  "contracts/generated/**",
+  "data/**/raw/**",
+  "**/*.secrets",
+]
+
+[ownership]
+editable = [
+  "agent/**",
+  "contracts/registry.yml",
+  "contracts/specs/**",
+  "data/registry/**",
+  "benchmarks/**",
+  "theories/**",
+  "ops/zyal/**",
+  "docs/**",
+  "crates/**",
+  "python/ai-service/**",
+]
+
+[concurrency]
+conflict_paths = [
+  "Justfile",
+  "agent/owner-map.json",
+  "agent/test-map.json",
+  "agent/generated-zones.toml",
+  "agent/boundaries.toml",
+  "agent/proof-lanes.toml",
+  "contracts/registry.yml",
+]
+
+[queues]
+adapter_paths = ["crates/openqg-data/src", "crates/openqg-bench/src"]
+client_markers = ["openqg-theory predict"]
+event_contract_paths = ["contracts/specs"]
+generated_type_paths = ["contracts/generated/schemas"]
+
+[stack]
+id = "openqg-rust-bench-physics"
+version = "0.1.0"

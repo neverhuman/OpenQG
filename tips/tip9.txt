@@ -1,0 +1,1035 @@
+## Bottom line
+
+The strongest current “unified theory” in the empirical sense is still **not a true theory of everything**: it is **Standard Model + general relativity + quantum/effective field theory + ΛCDM**, with open physical parameters. It wins because it fits the most public data across particle physics, gravity, cosmology, and astrophysics. But it leaves gravity unquantized at high energy, does not explain dark matter, dark energy, inflation, baryogenesis, the hierarchy problem, the flavor/Yukawa pattern, the number of generations, or the cosmological constant.
+
+My best proposed route is therefore **not** a black-box model. It is a conservative but falsifiable synthesis:
+
+> **Spectral-Asymptotic Causal Field Theory**: Standard Model gauge/matter structure from spectral geometry, gravity quantized through an asymptotically safe effective action, causal/Lorentzian microscopic structure, right-handed neutrinos, and an axion/dark-sector extension.
+> It reduces to SM+GR+ΛCDM where those are already tested, but imposes UV boundary conditions, physical sum rules, and small high-energy corrections that can be tested with open data.
+
+I would not claim this is established truth. I would claim it is the **highest-probability research program** if the goal is: interpretable physical parameters, maximum contact with public data, and a realistic chance of surviving current tests.
+
+---
+
+## 1. Current top contenders, ranked by promise
+
+| Rank | Framework                                                                      | Why it is promising                                                                                                                                                                                                                                                                                                    | Main gaps / failure modes                                                                                                                                                                                               | Parameter status                                                                                            |
+| ---: | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+|    1 | **SM + GR + EFT + ΛCDM baseline**                                              | Best empirical coverage: particle spectra, collider data, precision constants, CMB, large-scale structure, gravitational waves, solar-system gravity. Planck/LAMBDA, CERN/HEPData, NIST/CODATA, GWOSC, Gaia, DESI, SDSS, DES, and other open portals make this the benchmark every contender must beat. ([LAMBDA][1])  | Not a true unification. Quantum gravity absent as a fundamental theory; dark matter and dark energy are phenomenological; SM has many unexplained masses/mixings; cosmological constant and hierarchy problems remain.  | Excellent: parameters have names and units, but many are unexplained inputs.                                |
+|    2 | **String / M-theory, including compactifications, branes, swampland, AdS/CFT** | Most developed UV-complete framework that naturally contains gauge interactions and gravity; gives black-hole entropy, holography, dualities, and a route to quantum gravity. Reviews emphasize that string compactifications can produce gauge sectors resembling the SM, though selection remains hard. ([arXiv][2]) | Landscape problem; no unique vacuum; difficult de Sitter/dark-energy sector; few unavoidable low-energy predictions; hard to falsify globally.                                                                          | In a chosen compactification, parameters can be geometric/moduli data; globally, model space is huge.       |
+|    3 | **Asymptotic safety for quantum gravity + matter**                             | Keeps QFT logic: gravity becomes predictive if the UV has a non-Gaussian fixed point with finitely many relevant directions. It is attractive because it can in principle connect quantum gravity to SM parameter predictions rather than adding arbitrary UV physics. ([arXiv][3])                                    | Evidence depends on truncations, regulator choices, matter content, and continuation from Euclidean to Lorentzian physics. Unitarity and full SM coupling remain under active study.                                    | Strong: finite relevant couplings if the fixed point exists; parameters are physical RG coordinates.        |
+|    4 | **Loop quantum gravity / spin foams / loop quantum cosmology**                 | Background-independent quantization of geometry; spacetime area/volume become quantum; strong conceptual match to GR; singularity-resolution scenarios in black holes/cosmology. ([arXiv][4])                                                                                                                          | Hard to recover full semiclassical GR + local QFT + SM in a unique continuum limit; phenomenology is not yet decisive.                                                                                                  | Geometric parameters are physical, but low-energy matching is incomplete.                                   |
+|    5 | **Causal dynamical triangulations, CDT**                                       | Direct nonperturbative path-integral approach with causal Lorentzian structure; numerical work shows emergent 4D semiclassical geometry and de Sitter-like large-scale behavior in studied phases. ([arXiv][5])                                                                                                        | Need continuum limit, matter coupling, robust observables, and stronger links to the SM.                                                                                                                                | Good: lattice/continuum couplings are physical, but phase-structure dependence remains.                     |
+|    6 | **Causal set theory**                                                          | Fundamental discreteness plus causal order; Lorentz invariance can be more natural than in fixed lattices; potentially relevant to cosmological constant fluctuations. ([Nature][6])                                                                                                                                   | Dynamics, manifold recovery, gauge fields, fermions, and quantitative predictions are underdeveloped.                                                                                                                   | Good in principle: discreteness density and order structure are meaningful.                                 |
+|    7 | **Holography, quantum information gravity, celestial amplitudes**              | AdS/CFT is the clearest nonperturbative example of quantum gravity; amplitudes/celestial holography reveal deep structures in scattering, soft theorems, symmetries, and spacetime emergence. ([APS Link][7])                                                                                                          | Our universe is not cleanly AdS; de Sitter and realistic cosmology remain unsolved; celestial programs are powerful but not yet complete 4D physics. Some bottom-up constructions face consistency issues. ([arXiv][8]) | Mostly structural; fewer arbitrary parameters, but dictionary to measured quantities is incomplete.         |
+|    8 | **Noncommutative / spectral geometry**                                         | Very attractive for your “no gray-box” preference: the SM gauge group and Higgs sector can be encoded geometrically via spectral triples; the spectral action yields gravity + gauge + Higgs terms from one operator. ([Springer][9])                                                                                  | Quantum completion unclear; flavor/generation structure not fully derived; Lorentzian spectral geometry is technically hard; predictions depend on finite geometry choices.                                             | Strong: parameters are geometric, spectral, or coupling constants.                                          |
+|    9 | **GUT/SUSY/SO(10)/E6 families**                                                | Gauge coupling unification, matter multiplets, neutrino masses, proton decay predictions, and possible dark matter candidates. Modern GUTs remain useful as constrained UV completions even without low-scale SUSY. ([arXiv][10])                                                                                      | No proton decay observed; no superpartners detected so far; many threshold/flavor choices; minimal models often fail. LHC results have heavily constrained weak-scale SUSY, though not all SUSY. ([arXiv][11])          | Moderate to strong: masses, thresholds, and representations are physical, but model proliferation is large. |
+|   10 | **Post-quantum / stochastic classical gravity alternatives**                   | Interesting wildcard: attempts to couple classical gravity consistently to quantum matter via stochastic dynamics, with possible low-energy tests. ([APS Link][12])                                                                                                                                                    | Not yet a full unification of all forces; modifies quantum foundations; controversial; must survive very tight equivalence-principle, decoherence, and cosmology tests.                                                 | Good: noise/coupling parameters are physical, but framework is immature.                                    |
+
+My ranking: **as a physics program**, string theory has the broadest UV machinery; **as a falsifiable data-facing program**, asymptotic safety + spectral geometry + EFT phenomenology is currently the most promising route.
+
+---
+
+## 2. Hard empirical constraints every contender must pass
+
+Any viable unified theory must reproduce, at minimum:
+
+1. **The Standard Model spectrum and precision parameters**: gauge couplings, quark/lepton masses, CKM/PMNS mixing, Higgs mass/couplings, rare decays, electroweak precision data, QCD, neutrino oscillation data. NuFIT 6.0, for example, gives updated global neutrino oscillation constraints through September 2024. ([Nu-Fit][13])
+2. **Classical and semiclassical GR**: solar-system ephemerides, equivalence principle, lunar laser ranging, binary pulsars, black-hole mergers, GW speed, waveform phasing, lensing. GWOSC now hosts public LIGO/Virgo/KAGRA strain and catalogs, including O4a/GWTC-4 material. ([GW Open Science Center][14])
+3. **Cosmology**: CMB spectra/lensing, BAO, supernovae, growth of structure, weak lensing, BBN, dark-matter abundance, Hubble-tension-related data. DESI DR1 and recent DESI results are especially important because they test whether dark energy is truly constant. ([DESI Data][15])
+4. **No forbidden new physics**: no large fifth force, no large Lorentz violation, no strong equivalence-principle violation, no fast proton decay, no unobserved collider states below current limits. MICROSCOPE, for instance, tested the weak equivalence principle down to roughly the (10^{-15}) level. ([arXiv][16])
+5. **Black-hole and high-energy consistency**: entropy, evaporation, causal structure, singularity resolution, and agreement with EHT/GW data where testable. EHT has released public datasets for M87 and Sgr A* campaigns. ([GitHub][17])
+
+---
+
+## 3. My proposed unified model
+
+I will call it:
+
+# **Spectral-Asymptotic Causal Field Theory**
+
+### SACFT
+
+It combines four ideas:
+
+1. **Spectral geometry** for the identity of particles and gauge forces.
+2. **Asymptotic safety** for the UV completion of gravity plus matter.
+3. **Causal Lorentzian structure** to avoid treating time as a Euclidean afterthought.
+4. **Minimal physical dark sector**: right-handed neutrinos plus a QCD-like axion, not arbitrary hidden fields.
+
+The model is deliberately conservative at tested energies. It does not try to replace the SM or GR where they already win. It tries to explain why that structure appears and to make new UV/IR constraints testable.
+
+---
+
+## 4. Fundamental objects
+
+The kinematic object is a Lorentzian spectral triple-like structure:
+
+[
+\mathcal{G} =
+\left(
+\mathcal A,,
+\mathcal H,,
+D,,
+J,,
+\Gamma,,
+\mathcal C
+\right)
+]
+
+where:
+
+[
+\mathcal A
+==========
+
+C^\infty(M)
+\otimes
+\mathcal A_F
+]
+
+and the finite algebra is
+
+[
+\mathcal A_F
+============
+
+\mathbb C
+\oplus
+\mathbb H
+\oplus
+M_3(\mathbb C).
+]
+
+This is the spectral-geometric seed of the Standard Model gauge group:
+
+[
+G_{\rm SM}
+==========
+
+\frac{U(1)_Y \times SU(2)_L \times SU(3)_c}{\mathbb Z_6}.
+]
+
+The Hilbert space is
+
+[
+\mathcal H
+==========
+
+L^2(M,S)
+\otimes
+\mathcal H_F,
+]
+
+where (L^2(M,S)) contains spacetime spinors and (\mathcal H_F) contains the finite internal degrees of freedom:
+
+[
+\mathcal H_F =
+{
+q_L,u_R,d_R,\ell_L,e_R,N_R
+}_{i=1,2,3}
+]
+
+including three right-handed neutrinos (N_R).
+
+The fluctuated Dirac operator is
+
+[
+D_A
+===
+
+D_M \otimes 1
++
+\gamma^5 \otimes D_F
++
+A
++
+J A J^{-1},
+]
+
+with
+
+[
+A = \sum_i a_i [D,b_i],
+\qquad
+a_i,b_i \in \mathcal A.
+]
+
+Gauge bosons and the Higgs field arise from inner fluctuations of (D). Fermion masses and mixings are entries of (D_F), not anonymous fitted weights.
+
+---
+
+## 5. Action
+
+The full action is:
+
+[
+S
+=
+
+S_{\rm spec}
++
+S_{\rm ferm}
++
+S_{\rm axion}
++
+S_{\rm boundary}
++
+S_{\rm gauge\ fixing}.
+]
+
+The spectral bosonic action is
+
+[
+S_{\rm spec}
+============
+
+{\rm Tr}
+,
+f
+\left(
+\frac{D_A^2}{\Lambda_*^2}
+\right).
+]
+
+At energies (E \ll \Lambda_*), its heat-kernel expansion gives an effective action of the form
+
+[
+S_{\rm eff}
+===========
+
+\int d^4x,\sqrt{-g}
+\left[
+\frac{M_P^2}{2}R
+----------------
+
+\rho_\Lambda
++
+\alpha_R R^2
++
+\alpha_C C_{\mu\nu\rho\sigma}C^{\mu\nu\rho\sigma}
++
+\alpha_E E
++
+\mathcal L_{\rm SM}
++
+\mathcal L_N
++
+\mathcal L_a
+\right].
+]
+
+Here:
+
+* (M_P): reduced Planck mass.
+* (\rho_\Lambda): vacuum-energy density.
+* (\alpha_R): scalar-curvature-squared coupling.
+* (\alpha_C): Weyl-curvature-squared coupling.
+* (\alpha_E): Euler-density coefficient.
+* (C_{\mu\nu\rho\sigma}): Weyl tensor.
+* (E): Gauss-Bonnet density.
+* (\mathcal L_N): right-handed neutrino sector.
+* (\mathcal L_a): axion sector.
+
+The SM Lagrangian is
+
+[
+\mathcal L_{\rm SM}
+===================
+
+-\frac14
+\sum_{A=1}^{12}
+F^A_{\mu\nu}F_A^{\mu\nu}
++
+(D_\mu H)^\dagger(D^\mu H)
+--------------------------
+
+V(H)
++
+\bar\Psi i\gamma^\mu D_\mu\Psi
+------------------------------
+
+\mathcal L_Y.
+]
+
+The Higgs potential is
+
+[
+V(H)
+====
+
+-m_H^2 H^\dagger H
++
+\lambda (H^\dagger H)^2
++
+\xi_H R H^\dagger H.
+]
+
+The Yukawa sector is
+
+[
+\mathcal L_Y
+============
+
+\bar q_L Y_u \tilde H u_R
++
+\bar q_L Y_d H d_R
++
+\bar \ell_L Y_e H e_R
++
+\bar \ell_L Y_\nu \tilde H N_R
++
+\frac12 \overline{N_R^c}M_N N_R
++
+{\rm h.c.}
+]
+
+The light neutrino mass matrix is generated by the type-I seesaw:
+
+[
+m_\nu
+\simeq
+-\frac{v^2}{2}
+Y_\nu M_N^{-1}Y_\nu^T.
+]
+
+The axion sector is
+
+[
+\mathcal L_a
+============
+
+\frac12
+\partial_\mu a,\partial^\mu a
+-----------------------------
+
+V(a)
++
+\frac{a}{32\pi^2 f_a}
+\sum_b c_b g_b^2
+F^b_{\mu\nu}\tilde F_b^{\mu\nu}.
+]
+
+For a QCD axion,
+
+[
+V(a)
+\simeq
+m_a^2 f_a^2
+\left[
+1-\cos\left(\frac{a}{f_a}\right)
+\right],
+]
+
+with
+
+[
+m_a f_a
+\simeq
+\frac{\sqrt{m_u m_d}}{m_u+m_d}
+m_\pi f_\pi.
+]
+
+---
+
+## 6. Field equations
+
+Varying the effective action gives the modified Einstein equation:
+
+[
+M_P^2 G_{\mu\nu}
++
+\rho_\Lambda g_{\mu\nu}
++
+2\alpha_R H_{\mu\nu}^{(R^2)}
++
+2\alpha_C B_{\mu\nu}
+====================
+
+T_{\mu\nu}^{\rm SM}
++
+T_{\mu\nu}^{N}
++
+T_{\mu\nu}^{a}.
+]
+
+The (R^2) variation is
+
+[
+H_{\mu\nu}^{(R^2)}
+==================
+
+## 2RR_{\mu\nu}
+
+\frac12 g_{\mu\nu}R^2
++
+2
+\left(
+g_{\mu\nu}\Box
+--------------
+
+\nabla_\mu\nabla_\nu
+\right)R.
+]
+
+(B_{\mu\nu}) is the Bach tensor from the Weyl-squared term.
+
+Gauge fields obey
+
+[
+D_\mu F_a^{\mu\nu}
+==================
+
+## J_a^\nu
+
+\frac{c_a g_a^2}{8\pi^2 f_a}
+(\partial_\mu a)\tilde F_a^{\mu\nu}.
+]
+
+The Higgs equation is
+
+[
+D^2H
++
+m_H^2H
+------
+
+## 2\lambda(H^\dagger H)H
+
+\xi_H R H
++
+\frac{\partial \mathcal L_Y}{\partial H^\dagger}
+================================================
+
+0.
+
+]
+
+The axion equation is
+
+[
+\Box a
++
+\frac{\partial V}{\partial a}
+=============================
+
+*
+
+\frac{1}{32\pi^2 f_a}
+\sum_b c_b g_b^2
+F^b_{\mu\nu}\tilde F_b^{\mu\nu}.
+]
+
+Fermions obey
+
+[
+i\gamma^\mu D_\mu \Psi
+----------------------
+
+# \frac{\partial \mathcal L_Y}{\partial \bar \Psi}
+
+0.
+
+]
+
+---
+
+## 7. UV completion condition
+
+The key unification condition is not “fit everything with free coefficients.” It is:
+
+[
+k\frac{d u_i}{dk}
+=================
+
+\beta_i(u_1,u_2,\dots),
+]
+
+where
+
+[
+u_i
+\in
+{
+g_N,\lambda_N,g_1,g_2,g_3,
+Y_u,Y_d,Y_e,Y_\nu,\lambda,
+\alpha_R,\alpha_C,\xi_H,\dots
+}.
+]
+
+The dimensionless Newton and cosmological couplings are
+
+[
+g_N(k)=k^2G(k),
+\qquad
+\lambda_N(k)=\frac{\Lambda(k)}{k^2}.
+]
+
+Asymptotic safety requires
+
+[
+\lim_{k\to\infty} u_i(k)=u_i^*,
+]
+
+with only finitely many relevant directions:
+
+[
+\theta_I
+========
+
+-\text{eig}
+\left[
+\frac{\partial \beta_i}{\partial u_j}
+\right]_{u=u^*},
+\qquad
+\theta_I>0
+\quad
+\text{for only finitely many } I.
+]
+
+That condition gives predictivity: only the relevant directions are free physical inputs.
+
+---
+
+## 8. Spectral unification boundary conditions
+
+At the unification scale (\Lambda_*), impose:
+
+[
+g_3^2(\Lambda_*)
+================
+
+# g_2^2(\Lambda_*)
+
+\frac53 g_Y^2(\Lambda_*).
+]
+
+The spectral action also motivates a Yukawa/Higgs sum rule. I would use it as a falsifiable boundary condition, not as dogma:
+
+[
+{\rm Tr}
+\left[
+Y_e^\dagger Y_e
++
+Y_\nu^\dagger Y_\nu
++
+3Y_u^\dagger Y_u
++
+3Y_d^\dagger Y_d
+\right]*{\Lambda**}
+===================
+
+4g_*^2.
+]
+
+A corresponding Higgs-quartic constraint can be written schematically as
+
+[
+\lambda(\Lambda_*)
+==================
+
+\frac12
+\frac{
+{\rm Tr}
+\left[
+(Y^\dagger Y)^2
+\right]
+}{
+{\rm Tr}
+\left[
+Y^\dagger Y
+\right]
+},
+]
+
+where the trace runs over the finite spectral internal space with color and generation multiplicities.
+
+These are extremely useful because they convert “unification” into a public-data test: run measured low-energy couplings upward with RG equations and see whether the boundary conditions can be satisfied without arbitrary threshold engineering.
+
+---
+
+## 9. Physical parameter list
+
+This is intentionally not a gray-box parameter set.
+
+### Gravitational parameters
+
+[
+M_P,\quad
+\rho_\Lambda,\quad
+\alpha_R,\quad
+\alpha_C,\quad
+\xi_H.
+]
+
+Physical meaning:
+
+* (M_P): gravitational strength.
+* (\rho_\Lambda): vacuum energy.
+* (\alpha_R): scalaron/inflationary curvature correction.
+* (\alpha_C): spin-2/Weyl correction, tightly constrained by stability and precision gravity.
+* (\xi_H): Higgs-curvature coupling.
+
+### Gauge parameters
+
+[
+g_1,\quad g_2,\quad g_3.
+]
+
+Physical meaning: hypercharge, weak, and strong gauge couplings.
+
+### Fermion/flavor parameters
+
+[
+Y_u,Y_d,Y_e,Y_\nu,M_N.
+]
+
+Physical meaning: quark/lepton masses and mixings; heavy-neutrino masses.
+
+### Higgs parameters
+
+[
+m_H^2,\quad \lambda.
+]
+
+Physical meaning: electroweak symmetry breaking scale and Higgs self-interaction.
+
+### Axion/dark-sector parameters
+
+[
+f_a,\quad m_a,\quad c_g,c_\gamma,c_W,c_B,\quad \theta_i.
+]
+
+Physical meaning:
+
+* (f_a): axion decay constant.
+* (m_a): axion mass.
+* (c_b): anomaly coefficients.
+* (\theta_i): cosmological initial misalignment angle.
+
+### Discrete/topological data
+
+[
+\mathcal A_F,\quad
+{\rm generations}=3,\quad
+{\rm spin\ structure},\quad
+{\rm bundle\ topology}.
+]
+
+These are not continuous black-box weights; they are structural choices.
+
+---
+
+## 10. Core predictions and falsifiers
+
+This model survives only if all of the following hold:
+
+1. **Low-energy limit**
+   [
+   S_{\rm eff}
+   \to
+   S_{\rm SM}
+   +
+   S_{\rm GR}
+   +
+   S_{\Lambda}
+   ]
+   within current collider, solar-system, CMB, GW, and equivalence-principle bounds.
+
+2. **GW propagation**
+   At astrophysical wavelengths,
+   [
+   c_T = c
+   ]
+   up to observational limits. Large deviations are fatal.
+
+3. **No large fifth force**
+   (\alpha_R,\alpha_C,\xi_H) must not generate detectable unobserved fifth forces at current torsion-balance, lunar-ranging, planetary-ephemeris, or MICROSCOPE precision.
+
+4. **Running-coupling consistency**
+   Gauge/Yukawa/Higgs RG flow must land near the spectral boundary conditions at (\Lambda_*).
+
+5. **Neutrino sector**
+   The PMNS matrix and neutrino mass splittings must fit NuFIT/global neutrino data.
+
+6. **Dark matter**
+   Axion + neutrino sector must reproduce allowed relic density and not violate CMB, LSS, direct/indirect detection, stellar-cooling, or black-hole superradiance constraints.
+
+7. **Cosmology**
+   If the (R^2) term drives inflation, the leading predictions are approximately
+
+   [
+   n_s \simeq 1-\frac{2}{N},
+   \qquad
+   r\simeq \frac{12}{N^2},
+   ]
+
+   for (N\sim 50\text{--}60) e-folds. CMB data can falsify this.
+
+8. **Dark energy**
+   Minimal SACFT treats (\rho_\Lambda) as a physical relevant parameter. If DESI/Euclid/Rubin/Roman eventually prove evolving dark energy, the model must extend (\rho_\Lambda) to a dynamical spectral/dilaton sector. Recent DESI results are therefore a key stress test, not a side issue. ([CERN Courier][18])
+
+---
+
+## 11. Biggest weaknesses of my proposed model
+
+The honest gaps are:
+
+1. **Cosmological constant not solved**
+   (\rho_\Lambda) is named and physical, but not derived.
+
+2. **Flavor not fully derived**
+   Yukawa matrices are geometric entries of (D_F), but their exact values are not yet predicted from first principles.
+
+3. **Lorentzian spectral geometry is not fully mature**
+   The Euclidean spectral-action machinery is more developed than the real-time Lorentzian version.
+
+4. **Asymptotic-safety fixed point not proven in full theory**
+   Evidence is strong enough to motivate the program, not strong enough to declare finality.
+
+5. **No unique derivation of three generations**
+   Three generations are encoded, not yet explained.
+
+6. **Weyl-squared term danger**
+   (\alpha_C C^2) is natural in the heat-kernel expansion, but can introduce ghost-like problems unless handled by the UV completion or constrained to an effectively safe regime.
+
+---
+
+## 12. Error metric for comparing theories
+
+For each model (M), define physical parameters (\theta_M). No anonymous black-box weights are allowed unless they are explicitly mapped to physical quantities.
+
+For each dataset block (D_j=(y_j,C_j)), compute predictions:
+
+[
+\mu_j(\theta_M)
+===============
+
+\text{TheoryPrediction}_j(M,\theta_M).
+]
+
+Use
+
+[
+\chi_j^2
+========
+
+(y_j-\mu_j)^T
+C_j^{-1}
+(y_j-\mu_j).
+]
+
+The total likelihood score is
+
+[
+-2\log \mathcal L(M,\theta_M)
+=============================
+
+\sum_j
+\left[
+\chi_j^2
++
+\log\det(2\pi C_j)
+\right]
++
+\sum_e
+\left[
+-2\log p(x_e|M,\theta_M)
+\right],
+]
+
+where the second term covers event-level data such as gravitational-wave events, collider events, and transient alerts.
+
+For model comparison:
+
+[
+{\rm Score}(M)
+==============
+
+\min_{\theta_M}
+\left[
+-2\log \mathcal L(M,\theta_M)
++
+2k_{\rm eff}
+\right],
+]
+
+where (k_{\rm eff}) is the number of genuinely free physical parameters.
+
+For a stricter Bayesian score:
+
+[
+Z_M
+===
+
+\int d\theta_M,
+\mathcal L(D|\theta_M,M)
+\pi(\theta_M|M),
+]
+
+and compare
+
+[
+\log B_{12}
+===========
+
+\log Z_1-\log Z_2.
+]
+
+The best test is not one global fit alone. Use **leave-one-domain-out prediction**:
+
+* Fit particle physics, predict cosmology.
+* Fit cosmology, predict GW propagation.
+* Fit CMB+BAO, predict supernovae.
+* Fit low-energy gravity, predict black-hole/GW deviations.
+* Fit neutrino oscillations, predict cosmological neutrino mass effects.
+
+A theory only deserves “unified” status if it transfers predictive power across domains.
+
+---
+
+## 13. Public data inventory for testing unified theories
+
+This is the practical open-data stack I would use.
+
+### A. Particle physics and constants
+
+| Data source                    | Use                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NIST/CODATA constants**      | Fix (c,\hbar,G,e,m_e,\alpha), etc.; anchor unit conventions and precision constants. ([NIST][19])                                                                                     |
+| **PDG / HEPData**              | Particle masses, couplings, branching ratios, scattering tables, collider measurements. HEPData contains open tables from thousands of HEP publications. ([Nuclear Data Section][20]) |
+| **CERN Open Data Portal**      | Public LHC data and analysis material; CERN reports more than 5 PB of open data. ([CERN Open Data][21])                                                                               |
+| **ATLAS Open Data**            | Public ATLAS collision/simulation datasets for SM and BSM tests. ([ATLAS Experiment at CERN][22])                                                                                     |
+| **CMS Open Data**              | Public CMS collision and simulation data, including large 13 TeV releases. ([CERN Open Data][23])                                                                                     |
+| **Muon g-2 public results**    | Precision magnetic-moment test of SM loop physics and BSM sectors. ([News][24])                                                                                                       |
+| **NuFIT neutrino global fits** | Oscillation parameters, mass-ordering tests, PMNS constraints. ([Nu-Fit][13])                                                                                                         |
+
+### B. Collider and BSM code stack
+
+| Tool                  | Use                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| **MadGraph5_aMC@NLO** | Generate collider events/cross sections for SM and BSM Lagrangians. ([GitHub][25]) |
+| **Rivet**             | Recast preserved collider analyses against new models. ([about.gitlab.com][26])    |
+| **GAMBIT**            | Global BSM parameter scans and likelihoods. ([GAMBIT][27])                         |
+| **HEPfit**            | Fits model parameters against precision observables. ([GitHub][28])                |
+
+### C. Precision gravity and solar-system tests
+
+| Data source                                         | Use                                                                                                               |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **MICROSCOPE**                                      | Weak equivalence principle at (\sim10^{-15}). ([arXiv][16])                                                       |
+| **Eöt-Wash torsion balance / inverse-square tests** | Fifth-force and short-range gravity constraints. ([NPL Washington][29])                                           |
+| **Lunar laser ranging / ILRS**                      | Equivalence principle, (\dot G), post-Newtonian gravity, Earth-Moon dynamics. ([arXiv][30])                       |
+| **JPL Horizons / SPICE / planetary ephemerides**    | Solar-system dynamics, post-Newtonian parameters, modified-gravity constraints. ([JPL Solar System Dynamics][31]) |
+
+### D. CMB and early universe
+
+| Data source              | Use                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| **Planck / NASA LAMBDA** | CMB temperature, polarization, lensing, likelihoods, cosmological parameters. ([LAMBDA][1]) |
+| **ACT DR6**              | CMB lensing/power spectra, independent cosmology tests. ([Atacama Cosmology Telescope][32]) |
+| **SPT public releases**  | CMB bandpowers, SZ clusters, high-(\ell) tests. ([South Pole Telescope][33])                |
+
+### E. Large-scale structure, BAO, weak lensing
+
+| Data source                         | Use                                                                                                                                                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DESI DR1 / EDR**                  | BAO, redshift-space distortions, dark-energy evolution, growth of structure. DESI DR1 includes spectra for millions of targets and is one of the most important current tests of ΛCDM. ([DESI Data][15]) |
+| **SDSS / BOSS / eBOSS**             | Legacy BAO/RSD galaxy and quasar maps. ([SDSS][34])                                                                                                                                                      |
+| **Dark Energy Survey**              | Weak lensing, clustering, supernovae, 3x2pt cosmology. ([Dark Energy Survey][35])                                                                                                                        |
+| **Euclid public releases**          | Space weak-lensing/LSS; first public release began in 2025. ([Reuters][36])                                                                                                                              |
+| **Rubin Observatory / LSST alerts** | Time-domain cosmology, transients, lensing, variable sources; first public scientific alerts began February 25, 2026. ([Rubin Observatory][37])                                                          |
+| **Gaia DR3**                        | Astrometry, stellar dynamics, galactic potential, dark-matter distribution, local tests of gravity. ([Cosmos][38])                                                                                       |
+
+### F. Supernovae, (H_0), and expansion history
+
+| Data source                       | Use                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| **Pantheon+ / SH0ES public data** | Type Ia supernova distances and (H_0)-related constraints. ([GitHub][39]) |
+| **DES Supernova 5-year data**     | Independent SN cosmology and dark-energy tests. ([GitHub][40])            |
+| **H0LiCOW time-delay lenses**     | Independent (H_0) from strong-lens time delays. ([shsuyu.github.io][41])  |
+| **Cosmic chronometers**           | Direct (H(z)) expansion-rate constraints. ([arXiv][42])                   |
+
+### G. Gravitational waves and compact objects
+
+| Data source                             | Use                                                                                                                          |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **GWOSC / LIGO-Virgo-KAGRA**            | Public strain data, event catalogs, waveform tests of GR, dispersion, polarization, ringdown. ([GW Open Science Center][14]) |
+| **LALSuite / PyCBC**                    | Open gravitational-wave analysis code. ([GitHub][43])                                                                        |
+| **NANOGrav 15-year data**               | Nanohertz stochastic gravitational-wave background, PTA tests. ([NANOGrav][44])                                              |
+| **IPTA data releases**                  | Cross-PTA nanohertz GW tests. ([arXiv][45])                                                                                  |
+| **Event Horizon Telescope public data** | Strong-field black-hole imaging, shadow morphology, accretion-model tests. ([GitHub][17])                                    |
+
+### H. High-energy astrophysics and multimessenger data
+
+| Data source                          | Use                                                                                                         |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **IceCube public data**              | High-energy neutrinos, Lorentz/decoherence tests, astrophysical neutrino spectra. ([IceCube][46])           |
+| **Fermi LAT/GBM**                    | Gamma rays, Lorentz-invariance violation, dark-matter indirect searches, transients. ([Fermi Portal][47])   |
+| **Chandra Data Archive**             | X-ray clusters, AGN, black holes, hot gas, dark-matter/modified-gravity tests. ([Chandra X-ray Center][48]) |
+| **MAST: Hubble, JWST, TESS, Kepler** | Stellar physics, exoplanet timing, transients, lensing, galaxy evolution. ([MAST][49])                      |
+
+### I. Cosmology inference code
+
+| Tool                              | Use                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **CLASS**                         | Boltzmann solver for CMB/LSS predictions. ([GitHub][50])                                        |
+| **Cobaya**                        | Bayesian cosmology inference; interfaces with CLASS/CAMB and public likelihoods. ([GitHub][51]) |
+| **Berkeley Cosmology Code Index** | Useful index of public cosmology tools. ([BCCP][52])                                            |
+
+---
+
+## 14. What I would benchmark first
+
+The first public benchmark suite should compare:
+
+1. **ΛCDM + SM + GR baseline**
+2. **SACFT**, the proposed spectral-asymptotic model
+3. **String-inspired EFT/swampland model classes**
+4. **Asymptotic-safety gravity-matter models**
+5. **Loop/LQC bounce cosmologies**
+6. **CDT-inspired running-dimension cosmologies**
+7. **Causal-set cosmological-constant fluctuation models**
+8. **GUT/SO(10)/axion/seesaw models**
+9. **Modified gravity alternatives: scalar-tensor, (f(R)), Einstein-aether, Hořava-like, etc.**
+10. **Post-quantum stochastic gravity models**
+
+Each gets the same score:
+
+[
+{\rm TotalScore}
+================
+
+w_{\rm part}\chi^2_{\rm part}
++
+w_{\rm grav}\chi^2_{\rm grav}
++
+w_{\rm CMB}\chi^2_{\rm CMB}
++
+w_{\rm LSS}\chi^2_{\rm LSS}
++
+w_{\rm GW}\chi^2_{\rm GW}
++
+w_{\rm astro}\chi^2_{\rm astro}
++
+{\rm ComplexityPenalty}.
+]
+
+But the weights should not be arbitrary. I would set
+
+[
+w_j = \frac{1}{N_j}
+]
+
+for normalized per-observable scores, then also report raw likelihoods by domain.
+
+The critical anti-overfitting rule:
+
+[
+k_{\rm eff}
+===========
+
+\text{number of independently adjustable physical parameters}.
+]
+
+A model with 100 hidden knobs loses unless it gives dramatically better cross-domain predictions.
+
+---
+
+## 15. My final assessment
+
+The most credible path is not a single radical replacement of modern physics. The best current strategy is:
+
+[
+\boxed{
+\text{SM + GR + EFT}
+\quad
+\longrightarrow
+\quad
+\text{spectral origin of gauge/matter}
+\quad
++
+\quad
+\text{asymptotically safe quantum gravity}
+\quad
++
+\quad
+\text{minimal physical dark sector}
+}
+]
+
+This gives the best tradeoff between:
+
+* unification,
+* interpretability,
+* mathematical structure,
+* empirical survival,
+* public-data testability,
+* and avoidance of gray-box fitting.
+
+The sharpest near-term tests are:
+
+1. DESI/Euclid/Rubin/Roman dark-energy evolution.
+2. GW ringdown/dispersion/polarization from GWOSC/LVK.
+3. CMB (n_s,r,\sum m_\nu,N_{\rm eff}) from Planck+ACT+SPT.
+4. LHC/HEPData constraints on Higgs, top, rare decays, BSM thresholds.
+5. Neutrino ordering and absolute mass.
+6. Equivalence-principle and fifth-force limits.
+7. Axion searches and indirect astrophysical constraints.
+8. Proton decay and GUT-threshold consistency.
+
+If SACFT fails, I would expect it to fail in one of four places: dark energy, flavor/Yukawa prediction, absence of a true gravity-matter fixed point, or incompatibility of spectral boundary conditions with precision RG running. Those are the right places for it to fail, because they are real physics rather than black-box curve fitting.
+
+[1]: https://lambda.gsfc.nasa.gov/product/planck/ "https://lambda.gsfc.nasa.gov/product/planck/"
+[2]: https://arxiv.org/abs/2401.01939 "https://arxiv.org/abs/2401.01939"
+[3]: https://arxiv.org/html/2509.26352v1?utm_source=chatgpt.com "Asymptotically safe quantum gravity: functional and lattice ..."
+[4]: https://arxiv.org/abs/2104.04394 "https://arxiv.org/abs/2104.04394"
+[5]: https://arxiv.org/abs/2604.05641 "https://arxiv.org/abs/2604.05641"
+[6]: https://www.nature.com/nature-index/topics/l4/causal-set-approaches-to-quantum-gravity "https://www.nature.com/nature-index/topics/l4/causal-set-approaches-to-quantum-gravity"
+[7]: https://link.aps.org/doi/10.1103/pg4r-fy8n "https://link.aps.org/doi/10.1103/pg4r-fy8n"
+[8]: https://arxiv.org/html/2605.05350v1 "https://arxiv.org/html/2605.05350v1"
+[9]: https://link.springer.com/chapter/10.1007/978-3-031-59120-4_13 "https://link.springer.com/chapter/10.1007/978-3-031-59120-4_13"
+[10]: https://arxiv.org/abs/hep-ph/0608183?utm_source=chatgpt.com "[hep-ph/0608183] Grand Unified Theories"
+[11]: https://arxiv.org/html/2505.11251v1?utm_source=chatgpt.com "The LHC has ruled out Supersymmetry – really?"
+[12]: https://link.aps.org/doi/10.1103/PhysRevX.13.041040 "https://link.aps.org/doi/10.1103/PhysRevX.13.041040"
+[13]: https://www.nu-fit.org/?q=node%2F294 "https://www.nu-fit.org/?q=node%2F294"
+[14]: https://gwosc.org/ "https://gwosc.org/"
+[15]: https://data.desi.lbl.gov/doc/releases/?utm_source=chatgpt.com "DESI Data Releases"
+[16]: https://arxiv.org/abs/2209.15487 "https://arxiv.org/abs/2209.15487"
+[17]: https://github.com/eventhorizontelescope/2019-D01-01 "https://github.com/eventhorizontelescope/2019-D01-01"
+[18]: https://cerncourier.com/desi-hints-at-evolving-dark-energy/?utm_source=chatgpt.com "DESI hints at evolving dark energy"
+[19]: https://www.nist.gov/publications/codata-recommended-values-fundamental-physical-constants-2022?utm_source=chatgpt.com "CODATA Recommended Values of the Fundamental ..."
+[20]: https://nds.iaea.org/records/qqgde-rk761 "https://nds.iaea.org/records/qqgde-rk761"
+[21]: https://opendata.cern.ch/?utm_source=chatgpt.com "CERN Open Data Portal"
+[22]: https://atlas.cern/Resources/Opendata "https://atlas.cern/Resources/Opendata"
+[23]: https://opendata.cern.ch/docs/cms-releases-2016data-2024 "https://opendata.cern.ch/docs/cms-releases-2016data-2024"
+[24]: https://news.fnal.gov/2025/06/muon-g-2-most-precise-measurement-of-muon-magnetic-anomaly/ "https://news.fnal.gov/2025/06/muon-g-2-most-precise-measurement-of-muon-magnetic-anomaly/"
+[25]: https://github.com/mg5amcnlo/mg5amcnlo "https://github.com/mg5amcnlo/mg5amcnlo"
+[26]: https://gitlab.com/hepcedar/rivet "https://gitlab.com/hepcedar/rivet"
+[27]: https://gambitbsm.org/ "https://gambitbsm.org/"
+[28]: https://github.com/silvest/hepfit "https://github.com/silvest/hepfit"
+[29]: https://www.npl.washington.edu/eotwash/results "https://www.npl.washington.edu/eotwash/results"
+[30]: https://arxiv.org/abs/1203.2150 "https://arxiv.org/abs/1203.2150"
+[31]: https://ssd.jpl.nasa.gov/horizons/ "https://ssd.jpl.nasa.gov/horizons/"
+[32]: https://act.princeton.edu/act-dr6-data-products "https://act.princeton.edu/act-dr6-data-products"
+[33]: https://pole.uchicago.edu/public/Data%20Releases.html "https://pole.uchicago.edu/public/Data%20Releases.html"
+[34]: https://www.sdss4.org/surveys/eboss/ "https://www.sdss4.org/surveys/eboss/"
+[35]: https://www.darkenergysurvey.org/ "https://www.darkenergysurvey.org/"
+[36]: https://www.reuters.com/science/euclid-mission-data-release-is-step-toward-grand-atlas-cosmos-2025-03-19/ "https://www.reuters.com/science/euclid-mission-data-release-is-step-toward-grand-atlas-cosmos-2025-03-19/"
+[37]: https://rubinobservatory.org/news/first-alerts?utm_source=chatgpt.com "NSF–DOE Vera C. Rubin Observatory Launches Real ..."
+[38]: https://www.cosmos.esa.int/web/gaia/dr3 "https://www.cosmos.esa.int/web/gaia/dr3"
+[39]: https://github.com/PantheonPlusSH0ES/DataRelease "https://github.com/PantheonPlusSH0ES/DataRelease"
+[40]: https://github.com/des-science/DES-SN5YR "https://github.com/des-science/DES-SN5YR"
+[41]: https://shsuyu.github.io/H0LiCOW/site/ "https://shsuyu.github.io/H0LiCOW/site/"
+[42]: https://arxiv.org/abs/2205.05701 "https://arxiv.org/abs/2205.05701"
+[43]: https://github.com/lscsoft/lalsuite "https://github.com/lscsoft/lalsuite"
+[44]: https://nanograv.org/science/data "https://nanograv.org/science/data"
+[45]: https://arxiv.org/abs/1602.03640 "https://arxiv.org/abs/1602.03640"
+[46]: https://icecube.wisc.edu/science/data-releases/ "https://icecube.wisc.edu/science/data-releases/"
+[47]: https://fermi.gsfc.nasa.gov/ssc/data/ "https://fermi.gsfc.nasa.gov/ssc/data/"
+[48]: https://cxc.harvard.edu/cda/ "https://cxc.harvard.edu/cda/"
+[49]: https://archive.stsci.edu/home "https://archive.stsci.edu/home"
+[50]: https://github.com/lesgourg/class_public "https://github.com/lesgourg/class_public"
+[51]: https://github.com/CobayaSampler/cobaya "https://github.com/CobayaSampler/cobaya"
+[52]: https://bccp.berkeley.edu/codeindex/ "https://bccp.berkeley.edu/codeindex/"
+

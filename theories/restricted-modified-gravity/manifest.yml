@@ -1,0 +1,27 @@
+id: restricted-modified-gravity
+name: Restricted modified gravity scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Minimal modified-gravity scaffold with named curvature scales.
+citations:
+  - title: Modified gravity search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=modified+gravity+cosmology+review&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Scalaron mass
+    symbol: m_R
+    unit: GeV
+    physical_meaning: Mass scale controlling R^2 corrections
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: matched to the infrared EFT
+  - name: Effective coupling scale
+    symbol: M_eff
+    unit: GeV
+    physical_meaning: Infrared strength of the modified-gravity sector
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: constrained by local tests and cosmology
+adapter:
+  command: openqg-theory predict --manifest theories/restricted-modified-gravity/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/restricted-modified-gravity/predictions.jsonl
+

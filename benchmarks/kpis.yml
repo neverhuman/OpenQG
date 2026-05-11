@@ -1,0 +1,19 @@
+version: v1
+categories:
+  - name: empirical_likelihood
+    weight: 0.25
+  - name: coverage
+    weight: 0.15
+  - name: predictive_compression
+    weight: 0.10
+  - name: parameter_discipline
+    weight: 0.15
+  - name: theoretical_consistency
+    weight: 0.10
+  - name: reproducibility
+    weight: 0.10
+  - name: falsifiability
+    weight: 0.10
+  - name: prediction_sharpness
+    weight: 0.05
+

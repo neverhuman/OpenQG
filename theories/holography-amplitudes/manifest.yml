@@ -1,0 +1,27 @@
+id: holography-amplitudes
+name: Holography and amplitudes scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Scaffolding for amplitude-based and holographic unification ideas.
+citations:
+  - title: Holography and amplitudes search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=holography+scattering+amplitudes&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Celestial cutoff
+    symbol: Lambda_cel
+    unit: GeV
+    physical_meaning: Cutoff for celestial holography matching
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by holographic reconstruction scale
+  - name: Double-copy matching scale
+    symbol: mu_dc
+    unit: GeV
+    physical_meaning: Scale where gauge and gravity amplitudes are matched
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by amplitude factorization
+adapter:
+  command: openqg-theory predict --manifest theories/holography-amplitudes/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/holography-amplitudes/predictions.jsonl
+

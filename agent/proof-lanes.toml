@@ -1,0 +1,64 @@
+[[lane]]
+name = "fast"
+command = "just fast"
+purpose = "workspace compile and unit-test lane"
+required_artifacts = []
+
+[[lane]]
+name = "schema-check"
+command = "just schema-check"
+purpose = "schema contract verification lane"
+required_artifacts = []
+
+[[lane]]
+name = "check"
+command = "just check"
+purpose = "full validation lane"
+required_artifacts = [
+  "target/openqg/data/locks/data-lock.json",
+  "target/openqg/bench-smoke/scorecard.json",
+  "target/openqg/zyal/preview.json",
+  "target/jankurai/security/evidence.json",
+  "target/jankurai/security/lane-status.txt",
+]
+
+[[lane]]
+name = "data-verify"
+command = "just data-verify"
+purpose = "dataset manifest and lock validation lane"
+required_artifacts = ["target/openqg/data/locks/data-lock.json"]
+
+[[lane]]
+name = "bench-smoke"
+command = "just bench-smoke"
+purpose = "smoke benchmark lane"
+required_artifacts = ["target/openqg/bench-smoke/scorecard.json"]
+
+[[lane]]
+name = "zyal-validate"
+command = "just zyal-validate"
+purpose = "ZYAL parsing lane"
+required_artifacts = ["target/openqg/zyal/preview.json"]
+
+[[lane]]
+name = "score"
+command = "just score"
+purpose = "repo score lane"
+required_artifacts = ["target/jankurai/repo-score.json", "target/jankurai/repo-score.md"]
+
+[[lane]]
+name = "security"
+command = "just security"
+purpose = "security evidence lane"
+required_artifacts = ["target/jankurai/security/evidence.json"]
+
+[[lane]]
+name = "release-check"
+command = "just release-check"
+purpose = "pre-release evidence lane"
+required_artifacts = [
+  "target/jankurai/repo-score.json",
+  "target/jankurai/repo-score.md",
+  "reports/releases/draft/release-manifest.json",
+  "reports/releases/draft/release-manifest.md",
+]

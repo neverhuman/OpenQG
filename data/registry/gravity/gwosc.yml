@@ -1,0 +1,18 @@
+id: gwosc-gravitational-waves
+title: GWOSC open gravitational-wave catalog
+source_url: https://gwosc.org/
+license: public-data
+citation: Gravitational Wave Open Science Center
+version: "O4"
+checksum_strategy: sha256-manifest
+access_method: download-manifest
+expected_columns:
+  - event
+  - mass_1
+  - mass_2
+  - redshift
+unit_map:
+  mass_1: solar_mass
+  mass_2: solar_mass
+suite: gravitational-waves
+

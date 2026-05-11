@@ -1,0 +1,24 @@
+<<<ZYAL v1:daemon id=openqg-data-refresh>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+job:
+  name: openqg-data-refresh
+  objective: Refresh dataset manifests and regenerate the lockfile through the declared command.
+loop:
+  policy: forever
+  sleep: 12h
+stop:
+  any:
+    - shell:
+        command: "test -f .halt-data-refresh"
+        timeout: 5s
+checkpoint:
+  when: after_verified_change
+permissions:
+  git_push: deny
+ui:
+  mode: gold
+<<<END_ZYAL id=openqg-data-refresh>>>
+ZYAL_ARM RUN_FOREVER id=openqg-data-refresh
+

@@ -1,0 +1,7 @@
+[tools]
+required = ["git", "just", "cargo", "rustfmt"]
+preferred = ["jankurai", "jq", "gitleaks", "cargo-audit"]
+
+[rules]
+use_rtk_prefix = true
+keep_generated_artifacts = true

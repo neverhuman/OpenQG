@@ -1,0 +1,27 @@
+id: cdt
+name: Causal dynamical triangulations scaffold
+status: scaffolded
+benchmark_suite: theory-consistency
+description: Causal triangulation scaffold with lattice asymmetry and coupling parameters.
+citations:
+  - title: CDT search scaffold
+    authors: [OpenQG]
+    year: 2026
+    url: https://arxiv.org/search/?query=causal+dynamical+triangulations&searchtype=all
+observables: [h0, omega_m, sum_mnu]
+parameters:
+  - name: Bare Newton coupling
+    symbol: kappa_0
+    unit: dimensionless
+    physical_meaning: Regge action coupling for triangulations
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by the discrete action
+  - name: Asymmetry parameter
+    symbol: Delta
+    unit: dimensionless
+    physical_meaning: Time-space edge asymmetry parameter
+    prior_or_fixed_value: "scaffolded"
+    source_or_free_reason: fixed by causal lattice choice
+adapter:
+  command: openqg-theory predict --manifest theories/cdt/manifest.yml --observables data/fixtures/smoke/observables.jsonl --out target/openqg/cdt/predictions.jsonl
+

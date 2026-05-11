@@ -1,0 +1,33 @@
+name: jankurai
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+      - run: just check
+      - run: just score
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jankurai-evidence
+          path: |
+            target/jankurai/repo-score.json
+            target/jankurai/repo-score.md
+            target/jankurai/security/evidence.json
+            target/jankurai/security/lane-status.txt
+            target/jankurai/security/lane.log
+            target/jankurai/security/*.log

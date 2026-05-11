@@ -1,0 +1,14 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Benchmark Suite
+type: object
+required:
+  - id
+  - title
+  - description
+  - benchmark_version
+  - fixture_observables
+  - baseline_theory
+  - dataset_ids
+  - observables
+  - weights
+additionalProperties: true

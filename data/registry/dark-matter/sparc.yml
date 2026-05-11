@@ -1,0 +1,18 @@
+id: sparc-galaxy-rotation
+title: SPARC galaxy rotation curves
+source_url: https://astronomy.case.edu/2016/08/26/sparc-galaxy-database/
+license: public-data
+citation: SPARC galaxy rotation database
+version: "2016"
+checksum_strategy: sha256-manifest
+access_method: archive-manifest
+expected_columns:
+  - galaxy
+  - radius
+  - velocity
+  - uncertainty
+unit_map:
+  radius: kpc
+  velocity: km s^-1
+suite: galaxy-rotation
+

@@ -1,0 +1,14 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: OpenQG Theory Manifest
+type: object
+required:
+  - id
+  - name
+  - status
+  - benchmark_suite
+  - description
+  - citations
+  - observables
+  - parameters
+  - adapter
+additionalProperties: true

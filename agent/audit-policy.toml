@@ -1,0 +1,21 @@
+minimum_score = 85
+
+[policy]
+score_target = 85
+require_schema_check = true
+require_data_verify = true
+require_bench_smoke = true
+require_zyal_validate = true
+require_security = true
+
+[history]
+dedupe = "consecutive-equivalent"
+max_bytes = 1048576
+max_rows = 500
+
+[scan]
+excluded_paths = ["target/", "reports/releases/draft/"]
+
+[notes]
+do_not_trust_model_claims = true
+prefer_artifacts_over_prose = true

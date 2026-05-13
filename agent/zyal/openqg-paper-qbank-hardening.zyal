@@ -1,0 +1,43 @@
+<<<ZYAL v1:daemon id=openqg-paper-qbank-hardening>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+job:
+  name: openqg-paper-qbank-hardening
+  objective: Revalidate accepted and rejected paper question records, dedupe hashes, and promote benchmark-ready sets.
+loop:
+  policy: once
+stop:
+  all:
+    - shell:
+        command: "just research-validate && test -f target/openqg/research/openqg-paper-qbank-hardening/latest/complete.ok"
+        timeout: 2m
+        assert:
+          exit_code: 0
+permissions:
+  read: allow
+  list: allow
+  shell: allow
+  edit: allow
+  research: allow
+research:
+  version: v1
+  mode: academic
+  autonomy: fixed_sources
+  max_parallel: 2
+  dedupe:
+    enabled: true
+    state_root: research/knowledge/question-bank/papers
+    duplicate_policy: fail
+  question_bank:
+    output_root: research/knowledge/question-bank
+    acceptance:
+      min_auditor_agreement: 0.75
+      min_answerability: 0.90
+      max_blind_correct_rate_for_hard: 0.50
+      reject_if_ambiguous: true
+ui:
+  theme: jekko-gold
+  banner: OpenQG paper question bank hardening
+<<<END_ZYAL id=openqg-paper-qbank-hardening>>>
+ZYAL_ARM RUN_FOREVER id=openqg-paper-qbank-hardening

@@ -117,6 +117,13 @@ pub fn validate_zyal_value(value: &Value) -> Result<Vec<String>> {
                 "evidence",
                 "safety",
                 "budgets",
+                "paper_scan",
+                "full_text",
+                "dedupe",
+                "context_packing",
+                "question_bank",
+                "agent_trials",
+                "audit",
             ],
         )?;
         expect_string_field(research, "version", Some("v1"))?;

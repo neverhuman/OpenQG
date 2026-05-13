@@ -1,0 +1,48 @@
+<<<ZYAL v1:daemon id=openqg-paper-context-saturation>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+job:
+  name: openqg-paper-context-saturation
+  objective: Pack target OA papers with OA distractors to 82 percent of the safe context window.
+loop:
+  policy: once
+stop:
+  all:
+    - shell:
+        command: "test -s target/openqg/research/openqg-paper-context-saturation/latest/evidence.json && test -f target/openqg/research/openqg-paper-context-saturation/latest/complete.ok"
+        timeout: 10s
+        assert:
+          exit_code: 0
+permissions:
+  read: allow
+  list: allow
+  shell: allow
+  edit: allow
+  research: allow
+research:
+  version: v1
+  mode: academic
+  autonomy: fixed_sources
+  max_parallel: 4
+  context_packing:
+    strategy: hard
+    target_fill_ratio: 0.82
+    output_reserve_tokens: 4096
+  question_bank:
+    output_root: research/knowledge/question-bank
+experiments:
+  strategy: parallel_distill_refine
+  max_parallel: 2
+  lanes:
+    - id: packer
+      hypothesis: Build saturated context packs without overflow.
+    - id: overflow-auditor
+      hypothesis: Audit fill ratio, reserve tokens, and overflow telemetry.
+  reduce:
+    strategy: synthesize_best
+ui:
+  theme: jekko-gold
+  banner: OpenQG paper context saturation
+<<<END_ZYAL id=openqg-paper-context-saturation>>>
+ZYAL_ARM RUN_FOREVER id=openqg-paper-context-saturation

@@ -59,6 +59,15 @@ zyal-jekko-preview:
 		rtk bun --cwd /Users/bentaylor/code/opencode/packages/jekko src/index.ts daemon preview -f "$(pwd)/$file" >> target/openqg/zyal/jekko-preview.jsonl; \
 	done
 
+research-validate:
+	cargo run -p openqg-bench -- research validate
+
+research-dedupe-check:
+	cargo run -p openqg-bench -- research dedupe-check
+
+research-smoke-fixture:
+	cargo run -p openqg-bench -- research smoke-fixture
+
 score:
 	cargo run -p openqg-bench -- score compare --scorecard target/openqg/bench-smoke/scorecard.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 

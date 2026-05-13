@@ -1,0 +1,60 @@
+<<<ZYAL v1:daemon id=openqg-paper-qbank-discovery>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+job:
+  name: openqg-paper-qbank-discovery
+  objective: Discover OA advanced science papers and write canonical paper records only.
+loop:
+  policy: once
+stop:
+  all:
+    - shell:
+        command: "test -s target/openqg/research/openqg-paper-qbank-discovery/latest/evidence.json && test -f target/openqg/research/openqg-paper-qbank-discovery/latest/complete.ok"
+        timeout: 10s
+        assert:
+          exit_code: 0
+permissions:
+  read: allow
+  list: allow
+  shell: allow
+  edit: allow
+  research: allow
+  websearch: allow
+  webfetch: allow
+  git_commit: deny
+  git_push: deny
+research:
+  version: v1
+  mode: academic
+  autonomy: require_plan
+  max_parallel: 6
+  timeout_seconds: 60
+  provider_policy:
+    prefer: [official_api, primary_source, privacy_first]
+    allow: [openalex, crossref, arxiv, pubmed, semantic_scholar, unpaywall, jina]
+    missing_provider: skip_with_receipt
+  paper_scan:
+    enabled: true
+    domains: [physics, math, biology, chemistry, computational_science, neuroscience, medicine]
+    open_access: required
+    max_papers: 12
+    output_root: research/knowledge/question-bank/papers
+    raw_receipts: target/openqg/research/openqg-paper-qbank-discovery/latest/raw
+  full_text:
+    enabled: true
+    store: checked_in_json
+    license_policy: oa_only
+  dedupe:
+    enabled: true
+    state_root: research/knowledge/question-bank/papers
+    duplicate_policy: fail
+  budgets:
+    max_queries: 24
+    max_pages: 24
+    max_cost_usd: 3.0
+ui:
+  theme: jekko-gold
+  banner: OpenQG paper question bank discovery
+<<<END_ZYAL id=openqg-paper-qbank-discovery>>>
+ZYAL_ARM RUN_FOREVER id=openqg-paper-qbank-discovery

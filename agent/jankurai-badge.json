@@ -4,9 +4,9 @@
   "standard_version": "0.8.0",
   "auditor_version": "0.8.13",
   "source_report": "target/jankurai/current-audit.json",
-  "source_badge_fingerprint": "sha256:35df5e0056e31ddbbda2d02269abf1778ea52984b56f0a477296ef79b99b5aa2",
-  "score": 90,
-  "raw_score": 90,
+  "source_badge_fingerprint": "sha256:fc9daea60d008cc6a0600f7f1b4e5bd4aa3e17630d78d710fcd63263e26b5f00",
+  "score": 88,
+  "raw_score": 88,
   "minimum_score": 85,
   "decision": "pass",
   "passed": true,
@@ -17,5 +17,5 @@
   "conformance_level": "HL3",
   "badge_svg": "agent/jankurai-badge.svg",
   "readme": "README.md",
-  "markdown": "<!-- jankurai-badge:start -->\n[![Jankurai score: 90/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)\n<!-- jankurai-badge:end -->\n"
+  "markdown": "<!-- jankurai-badge:start -->\n[![Jankurai score: 88/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)\n<!-- jankurai-badge:end -->\n"
 }

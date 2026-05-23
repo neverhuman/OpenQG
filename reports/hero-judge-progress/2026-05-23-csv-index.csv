@@ -1,0 +1,30 @@
+record_type,name,path,row_count,sha256,numeric_value,notes
+artifact,series_summary_csv,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/series_summary.csv,25,023b2fc26fe5031370986569d28746323f089c248afce3e0129155429bf8812d,,per-trial final metrics and artifact hashes
+artifact,quality_metrics_csv,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/quality_metrics.csv,25,16e40b746402a55c16951b4121092ae2815a74a2cb62edfaa34a840b1fea3305,,quality rows
+artifact,lane_metrics_csv,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/lane_metrics.csv,200,12830deefc53f417843aee571bfe04daf5378d281316175761ededa797500eb5,,lane rows
+artifact,hero_metrics_csv,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/hero_metrics.csv,50,da7ee779561ebbeb0a1b3d9efb14e2dea8d79c930cfe97dbe946a09e1130f031,,hero lane rows
+artifact,judge_metrics_csv,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/judge_metrics.csv,100,18d97a24753144cda9ab79ac49a21f9da5d74b04592bf2713ddaabc323a057b3,,judge-side lane rows
+artifact,reviewer_index_json,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/reviewer_index.json,25,856d2c6d97e8eeff428196c2b465b3dd31ab774448bee14749b077712a7b4cae,,reviewer packet index
+artifact,run_summaries_jsonl,target/openqg/hero-judge/openqg-hero-judge-live-dozens-series/run_summaries.jsonl,25,8b387c8e3ddb98b626c495db03112e4e577a3746c8db5b16fe7623598fe0eb36,,trial summaries
+metric,trials,,,25,25,total live trials
+metric,promoted_trials,,,17,17,promoted trial count
+metric,non_promoted_trials,,,8,8,non-promoted trial count
+metric,model_calls_used,,,200,200,final lane model calls
+metric,model_outcome_receipts,,,207,207,persisted Jekko model outcomes
+metric,jnoccio_success_receipts,,,179,179,provider jnoccio model jnoccio-fusion successes
+metric,jnoccio_timeout_receipts,,,28,28,bounded timeouts handled safely
+metric,search_receipts,,,300,300,total search receipts
+metric,theory_quality_mean,,,,0.739,series mean
+metric,question_quality_mean,,,,0.786,series mean
+metric,rubric_quality_mean,,,,0.821,series mean
+metric,judge_calibration_mean,,,,0.303,series mean
+metric,evidence_grounding_mean,,,,0.741,series mean
+metric,verifier_confidence_mean,,,,0.802,series mean
+metric,red_team_resilience_mean,,,,0.424,series mean
+metric,red_team_resilience_min,,,,0.200,series minimum
+metric,red_team_resilience_max,,,,0.734,series maximum
+metric,promotion_score_mean,,,,0.759,series mean
+metric,overall_quality_mean,,,,0.688,series mean
+metric,frontier_quality_mean,,,,0.688,series mean
+metric,hero_lane_mean,,,,0.780,series mean
+metric,judge_lane_mean,,,,0.710,series mean

@@ -10,24 +10,6 @@
     ".gitignore": {
       "command": "just fast"
     },
-    "CITATION.cff": {
-      "command": "just fast"
-    },
-    "CODE_OF_CONDUCT.md": {
-      "command": "just fast"
-    },
-    "CONTRIBUTING.md": {
-      "command": "just fast"
-    },
-    "GOVERNANCE.md": {
-      "command": "just fast"
-    },
-    "MISSION.md": {
-      "command": "just fast"
-    },
-    "SECURITY.md": {
-      "command": "just fast"
-    },
     "Cargo.toml": {
       "command": "just fast"
     },
@@ -81,6 +63,21 @@
     },
     "agent/badge.toml": {
       "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
+    "agent/jankurai-badge.json": {
+      "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
+    "agent/jankurai-badge.svg": {
+      "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
+    "contracts/specs/paper-question-record.yml": {
+      "command": "just schema-sync"
+    },
+    "contracts/generated/schemas/paper-question-record.schema.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/paper-question-record.witness.json": {
+      "command": "just schema-check"
     },
     "agent/test-map.json": {
       "command": "just fast"
@@ -199,19 +196,25 @@
     "docs/": {
       "command": "just fast"
     },
+    "docs/ci-local.md": {
+      "command": "just fast"
+    },
     "docs/release.md": {
       "command": "just release-check"
     },
-    "research/inbox/README.md": {
-      "command": "just fast"
+    "research/knowledge/question-bank/": {
+      "command": "just research-validate"
     },
-    "research/inbox/": {
-      "command": "just fast"
-    },
-    "research/knowledge/": {
+    "reports/hero-judge-progress/": {
       "command": "just fast"
     },
     "ops/AGENTS.md": {
+      "command": "just fast"
+    },
+    "ops/ci/": {
+      "command": "just fast"
+    },
+    "ops/git-hooks/": {
       "command": "just fast"
     },
     "agent/zyal/": {
@@ -233,6 +236,9 @@
       "command": "just fast"
     },
     "python/ai-service/": {
+      "command": "just fast"
+    },
+    "scripts/": {
       "command": "just fast"
     },
     "theories/": {

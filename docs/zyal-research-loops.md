@@ -1,46 +1,32 @@
 # ZYAL Research Loops
 
-ZYAL runbooks are host-owned YAML documents that describe long-running loops.
-Canonical runbooks live under `agent/zyal/` and use the `.zyal` extension.
+OpenQG now keeps one live ZYAL runbook:
 
-OpenQG uses them for:
+- `agent/zyal/openqg-hero-judge-evolve.zyal`
 
-- literature radar
-- data refresh
-- hypothesis tournaments
-- theory incubation
-- nightly benchmark regression
-- release-candidate gating
+Purpose:
 
-## Validation Contract
+- evolve harder questions, harder answers, and the judgment around them
+- keep the loop versioned and reproducible
+- write storage-safe metrics and receipts under `target/openqg/hero-judge/`
 
-- every runbook must use the canonical `<<<ZYAL v1:daemon id=...>>>` envelope
-- every runbook must be stored as `agent/zyal/*.zyal`
-- legacy `.zyal.yml` and `.zyal.yaml` files are rejected
-- the closing sentinel id must match the opening id
-- the trailing `ZYAL_ARM RUN_FOREVER id=...` line must match the same id
-- `stop.all` is required for daemon loops
-- `stop.any` is reserved for cases where the loop intentionally needs `all AND any`
-- `ui.theme` is the supported UI field; `ui.mode` is rejected
-- `checkpoint.when` should be `after_verified_change`, `manual`, or `on_error`
-- shell checks should always include `assert.exit_code: 0`
+Validation:
 
-## Canonical Runbooks
+- `just zyal-validate` validates the runbook envelope and schema
+- `JEKKO_DB=target/zyal-validation/openqg-hero-judge-live.db jankurai-runner --repo /Users/bentaylor/code/OpenQG --run-id openqg-hero-judge-live-series hero-judge-run --zyal /Users/bentaylor/code/OpenQG/agent/zyal/openqg-hero-judge-evolve.zyal --live --runs 25`
 
-- `agent/zyal/openqg-literature-radar.zyal` is the highest-value search loop
-- `agent/zyal/openqg-knowledge-hardening.zyal` turns reviewed cards into `research/knowledge/openqg-literature-map.md`
-- `agent/zyal/openqg-data-refresh.zyal`, `agent/zyal/openqg-hypothesis-tournament.zyal`, `agent/zyal/openqg-theory-incubator.zyal`, and `agent/zyal/openqg-benchmark-nightly.zyal` are maintenance loops
-- `agent/zyal/openqg-release-candidate.zyal` is the approval-gated release loop
+25-run series outputs:
 
-## Artifact Policy
+- `target/openqg/hero-judge/<run_id>/series_summary.csv`
+- `target/openqg/hero-judge/<run_id>/quality_metrics.csv`
+- `target/openqg/hero-judge/<run_id>/lane_metrics.csv`
+- `target/openqg/hero-judge/<run_id>/hero_metrics.csv`
+- `target/openqg/hero-judge/<run_id>/judge_metrics.csv`
+- `target/openqg/hero-judge/<run_id>/run_summaries.jsonl`
+- `target/openqg/hero-judge/<run_id>/reviewer_index.json`
 
-- generated and untracked: `.jekko/daemon/**`, `target/openqg/zyal/**`, `target/openqg/research/**`, raw provider receipts, daemon ledgers, and temporary smoke runbooks
-- reviewable and check-in eligible: `research/inbox/*.md` paper cards after review
-- durable and check-in eligible after hardening: `research/knowledge/*.md` synthesis maps and claim ledgers
-- never check in raw logs containing provider payloads, secrets, prompt-injection samples, or full fetched pages
+Artifacts to keep out of git:
 
-## Commands
-
-- `just zyal-validate` runs the repo-native validator and writes `target/openqg/zyal/preview.json`
-- `just zyal-jekko-preview` runs `jekko daemon preview` across every file under `agent/zyal/` and writes `target/openqg/zyal/jekko-preview.jsonl`
-- live research runs should write receipts under `target/openqg/research/<loop>/latest/`
+- raw provider payloads
+- chain-of-thought content
+- temporary receipts and per-run `complete.ok` markers

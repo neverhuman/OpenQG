@@ -1,0 +1,45 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "reason": "smoke fixture"
+  },
+  "answer_key": "alpha equals one",
+  "audit_attempts": [
+    {
+      "agent_id": "smoke-auditor",
+      "answer": null,
+      "role": "auditor",
+      "route_metadata": {
+        "agent_role": "auditor",
+        "backup_model_ids": [],
+        "confidence": 1.0,
+        "fusion_model_id": null,
+        "model": "smoke-model",
+        "primary_model_id": "smoke-primary",
+        "provider": "smoke",
+        "request_id": "smoke-request",
+        "route_mode": "fast",
+        "winner_model_id": "smoke-primary",
+        "zyal_lane_id": "smoke-lane",
+        "zyal_run_id": "smoke-run"
+      },
+      "score": 1.0
+    }
+  ],
+  "blind_answer_attempts": [],
+  "challenge_hash": "518f1f3d2be4c8aabcc04ba03055e5fa92e326a431ec77438edffab538555070",
+  "context_pack": {
+    "output_reserve_tokens": 4096,
+    "safe_window_tokens": 8192,
+    "strategy": "hard",
+    "target_fill_ratio": 0.82
+  },
+  "critic_attempts": [],
+  "generator_agents": [],
+  "publication_hash": "4e92c82edee3b80bfa1f6eb673cf8d1835cd597d9d365dcd5c7ba6b8917fb357",
+  "question": "According to the smoke paper, what value is alpha?",
+  "rubric_version": "v1",
+  "support_sections": [
+    "s1"
+  ]
+}

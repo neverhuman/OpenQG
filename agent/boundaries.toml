@@ -16,6 +16,7 @@ editable = [
   "benchmarks/**",
   "theories/**",
   "docs/**",
+  "reports/hero-judge-progress/**",
   "db/**",
   "crates/**",
   "python/ai-service/**",
@@ -40,4 +41,4 @@ generated_type_paths = ["contracts/generated/schemas"]
 
 [stack]
 id = "openqg-rust-bench-physics"
-version = "0.1.0"
+version = "0.1.1"

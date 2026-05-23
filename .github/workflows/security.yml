@@ -18,4 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
-      - run: just security
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - run: cargo install --git https://github.com/neverhuman/jankurai --tag v1.5.1 --locked jankurai
+      - run: cargo install --locked just
+      - run: bash ops/ci/security.sh

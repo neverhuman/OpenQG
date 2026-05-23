@@ -1,0 +1,37 @@
+<<<ZYAL v1:daemon id=openqg-hero-judge-evolve>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+job:
+  name: openqg-hero-judge-evolve
+  objective: Evolve OpenQG hero and judge prompts through verifier, literature, red-team, and meta-judge gates.
+  risk:
+    - Do not treat unverified VEOX rolling-tip material as OpenQG evidence.
+    - Do not persist raw chain-of-thought or full provider payloads.
+
+loop:
+  policy: bounded
+  sleep: 30m
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-hero-judge || find target/openqg/hero-judge -path '*/complete.ok' -print -quit | grep -q complete.ok"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+checkpoint:
+  when: after_verified_change
+
+permissions:
+  git_push: deny
+  research: allow
+  webfetch: ask
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG hero/judge evolution
+<<<END_ZYAL id=openqg-hero-judge-evolve>>>
+ZYAL_ARM RUN_FOREVER id=openqg-hero-judge-evolve

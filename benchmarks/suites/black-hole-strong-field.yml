@@ -1,7 +1,7 @@
 id: black-hole-strong-field
 title: Black-hole strong-field suite
 description: EHT-style strong-field consistency checks.
-benchmark_version: benchmark-v0.1.1
+benchmark_version: benchmark-v0.1.2
 fixture_observables: data/fixtures/smoke/observables.jsonl
 fixture_predictions: data/fixtures/smoke/predictions.jsonl
 baseline_theory: sm-gr-lcdm-mnu

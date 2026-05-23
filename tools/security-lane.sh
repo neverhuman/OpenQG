@@ -10,7 +10,11 @@ log_path="target/jankurai/security/lane.log"
 status_path="target/jankurai/security/lane-status.txt"
 report_path="target/jankurai/security/evidence.json"
 
-security_cmd=(env CI=1 cargo run -p openqg-bench -- security scan --output "$report_path")
+if [[ -n "${GITHUB_ACTIONS:-}" || "${CI:-}" == "true" || "${CI:-}" == "1" ]]; then
+  security_cmd=(jankurai security run . --strict --profile ci --out "$report_path")
+else
+  security_cmd=(env CI=1 cargo run -p openqg-bench -- security scan --output "$report_path")
+fi
 
 if "${security_cmd[@]}" 2>&1 | tee "$log_path"; then
   lane_status="Security lane completed"

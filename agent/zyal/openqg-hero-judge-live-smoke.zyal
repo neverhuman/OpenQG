@@ -33,58 +33,5 @@ permissions:
 ui:
   theme: jekko-gold
   banner: OpenQG hero/judge live smoke
-
-hero_judge:
-  objective: Improve OpenQG universal physics theory candidates, falsification questions, and judge rubrics with plot-ready quality metrics.
-  generations: 2
-  output_root: target/openqg/hero-judge
-  population:
-    hero_lanes: 2
-    judge_lanes: 1
-    verifier_lanes: 1
-    literature_lanes: 1
-    red_team_lanes: 1
-    max_parallel: 2
-  budgets:
-    model_calls: 30
-    search_queries: 3
-    search_pages: 8
-  research:
-    enabled: true
-    live_when_available: true
-    missing_provider: skip_with_receipt
-    queries:
-      - "quantum gravity falsifiable phenomenology benchmark"
-      - "universal physics theory evaluation rubric evidence calibration"
-      - "research questions quantum gravity empirical constraints"
-  evidence:
-    - id: zyal-loops
-      role: workflow_doc
-      path: docs/zyal-research-loops.md
-      max_bytes: 16384
-    - id: theory-admission
-      role: theory_gate
-      path: docs/theory-admission.md
-      max_bytes: 16384
-    - id: benchmark-methodology
-      role: benchmark_gate
-      path: docs/benchmark-methodology.md
-      max_bytes: 16384
-    - id: scoring
-      role: scoring_gate
-      path: docs/scoring.md
-      max_bytes: 16384
-    - id: rolling-tip1
-      role: filtered_tip
-      path: tips/rolling/tip1.txt
-      max_bytes: 12288
-    - id: rolling-tip2
-      role: filtered_tip
-      path: tips/rolling/tip2.txt
-      max_bytes: 12288
-  promotion:
-    min_score: 0.75
-    canary_replay: true
-    anti_leak: true
 <<<END_ZYAL id=openqg-hero-judge-live-smoke>>>
 ZYAL_ARM RUN_FOREVER id=openqg-hero-judge-live-smoke

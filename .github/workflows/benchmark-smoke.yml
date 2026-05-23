@@ -22,4 +22,4 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
       - run: cargo install --locked just
-      - run: just bench-smoke
+      - run: bash ops/ci/benchmark-smoke.sh

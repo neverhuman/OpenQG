@@ -132,6 +132,27 @@ read_only = false
 write_policy = "generator_only"
 
 [[zone]]
+path = "contracts/generated/schemas/paper-question-record.schema.json"
+command = "just schema-sync"
+source = "contracts/specs/paper-question-record.yml"
+read_only = true
+write_policy = "generator_only"
+
+[[zone]]
+path = "target/openqg/contracts/paper-question-record.witness.json"
+command = "just schema-check"
+source = "contracts/generated/schemas/paper-question-record.schema.json"
+read_only = false
+write_policy = "generator_only"
+
+[[zone]]
+path = "contracts/specs/paper-question-record.yml"
+command = "just schema-sync"
+source = "contracts/specs/paper-question-record.yml"
+read_only = true
+write_policy = "generator_only"
+
+[[zone]]
 path = "target/jankurai/repo-score.json"
 command = "just score"
 source = "just score"

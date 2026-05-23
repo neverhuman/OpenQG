@@ -37,6 +37,9 @@
     "CHANGELOG.md": {
       "command": "just fast"
     },
+    "JANKURAI_TASKLIST.md": {
+      "command": "just fast"
+    },
     "Justfile": {
       "command": "just release-check"
     },
@@ -79,8 +82,26 @@
     "agent/standard-version.toml": {
       "command": "just fast"
     },
+    "JANKURAI_TASKLIST.md": {
+      "command": "just fast"
+    },
     "agent/badge.toml": {
       "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
+    "agent/jankurai-badge.json": {
+      "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
+    "agent/jankurai-badge.svg": {
+      "command": "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
+    },
+    "contracts/specs/paper-question-record.yml": {
+      "command": "just schema-sync"
+    },
+    "contracts/generated/schemas/paper-question-record.schema.json": {
+      "command": "just schema-check"
+    },
+    "target/openqg/contracts/paper-question-record.witness.json": {
+      "command": "just schema-check"
     },
     "agent/test-map.json": {
       "command": "just fast"
@@ -199,6 +220,9 @@
     "docs/": {
       "command": "just fast"
     },
+    "docs/ci-local.md": {
+      "command": "just fast"
+    },
     "docs/release.md": {
       "command": "just release-check"
     },
@@ -215,6 +239,12 @@
       "command": "just fast"
     },
     "ops/AGENTS.md": {
+      "command": "just fast"
+    },
+    "ops/ci/": {
+      "command": "just fast"
+    },
+    "ops/git-hooks/": {
       "command": "just fast"
     },
     "agent/zyal/": {
@@ -236,6 +266,9 @@
       "command": "just fast"
     },
     "python/ai-service/": {
+      "command": "just fast"
+    },
+    "scripts/": {
       "command": "just fast"
     },
     "theories/": {

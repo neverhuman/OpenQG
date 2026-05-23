@@ -28,23 +28,6 @@ research:
   autonomy: fixed_sources
   max_parallel: 10
   timeout_seconds: 90
-  context_packing:
-    strategy: hard
-    target_fill_ratio: 0.82
-    output_reserve_tokens: 4096
-  question_bank:
-    output_root: research/knowledge/question-bank
-    acceptance:
-      min_auditor_agreement: 0.75
-      min_answerability: 0.90
-      max_blind_correct_rate_for_hard: 0.50
-      reject_if_ambiguous: true
-  agent_trials:
-    question_generators: 10
-    answerers: 6
-  audit:
-    critics: 3
-    focused_auditors: 2
 experiments:
   strategy: parallel_distill_refine
   max_parallel: 10

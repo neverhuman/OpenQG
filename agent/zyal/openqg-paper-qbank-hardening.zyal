@@ -25,17 +25,6 @@ research:
   mode: academic
   autonomy: fixed_sources
   max_parallel: 2
-  dedupe:
-    enabled: true
-    state_root: research/knowledge/question-bank/papers
-    duplicate_policy: fail
-  question_bank:
-    output_root: research/knowledge/question-bank
-    acceptance:
-      min_auditor_agreement: 0.75
-      min_answerability: 0.90
-      max_blind_correct_rate_for_hard: 0.50
-      reject_if_ambiguous: true
 ui:
   theme: jekko-gold
   banner: OpenQG paper question bank hardening

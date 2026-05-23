@@ -25,12 +25,6 @@ research:
   mode: academic
   autonomy: fixed_sources
   max_parallel: 4
-  context_packing:
-    strategy: hard
-    target_fill_ratio: 0.82
-    output_reserve_tokens: 4096
-  question_bank:
-    output_root: research/knowledge/question-bank
 experiments:
   strategy: parallel_distill_refine
   max_parallel: 2

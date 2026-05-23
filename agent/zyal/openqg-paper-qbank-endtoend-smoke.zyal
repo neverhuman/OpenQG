@@ -25,32 +25,6 @@ research:
   mode: academic
   autonomy: require_plan
   max_parallel: 2
-  paper_scan:
-    enabled: true
-    domains: [physics]
-    open_access: required
-    max_papers: 1
-  full_text:
-    enabled: true
-    store: checked_in_json
-    license_policy: oa_only
-  context_packing:
-    strategy: hard
-    target_fill_ratio: 0.82
-    output_reserve_tokens: 4096
-  question_bank:
-    output_root: research/knowledge/question-bank
-    acceptance:
-      min_auditor_agreement: 0.75
-      min_answerability: 0.90
-      max_blind_correct_rate_for_hard: 0.50
-      reject_if_ambiguous: true
-  agent_trials:
-    question_generators: 2
-    answerers: 2
-  audit:
-    critics: 1
-    focused_auditors: 1
 experiments:
   strategy: parallel_distill_refine
   max_parallel: 2

@@ -63,12 +63,6 @@ stop:
         assert:
           exit_code: 0
 
-# ── Unattended parallel operation ─────────────────────────────────────
-
-interaction:
-  user: none
-  on_blocked: skip_and_next
-
 # ── Permissions (same as original) ────────────────────────────────────
 
 permissions:

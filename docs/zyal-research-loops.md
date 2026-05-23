@@ -46,7 +46,7 @@ OpenQG uses them for:
 ## Commands
 
 - `just zyal-validate` runs the repo-native validator and writes `target/openqg/zyal/preview.json`
-- `just zyal-jekko-preview` runs `jekko daemon preview` across every file under `agent/zyal/` and writes `target/openqg/zyal/jekko-preview.jsonl`
+- `just zyal-jekko-preview` runs `bun --cwd "$JEKKO_PREVIEW_ROOT"` against the external Jekko checkout for every file under `agent/zyal/` and writes `target/openqg/zyal/jekko-preview.jsonl`; if the checkout or `bun` is unavailable, it writes a short JSONL skip receipt instead of failing
 - offline Hero/Judge proof: `JEKKO_DB=target/zyal-validation/openqg-hero-judge.db jankurai-runner --repo /Users/bentaylor/code/OpenQG --run-id openqg-hero-judge-smoke hero-judge-run --zyal /Users/bentaylor/code/OpenQG/agent/zyal/openqg-hero-judge-evolve.zyal --max-generations 1`
 - live Hero/Judge proof: `JEKKO_DB=target/zyal-validation/openqg-hero-judge-live.db jankurai-runner --repo /Users/bentaylor/code/OpenQG --run-id openqg-hero-judge-live-smoke hero-judge-run --zyal /Users/bentaylor/code/OpenQG/agent/zyal/openqg-hero-judge-live-smoke.zyal --live`
 - live Hero/Judge series: add `--runs 25` or higher to write aggregate `*-series/quality_metrics.csv`, `lane_metrics.csv`, `hero_metrics.csv`, `judge_metrics.csv`, `run_summaries.jsonl`, and `reviewer_index.json`

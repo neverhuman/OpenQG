@@ -21,4 +21,5 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+      - run: cargo install --locked just
       - run: just bench-smoke

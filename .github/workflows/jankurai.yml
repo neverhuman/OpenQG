@@ -33,6 +33,7 @@ jobs:
       - run: cargo fetch --locked
       - run: cargo install --locked cargo-nextest
       - run: cargo install --git https://github.com/neverhuman/jankurai --tag v1.5.1 --locked jankurai
+      - run: cargo install --locked just
       - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo nextest run -p openqg-core --locked --frozen
       - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo test -p openqg-core --locked --frozen --doc
       - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo nextest run -p openqg-bench --locked --frozen

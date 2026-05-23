@@ -28,6 +28,33 @@ jankurai audit . \
   --no-score-history
 ```
 
+## Hero/Judge Live Progress
+
+The 2026-05-23 live Hero/Judge run exercised 25 one-generation trials and
+produced a mixed accepted/rejected frontier set for review.
+
+| Metric | Value |
+| --- | ---: |
+| Trials | 25 |
+| Promoted | 17 |
+| Rejected | 8 |
+| Mean overall quality | 0.688 |
+| Mean hero lane score | 0.780 |
+| Mean judge lane score | 0.710 |
+| Timeout-substitute receipts | 28 |
+
+```mermaid
+xychart-beta
+    title "Overall Quality by Trial"
+    x-axis "Trial" [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    y-axis "Overall quality index" 0 --> 1
+    line [0.583, 0.667, 0.725, 0.503, 0.636, 0.680, 0.540, 0.905, 0.714, 0.623, 0.722, 0.669, 0.844, 0.787, 0.667, 0.755, 0.862, 0.705, 0.660, 0.659, 0.758, 0.613, 0.495, 0.677, 0.739]
+```
+
+The promotion gate accepted 17 trials; the main quality dips were trials 4, 7,
+22, and 23, with trial 23 the lowest rejected row. See the full analysis and
+artifact hashes in [reports/hero-judge-progress/2026-05-23.md](reports/hero-judge-progress/2026-05-23.md).
+
 ## Surface Map
 
 - `crates/openqg-core`: typed manifests, validation helpers, and scoring primitives

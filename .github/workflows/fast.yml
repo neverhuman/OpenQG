@@ -22,4 +22,5 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
       - run: cargo install --locked cargo-nextest
+      - run: cargo install --locked just
       - run: just fast

@@ -22,4 +22,5 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
       - run: cargo install --git https://github.com/neverhuman/jankurai --tag v1.5.1 --locked jankurai
+      - run: cargo install --locked just
       - run: just security

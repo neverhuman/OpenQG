@@ -10,24 +10,6 @@
     ".gitignore": {
       "command": "just fast"
     },
-    "CITATION.cff": {
-      "command": "just fast"
-    },
-    "CODE_OF_CONDUCT.md": {
-      "command": "just fast"
-    },
-    "CONTRIBUTING.md": {
-      "command": "just fast"
-    },
-    "GOVERNANCE.md": {
-      "command": "just fast"
-    },
-    "MISSION.md": {
-      "command": "just fast"
-    },
-    "SECURITY.md": {
-      "command": "just fast"
-    },
     "Cargo.toml": {
       "command": "just fast"
     },
@@ -35,9 +17,6 @@
       "command": "just fast"
     },
     "CHANGELOG.md": {
-      "command": "just fast"
-    },
-    "JANKURAI_TASKLIST.md": {
       "command": "just fast"
     },
     "Justfile": {
@@ -80,9 +59,6 @@
       "command": "just security"
     },
     "agent/standard-version.toml": {
-      "command": "just fast"
-    },
-    "JANKURAI_TASKLIST.md": {
       "command": "just fast"
     },
     "agent/badge.toml": {
@@ -226,16 +202,10 @@
     "docs/release.md": {
       "command": "just release-check"
     },
+    "research/knowledge/question-bank/": {
+      "command": "just research-validate"
+    },
     "reports/hero-judge-progress/": {
-      "command": "just fast"
-    },
-    "research/inbox/README.md": {
-      "command": "just fast"
-    },
-    "research/inbox/": {
-      "command": "just fast"
-    },
-    "research/knowledge/": {
       "command": "just fast"
     },
     "ops/AGENTS.md": {

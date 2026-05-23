@@ -34,48 +34,6 @@ read_only = false
 write_policy = "auditor_output"
 
 [[zone]]
-path = "target/openqg/research/literature-radar/latest/"
-command = "rtk jekko daemon start -f agent/zyal/openqg-literature-radar.zyal"
-source = "agent/zyal/openqg-literature-radar.zyal"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
-path = "target/openqg/research/knowledge-hardening/latest/"
-command = "rtk jekko daemon start -f agent/zyal/openqg-knowledge-hardening.zyal"
-source = "agent/zyal/openqg-knowledge-hardening.zyal"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
-path = "target/openqg/benchmarks/nightly/latest/"
-command = "rtk jekko daemon start -f agent/zyal/openqg-benchmark-nightly.zyal"
-source = "agent/zyal/openqg-benchmark-nightly.zyal"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
-path = "target/openqg/data/refresh/latest/"
-command = "rtk jekko daemon start -f agent/zyal/openqg-data-refresh.zyal"
-source = "agent/zyal/openqg-data-refresh.zyal"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
-path = "target/openqg/hypothesis/latest/"
-command = "rtk jekko daemon start -f agent/zyal/openqg-hypothesis-tournament.zyal"
-source = "agent/zyal/openqg-hypothesis-tournament.zyal"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
-path = "target/openqg/theory-incubator/latest/"
-command = "rtk jekko daemon start -f agent/zyal/openqg-theory-incubator.zyal"
-source = "agent/zyal/openqg-theory-incubator.zyal"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
 path = "target/openqg/hero-judge/"
 command = "rtk jankurai-runner --repo . hero-judge-run --zyal agent/zyal/openqg-hero-judge-evolve.zyal"
 source = "agent/zyal/openqg-hero-judge-evolve.zyal"

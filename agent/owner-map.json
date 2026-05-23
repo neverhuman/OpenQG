@@ -2,19 +2,12 @@
   "owners": {
     "AGENTS.md": "agent",
     "README.md": "workspace",
-    "MISSION.md": "workspace",
-    "CONTRIBUTING.md": "workspace",
-    "SECURITY.md": "ops",
-    "CITATION.cff": "workspace",
-    "CODE_OF_CONDUCT.md": "workspace",
-    "GOVERNANCE.md": "workspace",
     "Justfile": "workspace",
     "Cargo.toml": "workspace",
     "Cargo.lock": "workspace",
     "CHANGELOG.md": "workspace",
     "rust-toolchain.toml": "workspace",
     ".gitignore": "workspace",
-    "JANKURAI_TASKLIST.md": "agent",
     "agent/": "agent",
     "agent/standard-version.toml": "agent",
     "agent/repo-score.json": "agent",
@@ -44,16 +37,14 @@
     "ops/git-hooks/": "ops",
     ".github/workflows/": "ops",
     "scripts/": "ops",
-    "research/inbox/": "workspace",
-    "research/knowledge/": "workspace",
     "docs/": "standard",
+    "research/knowledge/question-bank/": "workspace",
     "crates/": "workspace",
     "crates/domain/": "domain",
     "crates/domain/AGENTS.md": "domain",
     "python/ai-service/": "python/ai-service",
     "reports/releases/draft/": "workspace",
-    "reports/hero-judge-progress/": "workspace",
-    "tips/": "seed"
+    "reports/hero-judge-progress/": "workspace"
   },
   "workspace": "openqg"
 }

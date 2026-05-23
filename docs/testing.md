@@ -47,9 +47,6 @@ OpenQG uses explicit lanes instead of ad hoc checks.
 - ZYAL preview: `target/openqg/zyal/preview.json`
 - Jekko ZYAL preview: `target/openqg/zyal/jekko-preview.jsonl`
 - preview checkout root: `JEKKO_PREVIEW_ROOT` (defaults to `/Users/bentaylor/code/opencode/packages/jekko` when present locally)
-- literature radar receipts: `target/openqg/research/literature-radar/latest/*`
-- knowledge hardening receipts: `target/openqg/research/knowledge-hardening/latest/*`
-- knowledge map: `research/knowledge/openqg-literature-map.md`
 - draft release bundle: `reports/releases/draft/release-manifest.json`
 - draft release summary: `reports/releases/draft/release-manifest.md`
 - human review receipts: `target/jankurai/review/*`

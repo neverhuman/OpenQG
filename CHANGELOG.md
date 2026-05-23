@@ -23,5 +23,4 @@
   `approved: false` pending review
 - recorded current release metrics: Jankurai audit score `90` and repo
   benchmark score `99`
-- added the README landing page and [docs/MOONSHOT.md](docs/MOONSHOT.md)
-  vision note
+- added the README landing page and the ZYAL loop notes

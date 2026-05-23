@@ -4,6 +4,10 @@
 
 - No unreleased changes.
 
+## v0.1.2 - 2026-05-23
+
+- bumped the workspace, benchmark, and release tags to `v0.1.2`
+
 ## v0.1.1 - 2026-05-23
 
 - bumped the workspace, benchmark, and release tags to `v0.1.1`

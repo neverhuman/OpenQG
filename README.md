@@ -1,7 +1,7 @@
 # OpenQG
 
 <!-- jankurai-badge:start -->
-[![Jankurai score: 90/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)
+[![Jankurai score: 88/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)
 <!-- jankurai-badge:end -->
 
 OpenQG is an evidence-gated benchmark and control plane for interpretable

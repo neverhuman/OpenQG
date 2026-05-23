@@ -72,7 +72,7 @@ artifact hashes in [reports/hero-judge-progress/2026-05-23.md](reports/hero-judg
 
 ## Release
 
-`v0.0.1` is the first release candidate for the OpenQG control plane. It ships
+`v0.1.1` is the current release candidate for the OpenQG control plane. It ships
 the Rust benchmark workspace, contract registry, smoke benchmark lane, Jankurai
 audit evidence, ZYAL runbooks, release-pack generation, and the initial
 documentation surface.

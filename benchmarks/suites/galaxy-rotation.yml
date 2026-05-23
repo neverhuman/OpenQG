@@ -1,7 +1,7 @@
 id: galaxy-rotation
 title: Galaxy rotation suite
 description: SPARC-style rotation-curve regression.
-benchmark_version: benchmark-v0.1.0
+benchmark_version: benchmark-v0.1.1
 fixture_observables: data/fixtures/smoke/observables.jsonl
 fixture_predictions: data/fixtures/smoke/predictions.jsonl
 baseline_theory: sm-gr-lcdm-mnu
@@ -11,4 +11,3 @@ observables:
   - omega_m
 weights:
   omega_m: 1.0
-

@@ -1,0 +1,706 @@
+I extracted and studied the archive. This tarball contains `unified-theory-agent-brief.v2.md` plus `tip1.txt` through `tip8.txt`; several of those tips themselves discuss earlier `tip9`–`tip13` drafts, but those later files are not separate files in this upload.
+
+# 1. What the problem is really asking
+
+This is **not** asking for a beautiful “theory of everything” essay. It is asking for an **OpenQG-compliant theory artifact** with a hard audit trail:
+
+A row may be marked `predicted` only when its value follows from a derivation that is independent of the row’s target fixture value, validation values, benchmark feedback, fitted constants, reference predictors, copied empirical constants, or hidden calibration.
+
+That means the real problem has three layers:
+
+[
+\textbf{Law} \rightarrow \textbf{State} \rightarrow \textbf{Observable extraction}
+]
+
+Previous agents mostly got the first layer. They wrote plausible law frameworks. They did not close the second and third layers. A law can derive GR, QED, QCD form, or a Friedmann equation; it does **not** thereby derive a GWOSC event mass, an EHT angular diameter, a SPARC velocity point, a JPL orbital element, a Pantheon supernova modulus, or a NIST atomic line. Those are state-conditioned catalog facts unless a separate state generator or source-state pack exists.
+
+The missing conceptual compression is therefore:
+
+[
+\boxed{
+\text{Predictability is not “has an equation.” Predictability is autonomy from non-derived state and non-derived constants.}
+}
+]
+
+I would not submit a broad “all sectors solved” theory. The strongest artifact is a **law/state/autonomy-gated theory** that proves exactly why most rows must be refused, while deriving the structural Standard Model skeleton and the exact null rows it can honestly emit.
+
+# 2. Archive audit
+
+The tips converge on the same safe core:
+
+[
+\text{almost-commutative/spectral geometry}
++
+\text{anomaly/index constraints}
++
+\text{asymptotic-safety or fixed-point discipline}
++
+\text{strict law/state gating}.
+]
+
+Their strongest shared insight is the anti-leakage rule: unsupported rows are acceptable; dishonest numeric rows are fatal.
+
+Their repeated weakness is **score inflation**. Several drafts give themselves 86–88 because they write equations for every domain. But the brief requires derivations that can emit fixture-independent row values with provenance, uncertainty, and extraction maps. These are not equivalent:
+
+[
+V_{\rm CKM}=U_u^\dagger U_d
+]
+
+does not derive CKM angles unless (Y_u) and (Y_d) are derived.
+
+[
+\mu\frac{dg_i}{d\mu}=\beta_i(g)
+]
+
+does not derive (\alpha), (g_1,g_2,g_3), or (\Lambda_{\rm QCD}) unless boundary values, thresholds, and scheme choices are derived.
+
+[
+H^2=\frac{8\pi G}{3}\rho+\frac{\Lambda}{3}
+]
+
+does not derive Planck, DESI, BOSS, or Pantheon rows unless (H_0,\Omega_i,A_s,n_s,r_d,\rho_\Lambda), calibration conventions, and source states are derived.
+
+The best pieces in the archive are:
+
+| File       | Strongest useful contribution                        | Main correction                                                    |
+| ---------- | ---------------------------------------------------- | ------------------------------------------------------------------ |
+| `tip1.txt` | Best skepticism about inflated scores                | Too conservative, but scientifically clean                         |
+| `tip2.txt` | Strong law/state framing                             | Still no constants/flavor/cosmology engine                         |
+| `tip3.txt` | Best “do not submit above 85 yet” discipline         | Too little new derivation                                          |
+| `tip4.txt` | Strong scaffold: spectral/anomaly + law/state split  | Overcredits unsolved sectors                                       |
+| `tip5.txt` | Good warning that finite (D_F) must not hide Yukawas | Modular/fixed-point machinery is asserted, not solved              |
+| `tip6.txt` | Good structural ambition and source/state awareness  | Still mostly the same three null families                          |
+| `tip7.txt` | Best synthesis of broad skeleton plus row gating     | Score too generous without new hard sector                         |
+| `tip8.txt` | Strictest below-85 interpretation                    | Correctly sees that 84–85 is the honest range without a new module |
+
+My conclusion: the archive’s spectral/anomaly/law-state answer is directionally right, but it is not enough for >90. The new artifact must add a real compression theorem, not another name.
+
+# 3. What previous agents assumed too quickly
+
+**Constants.** They treated RG equations, unification-like boundary relations, or spectral-action coefficients as if they fixed low-energy constants. They do not. (\alpha), (g_i), (v/M_{\rm Pl}), (m_H), (Y_f), (\Lambda_{\rm QCD}), (m_p/m_e), and (\rho_\Lambda) remain unsupported.
+
+**State data.** They treated catalog observables as if they were law observables. GWOSC, EHT, JPL, SPARC, Pantheon, many BAO rows, and many atomic rows require source-specific state data.
+
+**Cosmology.** They treated FLRW equations as predictions of cosmological parameters. They are not. A cosmology row needs a derived background, perturbation state, vacuum energy, dark matter abundance, baryogenesis, sound horizon, and extraction map.
+
+**Flavor.** They treated “the finite Dirac operator contains Yukawas” as if it derived the Yukawas. It only provides a slot for them.
+
+**QCD.** They treated dimensional transmutation as if it gave (\Lambda_{\rm QCD}). It gives the mechanism once a UV coupling, scheme, and threshold structure are fixed.
+
+**Vacuum energy.** They did not solve the tiny observed vacuum energy. A heat-kernel cosmological term, subtraction, or “renormalized value” is not a derivation unless the cancellation and residual are forced.
+
+**OpenQG row semantics.** They assumed source prefix equals row meaning. It does not. `sme_*` may be a coefficient row, a magnitude row, or an upper-bound row. `ligogr_*` may be a true null-test deviation or a normalized summary. `codata_*` may include SI anchors or dimensionless targets. Prefix gating is insufficient; the adapter needs row-shape gating.
+
+# 4. Final theory artifact
+
+## Name
+
+[
+\boxed{
+\textbf{OASIS-1: Observable-Autonomy Spectral-Index Geometry}
+}
+]
+
+**Status:** honest partial unified-theory artifact.
+**Core advance over the archive:** a formal **Observable Autonomy Gate** plus a sharper **Anomaly–Yukawa Hypercharge Lock**.
+**Immediate strict prediction families:** `ligogr_*`, `microscope_*`, shape-validated `sme_*`.
+**Immediate theory-lane coverage:** (3/16 = 18.75%), if SME row semantics match.
+**Expected strict `openqg_score`:** likely still (0.000) until broad non-null fixture-independent coverage exists.
+**Not a >90 theory.** It does not derive (\alpha), Yukawas, CKM/PMNS, (\Lambda_{\rm QCD}), vacuum energy, dark matter abundance, baryogenesis, or primordial parameters.
+
+# 5. Primitive object
+
+OASIS-1 is not just a spectral theory. Its primitive is a triple:
+
+[
+\mathfrak T = (\mathfrak L,\mathfrak S,\mathfrak E)
+]
+
+where:
+
+[
+\mathfrak L =
+(M_4,g,\mathcal C;\mathcal A,\mathcal H,D,J,\Gamma;\Gamma_k)
+]
+
+is the law object,
+
+[
+\mathfrak S
+]
+
+is the independent state ledger, and
+
+[
+\mathfrak E
+]
+
+is the observable extraction functor.
+
+The algebraic law sector is:
+
+[
+\mathcal A
+==========
+
+C^\infty(M_4)\otimes \mathcal A_F,
+\qquad
+\mathcal A_F
+============
+
+\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C).
+]
+
+The fluctuated Dirac operator is:
+
+[
+D_A=D+A+JAJ^{-1},
+\qquad
+A=\sum_i a_i[D,b_i].
+]
+
+The action-level object is:
+
+[
+S_{\rm OASIS}
+=============
+
+{\rm Tr},f(D_A^\dagger D_A/\Lambda_s^2)
++
+\langle J\Psi,D_A\Psi\rangle
++
+\Gamma_k^{\rm UV}[g,A,H,\Psi]
++
+S_{\rm constraints}
++
+S_{\rm state}.
+]
+
+Here (S_{\rm state}) is **not** a fitting term. It is a ledger of independently supplied state data. If a row requires state data and those data are not independently derived or supplied by a non-target source pack, the row is refused.
+
+The low-energy limit has the form:
+
+[
+S_{\rm IR}
+==========
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}(R-2\Lambda)
+-\frac14\sum_a F^a_{\mu\nu}F_a^{\mu\nu}
++|D_\mu H|^2
+-V(H)
++\bar\psi i\gamma^\mu D_\mu\psi
++\bar\psi_LYH\psi_R
++{\rm h.c.}
++\cdots
+\right].
+]
+
+This derives the **form** of SM + GR. It does not derive all numerical constants.
+
+# 6. New compression theorem: Observable Autonomy Gate
+
+Let a fixture row be represented as an observable functional
+
+[
+O_r = O_r(L,\theta,\sigma,\xi),
+]
+
+where:
+
+* (L) is the derived law structure,
+* (\theta) are dimensionless constants and boundary values,
+* (\sigma) are state variables,
+* (\xi) are extraction conventions, units, and pipeline choices.
+
+A row is strictly predictable only if:
+
+[
+\frac{\partial O_r}{\partial \sigma}=0,
+\qquad
+\frac{\partial O_r}{\partial \theta_i}=0
+\ \text{for every unsupported } \theta_i,
+\qquad
+\xi \text{ is fixed by declared row semantics}.
+]
+
+If any of those fail, then a numeric prediction would require either hidden constants, hidden state, or hidden extraction choices. The only honest statuses are:
+
+[
+{\tt not_implemented}
+\quad\text{or}\quad
+{\tt invalid_domain}.
+]
+
+This compresses most OpenQG refusals into one rule. It proves why a theory with GR, QCD, QED, and FLRW equations still cannot emit most catalog rows.
+
+Examples:
+
+[
+O_{\rm EHT}\sim \frac{GM}{c^2D_A},\mathcal B(a_*,i,\text{plasma})
+]
+
+depends on (M,D_A,a_*,i), and emission state, so it is refused without an independent state pack.
+
+[
+O_{\rm SPARC}=v(r;\rho_{\rm baryon},\Upsilon_*,\rho_{\rm DM},\text{history})
+]
+
+depends on galaxy-specific baryonic and dark-sector state, so it is refused.
+
+[
+O_{\rm CODATA,\alpha}=\alpha
+]
+
+depends on an unsupported dimensionless constant, so it is refused.
+
+[
+O_{\rm WEP}=\eta_{AB}
+]
+
+is autonomous under universal metric coupling, so it can be predicted:
+
+[
+\eta_{AB}=0.
+]
+
+# 7. Structural derivation: Anomaly–Yukawa Hypercharge Lock
+
+The previous tips mostly checked anomaly cancellation after inserting known hypercharges. OASIS-1 improves that module: given the chiral representation pattern, Yukawa admissibility, neutral neutrino condition, and (N_c=3) color factor from the finite algebra, the hypercharge pattern is fixed.
+
+Let one generation have left-handed Weyl fields:
+
+[
+Q:(N_c,2)_q,\quad
+u^c:(\bar N_c,1)_u,\quad
+d^c:(\bar N_c,1)_d,
+]
+
+[
+L:(1,2)_\ell,\quad
+e^c:(1,1)_e,\quad
+\nu^c:(1,1)_n,
+]
+
+and Higgs hypercharge (h).
+
+Gauge-invariant Yukawa couplings require:
+
+[
+q+h+u=0,
+]
+
+[
+q-h+d=0,
+]
+
+[
+\ell-h+e=0,
+]
+
+[
+\ell+h+n=0.
+]
+
+Thus:
+
+[
+u=-q-h,\qquad d=-q+h,\qquad e=h-\ell,\qquad n=-\ell-h.
+]
+
+The (SU(2)^2U(1)) anomaly gives:
+
+[
+N_cq+\ell=0.
+]
+
+Neutrality of the neutrino fixes:
+
+[
+Q_\nu=\frac12+\ell=0
+\quad\Rightarrow\quad
+\ell=-\frac12.
+]
+
+With the standard Higgs normalization (h=\frac12), this gives:
+
+[
+N_cq=\frac12.
+]
+
+For (N_c=3),
+
+[
+q=\frac16.
+]
+
+Then:
+
+[
+u=-\frac23,\qquad d=\frac13,\qquad e=1,\qquad n=0.
+]
+
+So the left-handed conjugate hypercharges are:
+
+[
+Q:(3,2)*{1/6},\quad
+u^c:(\bar3,1)*{-2/3},\quad
+d^c:(\bar3,1)_{1/3},
+]
+
+[
+L:(1,2)_{-1/2},\quad
+e^c:(1,1)_1,\quad
+\nu^c:(1,1)_0.
+]
+
+The anomaly checks then close:
+
+[
+[SU(3)]^2U(1):
+\quad
+2\left(\frac16\right)-\frac23+\frac13=0,
+]
+
+[
+[SU(2)]^2U(1):
+\quad
+3\left(\frac16\right)-\frac12=0,
+]
+
+[
+[\mathrm{grav}]^2U(1):
+\quad
+6\left(\frac16\right)
++3\left(-\frac23\right)
++3\left(\frac13\right)
++2\left(-\frac12\right)
++1
++0
+=0,
+]
+
+[
+[U(1)]^3:
+\quad
+6\left(\frac16\right)^3
++3\left(-\frac23\right)^3
++3\left(\frac13\right)^3
++2\left(-\frac12\right)^3
++1^3
++0^3
+=0.
+]
+
+The Witten (SU(2)) global anomaly is absent because each generation has four left-handed weak doublets: three colored quark doublets plus one lepton doublet.
+
+This is a real derivation of charge quantization and hypercharge structure, conditional on the finite algebra and (N_c=3). It is **not** a derivation of (\alpha), particle masses, Yukawas, CKM, PMNS, or generation count.
+
+# 8. Derived quantities
+
+OASIS-1 may honestly claim these:
+
+| Quantity                                                      | Status                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| (G_{\rm SM}=(SU(3)_c\times SU(2)_L\times U(1)_Y)/\mathbb Z_6) | structurally derived conditional on (\mathcal A_F)                              |
+| (N_c=3)                                                       | structural from (M_3(\mathbb C)); not a universal classification theorem        |
+| chiral weak structure                                         | derived from quaternionic/chiral finite module                                  |
+| charge quantization                                           | derived by anomaly–Yukawa lock                                                  |
+| one-generation anomaly cancellation                           | derived                                                                         |
+| WEP/Eötvös null                                               | derived from universal metric coupling                                          |
+| GR-null deviations                                            | derived in the IR Einstein-Hilbert limit                                        |
+| Lorentz/CPT SME coefficients                                  | zero if exact local Lorentz/CPT symmetry and row shape is coefficient/deviation |
+
+The strict emitted numerical values today are only:
+
+[
+\Delta_{\rm GR}=0,
+\qquad
+\eta_{\rm WEP}=0,
+\qquad
+k_{\rm SME}=0.
+]
+
+# 9. Constants ledger
+
+| Target                                  | Ledger class                        | OASIS-1 status                                                  |
+| --------------------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+| (c)                                     | metrology anchor + causal structure | SI value not a prediction; invariant speed assumed structurally |
+| (\hbar)                                 | quantum normalization               | not a dimensionless prediction                                  |
+| (k_B)                                   | thermodynamic conversion            | metrology anchor                                                |
+| (G,M_{\rm Pl})                          | effective coupling                  | relation accounted for; numeric (G) not derived                 |
+| gauge group                             | structural integer/group            | derived conditional on finite algebra                           |
+| colors                                  | structural integer                  | (N_c=3) from (M_3(\mathbb C)), not globally unique              |
+| charge quantization                     | derived dimensionless structure     | derived by anomaly–Yukawa lock                                  |
+| anomaly cancellation                    | derived structure                   | complete for one generation                                     |
+| chiral weak structure                   | derived structure                   | complete structurally                                           |
+| generations                             | structural integer                  | not derived                                                     |
+| (\alpha)                                | dimensionless constant              | not derived                                                     |
+| (g_1,g_2,g_3)                           | dimensionless couplings             | RG form known; boundary values not derived                      |
+| (v,m_H,\lambda_H)                       | electroweak scale/parameters        | not derived                                                     |
+| Yukawas (Y_f)                           | flavor parameters                   | not derived                                                     |
+| CKM                                     | mixing matrix                       | not derived                                                     |
+| PMNS/neutrino masses                    | mixing/mass sector                  | not derived                                                     |
+| (\Lambda_{\rm QCD})                     | dimensional transmutation target    | mechanism known; numerical scale not derived                    |
+| strong CP                               | CP/topological sector               | no completed mechanism                                          |
+| (m_p/m_e)                               | mass ratio                          | not derived                                                     |
+| vacuum energy                           | cosmological constant scale         | not derived                                                     |
+| dark matter                             | state + particle sector             | not derived                                                     |
+| baryon asymmetry                        | cosmological state                  | not derived                                                     |
+| (A_s,n_s,r,H_0,\Omega_i)                | primordial/background state         | not derived                                                     |
+| GWOSC/EHT/JPL/SPARC/Pantheon/ASD states | environmental/source variables      | refused unless independently supplied                           |
+
+# 10. OpenQG fixture-family map
+
+| Family             | Status today                                         | Reason                                                                                   |
+| ------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `ligogr_*`         | `predicted` only for GR-deviation/null rows          | IR Einstein-Hilbert limit gives zero deviation                                           |
+| `microscope_*`     | `predicted`                                          | universal metric coupling gives (\eta_{AB}=0)                                            |
+| `sme_*`            | shape-guarded `predicted`                            | exact Lorentz/CPT gives zero coefficient; upper-bound rows need shape validation         |
+| `codata_*`         | `not_implemented` except possible SI-anchor metadata | (\alpha), mass ratios, (G) not derived                                                   |
+| `pdg_*`            | `not_implemented`                                    | masses, widths, lifetimes require (Y_f,v,\Lambda_{\rm QCD}), amplitudes                  |
+| `hepdata_*`        | `not_implemented`                                    | precision EW/scattering rows require derived couplings, (v), thresholds, cuts            |
+| `nufit_*`          | `not_implemented`                                    | PMNS, splittings, ordering, CP phase not derived                                         |
+| `planck_*`         | `not_implemented`                                    | (\Omega_i,H_0,A_s,n_s,\rho_\Lambda,\Omega_{\rm DM}) not derived                          |
+| `desi_*`, `boss_*` | `not_implemented`                                    | BAO needs derived cosmological state and sound horizon                                   |
+| `pantheon_*`       | `not_implemented`                                    | supernova distance moduli need cosmology and calibration/source state                    |
+| `gwosc_*`          | `not_implemented`                                    | event masses/spins/distances are historical source states                                |
+| `eht_*`            | `not_implemented` by default                         | Kerr law exists, but (M,D_A,a_*,i), and plasma/emission state are needed                 |
+| `asd_*`            | `not_implemented`                                    | atomic spectra need (\alpha,m_e), nuclear/isotope/QED/many-body inputs                   |
+| `horizons_*`       | `not_implemented`                                    | orbital elements require initial conditions                                              |
+| `sparc_*`          | `not_implemented`                                    | rotation curves require baryonic profiles, mass-to-light policy, and dark-sector closure |
+
+# 11. Exact JSONL rows it can emit today
+
+For a valid `ligogr_*` row:
+
+```json
+{
+  "observable_id": "ligogr_*",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "exact_symmetry_null",
+    "theory_uncertainty": 0.0
+  },
+  "domain_validity": "IR Einstein-Hilbert GR limit; row must be a GR-deviation/null-test observable",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "oasis1.ir_gr_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "IR Einstein-Hilbert limit",
+    "source_references": ["local OpenQG source family: ligo-gr-null-tests"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_law_null",
+    "calibration_status": "strict_none",
+    "observable_shape_match": {
+      "accepted_prefix": "ligogr_*",
+      "accepted_shape": "dimensionless GR-deviation or null residual",
+      "refuse_if": "event mass, spin, distance, catalog source parameter, or non-null empirical summary"
+    }
+  }
+}
+```
+
+For a valid `microscope_*` row:
+
+```json
+{
+  "observable_id": "microscope_*",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "exact_symmetry_null",
+    "theory_uncertainty": 0.0
+  },
+  "domain_validity": "ordinary neutral matter with universal metric coupling",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "oasis1.wep_eotvos_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "universal metric coupling and geodesic motion",
+    "source_references": ["local OpenQG source family: microscope-final-wep"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_law_null",
+    "calibration_status": "strict_none",
+    "observable_shape_match": {
+      "accepted_prefix": "microscope_*",
+      "accepted_shape": "Eotvos/WEP-violation parameter"
+    }
+  }
+}
+```
+
+For a valid `sme_*` coefficient/deviation row:
+
+```json
+{
+  "observable_id": "sme_*",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "exact_symmetry_null",
+    "theory_uncertainty": 0.0
+  },
+  "domain_validity": "exact local Lorentz and CPT invariant IR vacuum; no background tensor vevs",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "oasis1.lorentz_cpt_zero_coeff.v1",
+    "rule_version": "1.0",
+    "theory_basis": "exact local Lorentz/CPT symmetry",
+    "source_references": ["local OpenQG source family: sme-lorentz-cpt"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_symmetry_zero_coefficient",
+    "calibration_status": "strict_none",
+    "observable_shape_match": {
+      "accepted_prefix": "sme_*",
+      "accepted_shape": "SME coefficient value, coefficient magnitude, or null-deviation quantity",
+      "refuse_if": "row asks for the experimental upper bound itself rather than the coefficient value"
+    }
+  }
+}
+```
+
+For every other row:
+
+```json
+{
+  "observable_id": "<input observable_id>",
+  "status": "not_implemented",
+  "domain_validity": "in_scope_but_not_fixture_independently_derived",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "oasis1.autonomy_refusal.v1",
+    "rule_version": "1.0",
+    "no_calibration_data_used": true,
+    "prediction_kind": "auditable_refusal",
+    "calibration_status": "strict_none",
+    "refusal_reason": "row requires non-derived constants, non-derived boundary values, source-state data, or extraction conventions not supplied by the law sector"
+  }
+}
+```
+
+Unsupported rows must not include fake numeric `value` fields.
+
+# 12. Falsifiers
+
+OASIS-1 is falsified or damaged if any of these occur inside its declared domain:
+
+[
+\eta_{AB}\neq 0
+]
+
+for ordinary neutral matter in a clean WEP experiment.
+
+[
+k_{\rm SME}\neq 0
+]
+
+as a genuine Lorentz/CPT-violating coefficient rather than a bound or systematic artifact.
+
+[
+\Delta_{\rm GR}\neq 0
+]
+
+for an IR gravitational-wave null-test observable where the row semantics match the claimed GR-deviation parameter.
+
+The structural module is damaged if the finite algebra cannot consistently produce the Standard Model chiral representation, hypercharge lock, and anomaly cancellation.
+
+The artifact fails OpenQG review if the adapter emits numeric rows for `codata_*`, `pdg_*`, `nufit_*`, `planck_*`, `desi_*`, `pantheon_*`, `gwosc_*`, `eht_*`, `asd_*`, `horizons_*`, or `sparc_*` without a fixture-independent derivation or approved independent state pack.
+
+# 13. Score
+
+I would not claim >90. A hostile reviewer would not accept >90 because no central hard numerical sector is solved.
+
+My honest score:
+
+| Category                                   | Max | Score | Reason                                                                                                                                                    |
+| ------------------------------------------ | --: | ----: | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness       |  25 |  19.5 | Stronger than prior tips on row autonomy and hypercharge lock; still missing constants, flavor, QCD numerics, cosmology, atomic, galaxy, and state rows   |
+| Constants and structural target accounting |  20 |  16.5 | Excellent ledger; charge quantization derived; (\alpha), (g_i), (v), Yukawas, CKM/PMNS, (\Lambda_{\rm QCD}), vacuum energy, dark matter still unsupported |
+| Observable extraction maps                 |  15 |  14.5 | Autonomy gate gives clean family policy; actual row-shape validation still must be run                                                                    |
+| Source-backed non-empirical provenance     |  15 |  12.5 | Spectral/anomaly/GR/WEP/Lorentz logic is solid; finite-algebra selection and UV fixed-point predictivity remain incomplete                                |
+| Executable adapter readiness               |  10 |   8.5 | Straightforward null/refusal adapter; not implemented or run here                                                                                         |
+| Falsifiability and unsupported-row honesty |  10 |  10.0 | Strong explicit falsifiers and refusal policy                                                                                                             |
+| Clarity and auditability                   |   5 |   5.0 | Every emitted number is traceable to an exact null theorem                                                                                                |
+
+[
+\boxed{
+\textbf{Final OASIS-1 pre-submission dossier score: } 86.5/100
+}
+]
+
+Expected current non-empirical theory-lane coverage:
+
+[
+\boxed{
+18.75/100
+}
+]
+
+Expected strict benchmark score before broader derivations and an adapter run:
+
+[
+\boxed{
+0.000\ \text{likely}
+}
+]
+
+Truth-status as a completed theory of nature:
+
+[
+\boxed{
+\text{roughly }40/100
+}
+]
+
+# Final verdict
+
+The best final artifact is **OASIS-1: Observable-Autonomy Spectral-Index Geometry**.
+
+It improves the archive by adding the missing primitive: **a theorem-level autonomy gate** that explains why law equations are not enough to predict state-conditioned OpenQG rows, plus a sharper anomaly/Yukawa derivation of the hypercharge/charge-quantization structure.
+
+It should emit only:
+
+```text
+ligogr_*       -> predicted 0, row-shape guarded
+microscope_*   -> predicted 0
+sme_*          -> predicted 0, row-shape guarded
+```
+
+Everything else remains:
+
+```text
+not_implemented
+```
+
+until a future module genuinely derives one of the hard sectors:
+
+[
+\alpha,\quad
+g_1,g_2,g_3,\quad
+v,\quad
+Y_f,\quad
+V_{\rm CKM},\quad
+U_{\rm PMNS},\quad
+\Lambda_{\rm QCD},\quad
+m_p/m_e,\quad
+\rho_\Lambda,\quad
+\Omega_{\rm DM},\quad
+\eta_B,\quad
+A_s,n_s,r.
+]
+
+This is not the 90+ breakthrough yet. The honest breakthrough here is narrower but real: it turns OpenQG prediction eligibility into a clean mathematical obstruction, derives charge quantization more sharply than the prior tips, and prevents the adapter from laundering empirical state data into fake theory.
+

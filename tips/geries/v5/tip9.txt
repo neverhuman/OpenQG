@@ -1,0 +1,702 @@
+I extracted and read the archive as evidence, not authority. The current upload contains `unified-theory-agent-brief.v2.md` plus `tip1.txt` through `tip15.txt` and macOS `._*` sidecars. Several tips still say only tips 1–8 are present; that is stale internal context and should not be inherited.
+
+## 1. What the problem is really asking
+
+The brief is not asking for a poetic theory of everything. It is asking for a **derivation-first, leakage-proof OpenQG prediction artifact**.
+
+The true task is:
+
+> Given a proposed law of nature, determine which OpenQG rows can be emitted as `predicted` with value, uncertainty, unit, provenance, and zero calibration data, and which rows must be refused because the law does not determine their constants, state, or estimator pipeline.
+
+The previous agents mostly found the right safety lesson:
+
+```text
+ligogr_*       -> 0, if true GR-deviation/null rows
+microscope_*   -> 0
+sme_*          -> 0, only if true Lorentz/CPT coefficient or null-deviation rows
+everything else -> not_implemented
+```
+
+But they assumed too quickly that a framework plus equations equals prediction. It does not. A Friedmann equation is not a Planck/DESI row. A CKM definition is not CKM angles. A QCD beta function is not a proton mass. A Kerr shadow formula is not an EHT angular diameter. A spectral finite algebra is not automatically a uniqueness theorem.
+
+The missing compression is this:
+
+> **A prediction is a terminally closed dependency graph, not a formula.**
+
+That statement is the real primitive.
+
+---
+
+# Final artifact: **TDC-MCC v1**
+
+**Name:** Terminal Dependency Closure with Minimal Chiral-CP Matter Closure
+**Theory ID:** `tdc-mcc-v1`
+**Status:** honest partial unified-theory dossier; not a completed theory of all constants
+**Immediate strict OpenQG coverage:** guaranteed `2/16 = 12.5%`; optimistic `3/16 = 18.75%` if `sme_*` rows are coefficient/null rows rather than published-bound rows
+**Final score:** **89.0 / 100**
+**Not above 90**, because no hard non-null numerical sector such as `alpha`, Yukawas, CKM/PMNS values, `Lambda_QCD`, vacuum energy, dark matter abundance, baryogenesis, or primordial parameters is derived.
+
+This is stronger than the 84.5-style answer because it adds two real modules:
+
+1. A formal **Terminal Dependency Closure theorem** that explains exactly why most OpenQG rows must be refused.
+2. A **Minimal Chiral-CP Closure theorem** that derives the Standard Model structural skeleton more honestly than simply assuming `C ⊕ H ⊕ M_3(C)`.
+
+It is still not enough for a >90 physical-theory score.
+
+---
+
+## 2. Primitive I: Terminal Dependency Closure
+
+For every OpenQG row `r`, define the row extraction map:
+
+[
+\hat y_r =
+\Phi_r
+\left(
+L,\Theta,S_r,E_r,U_r
+\right)
+]
+
+where:
+
+| Symbol   | Meaning                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------- |
+| (L)      | law kernel: action, symmetries, field equations, constraints                                |
+| (\Theta) | unresolved law parameters: couplings, Yukawas, thresholds, vacuum constants                 |
+| (S_r)    | state data: source masses, distances, initial conditions, baryonic profiles, atomic species |
+| (E_r)    | estimator or extraction pipeline: reduction from world-state to row value                   |
+| (U_r)    | units and metrology conventions                                                             |
+
+Define the admissible fiber:
+
+[
+\mathcal F_r(T,I_r)
+===================
+
+\left{
+(\Theta,S_r,E_r,U_r):
+\text{compatible with theory }T
+\text{ and allowed non-target inputs }I_r
+\right}.
+]
+
+Then a strict prediction is allowed only if:
+
+[
+\operatorname{diam}
+\left[
+\Phi_r(\mathcal F_r)
+\right]
+\leq
+\sigma^{\rm theory}_r
+]
+
+and no path in the dependency graph touches fixture values, validation rows, benchmark feedback, copied source rows, fitted coefficients, empirical constants, or reference-predictor outputs.
+
+If two admissible states or parameter choices give different row values, then the law has not predicted the row. Any single number would be a hidden state choice, hidden prior, fitted parameter, or leak.
+
+This theorem compresses the whole brief:
+
+```text
+predicted        iff dependency graph is terminally closed and taint-free
+not_implemented iff row is in scope but needs unresolved constants/state/estimator
+invalid_domain   iff row is outside the declared domain
+```
+
+That is the missing OpenQG primitive.
+
+---
+
+## 3. Primitive II: Minimal Chiral-CP Matter Closure
+
+Previous tips often start with:
+
+[
+\mathcal A_F
+============
+
+\mathbb C \oplus \mathbb H \oplus M_3(\mathbb C)
+]
+
+and then say this gives the Standard Model. That is useful, but it bakes in `3`.
+
+TDC-MCC instead starts one step earlier.
+
+Assume the minimal low-energy chiral gauge law has:
+
+[
+G_N
+===
+
+SU(N_c)\times SU(2)_L\times U(1)_Y
+]
+
+with one Higgs doublet and one anomaly-checking family:
+
+[
+Q:(N_c,2,Y_Q),\quad
+u^c:(\bar N_c,1,Y_u),\quad
+d^c:(\bar N_c,1,Y_d)
+]
+
+[
+L:(1,2,Y_L),\quad
+e^c:(1,1,Y_e),\quad
+N^c:(1,1,0).
+]
+
+Gauge-invariant Yukawa slots with Higgs hypercharge (Y_H) require:
+
+[
+Y_u=-Y_Q-Y_H,\qquad
+Y_d=-Y_Q+Y_H,
+]
+
+[
+Y_e=Y_H-Y_L,\qquad
+Y_N=-Y_L-Y_H=0.
+]
+
+So:
+
+[
+Y_L=-Y_H.
+]
+
+The (SU(2)^2U(1)) anomaly gives:
+
+[
+N_cY_Q+Y_L=0
+]
+
+hence:
+
+[
+Y_Q=\frac{Y_H}{N_c}.
+]
+
+Normalize electromagnetism by requiring the lepton doublet to contain a neutral state and a charge-minus-one state:
+
+[
+Q_{\rm em}=T_3+Y,\qquad Y_H=\frac12.
+]
+
+Then:
+
+[
+Y_Q=\frac{1}{2N_c},
+]
+
+[
+Y_u=-\frac{N_c+1}{2N_c},
+\qquad
+Y_d=\frac{N_c-1}{2N_c},
+]
+
+[
+Y_L=-\frac12,\qquad
+Y_e=1,\qquad
+Y_N=0.
+]
+
+The local anomalies vanish:
+
+[
+SU(N_c)^2U(1):\quad 2Y_Q+Y_u+Y_d=0,
+]
+
+[
+{\rm grav}^2U(1):\quad
+2N_cY_Q+N_cY_u+N_cY_d+2Y_L+Y_e+Y_N=0,
+]
+
+[
+U(1)^3:\quad
+2N_cY_Q^3+N_cY_u^3+N_cY_d^3+2Y_L^3+Y_e^3+Y_N^3=0.
+]
+
+Now impose global (SU(2)) Witten-anomaly closure. With (N_g) generations, the number of left-handed weak doublets is:
+
+[
+N_g(N_c+1).
+]
+
+The first generation count allowing a physical CKM-type CP phase is:
+
+[
+N_{\rm CP}
+==========
+
+\frac{(N_g-1)(N_g-2)}{2}.
+]
+
+For (N_g=1) or (2), this is zero. The minimal charged-current theory with intrinsic weak CP capability has:
+
+[
+\boxed{N_g=3}.
+]
+
+Then Witten closure requires:
+
+[
+3(N_c+1)\ \text{even}
+]
+
+so (N_c) must be odd. The smallest nonabelian color group with a complex fundamental is:
+
+[
+\boxed{N_c=3}.
+]
+
+Substitute (N_c=3):
+
+[
+Y_Q=\frac16,\quad
+Y_u=-\frac23,\quad
+Y_d=\frac13,\quad
+Y_L=-\frac12,\quad
+Y_e=1,\quad
+Y_N=0.
+]
+
+The electric charges become:
+
+[
+\boxed{
+Q_u=\frac23,\quad
+Q_d=-\frac13,\quad
+Q_e=-1,\quad
+Q_\nu=0
+}
+]
+
+and the low-energy gauge skeleton is:
+
+[
+\boxed{
+G_{\rm SM}
+==========
+
+\frac{
+SU(3)_c\times SU(2)_L\times U(1)_Y
+}{\mathbb Z_6}
+}
+]
+
+This is a genuine structural derivation, but only under the stated closure premise:
+
+> minimal anomaly-clean chiral matter + vectorlike electromagnetism + minimal intrinsic weak CP capability.
+
+It does **not** derive Yukawa eigenvalues, CKM angles, PMNS angles, neutrino masses, baryon asymmetry, or any hard dimensionless constants.
+
+---
+
+## 4. Equivalent action / law object
+
+The law object is:
+
+[
+\mathfrak T_{\rm TDC-MCC}
+=========================
+
+\left(
+M_4,g_{\mu\nu};
+G_{\rm SM},\mathcal R_{\rm MCC};
+\Psi,H,A_\mu;
+\Theta_{\rm rel};
+\mathcal D_{\rm row}
+\right)
+]
+
+where (\mathcal R_{\rm MCC}) is the derived chiral representation set above, (\Theta_{\rm rel}) is the unresolved relevant-parameter manifold, and (\mathcal D_{\rm row}) is the terminal dependency closure ledger.
+
+A spectral representation may be used after the closure theorem selects the internal structure:
+
+[
+\mathcal A
+==========
+
+C^\infty(M_4)\otimes
+\left(
+\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C)
+\right),
+]
+
+[
+D_A=D+A+JAJ^{-1}.
+]
+
+The action can be written schematically as:
+
+[
+S_{\rm TDC-MCC}
+===============
+
+{\rm Tr},f(D_A^2/\Lambda_s^2)
++
+\langle J\Psi,D_A\Psi\rangle
++
+S_{\rm EH/IR}
++
+S_{\rm state}
++
+S_{\rm closure}.
+]
+
+The infrared form is:
+
+[
+S_{\rm IR}
+==========
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}(R-2\Lambda)
+-\frac14\sum_a F^a_{\mu\nu}F_a^{\mu\nu}
++|D_\mu H|^2
+-V(H)
++\bar\psi i\gamma^\mu D_\mu\psi
++\bar\psi_LYH\psi_R
++\text{h.c.}
++\cdots
+\right].
+]
+
+Important: (Y), (g_i), (v), (\lambda_H), (G), (\Lambda), and threshold data are not secretly derived here. They live in (\Theta_{\rm rel}) unless a separate fixture-independent theorem fixes them.
+
+---
+
+## 5. Derived quantities
+
+TDC-MCC genuinely derives or supports these:
+
+| Quantity                                | Status                                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------------- |
+| Low-energy chiral gauge skeleton        | Derived under Minimal Chiral-CP Closure                                      |
+| (N_c=3)                                 | Derived under minimal complex color + Witten/global closure                  |
+| Hypercharge ratios                      | Derived                                                                      |
+| Charge quantization pattern             | Derived                                                                      |
+| (Q_u=2/3,\ Q_d=-1/3,\ Q_e=-1,\ Q_\nu=0) | Derived                                                                      |
+| One-family anomaly cancellation         | Derived                                                                      |
+| (N_g=3)                                 | Conditionally derived as minimal charged-current CP-capable generation count |
+| (G_{\rm SM}/\mathbb Z_6)                | Derived from charge lattice and center quotient                              |
+| GR-null deviation rows                  | Predicted as (0) in declared IR Einstein-Hilbert domain                      |
+| WEP/Eötvös rows                         | Predicted as (0) under universal metric coupling                             |
+| Lorentz/CPT coefficient rows            | Predicted as (0) only when row semantics are coefficient/null semantics      |
+
+The strongest new structural win is not “spectral geometry gives (M_3).” It is:
+
+[
+\boxed{
+\text{minimal anomaly-clean chiral CP closure}
+\Rightarrow
+N_c=3,\ N_g=3,\ \text{SM hypercharges}
+}
+]
+
+with caveats visible.
+
+---
+
+## 6. Refused quantities
+
+These remain unsupported as strict predictions:
+
+| Sector                                        | Reason refused                                                                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| (\alpha)                                      | No unique fixture-independent derivation of the fine-structure constant            |
+| (g_1,g_2,g_3)                                 | RG equations need derived boundary values, thresholds, scheme, relevant trajectory |
+| (v,m_H,\lambda_H)                             | Electroweak scale and Higgs potential not derived                                  |
+| Yukawa matrices                               | Finite Dirac/flavor data unresolved                                                |
+| CKM values                                    | Diagonalization map known; matrix entries not derived                              |
+| PMNS values                                   | Neutrino mass matrix, ordering, phases not derived                                 |
+| Neutrino masses                               | No mass mechanism with numerical outputs                                           |
+| (\Lambda_{\rm QCD})                           | Dimensional transmutation needs (g_3) boundary condition                           |
+| Proton/electron mass ratio                    | Needs (m_e), QCD scale, hadron bridge                                              |
+| Strong CP                                     | No derived (\bar\theta=0) or axion/Nelson-Barr mechanism                           |
+| Vacuum energy                                 | No absolute vacuum-energy/cosmological-constant derivation                         |
+| Dark matter abundance                         | No candidate + abundance + structure solver                                        |
+| Baryogenesis                                  | CP capability is not baryon asymmetry                                              |
+| (A_s,n_s,r)                                   | No primordial perturbation generator                                               |
+| Atomic spectra                                | Need (\alpha,m_e), nuclear/isotope data, QED/QCD/many-body corrections             |
+| GWOSC/EHT/JPL/SPARC/Pantheon/BAO catalog rows | State and estimator dependent without independent source-state capsules            |
+
+---
+
+## 7. Constants ledger
+
+| Target                         | Ledger class                        | TDC-MCC status                                                            |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------- |
+| (c)                            | Metrology anchor + causal structure | Invariant speed assumed/structural; SI value not a prediction             |
+| (\hbar)                        | Quantum unit/action normalization   | Unit convention for quantum normalization; not a dimensionless derivation |
+| (k_B)                          | Thermodynamic conversion            | Metrology anchor                                                          |
+| (G,M_{\rm Pl})                 | Low-energy coupling                 | Relation known; numerical (G) not derived                                 |
+| Spacetime dimension            | Domain premise                      | 3+1D assumed for chiral/Witten closure; not independently derived         |
+| Gauge group                    | Structural                          | Derived conditionally as SM skeleton                                      |
+| Colors                         | Structural integer                  | (N_c=3) derived under closure premise                                     |
+| Generations                    | Structural integer                  | (N_g=3) conditionally derived from minimal CP-capable charged current     |
+| Charge quantization            | Structural                          | Derived                                                                   |
+| Anomaly cancellation           | Consistency                         | Derived                                                                   |
+| Chiral weak structure          | Consistency                         | Derived                                                                   |
+| (\alpha)                       | Dimensionless target                | Not derived                                                               |
+| Gauge coupling values          | Dimensionless targets               | Not derived                                                               |
+| Yukawas                        | Dimensionless targets               | Not derived                                                               |
+| CKM/PMNS                       | Dimensionless targets               | Not derived                                                               |
+| (\Lambda_{\rm QCD}/M_{\rm Pl}) | Dimensionless target                | Not derived                                                               |
+| Strong CP                      | Dimensionless phase                 | Not derived                                                               |
+| Vacuum energy                  | State/law target                    | Not derived                                                               |
+| Dark matter abundance          | Cosmological state target           | Not derived                                                               |
+| Baryon asymmetry               | Cosmological state target           | Not derived                                                               |
+| Primordial parameters          | Cosmological state targets          | Not derived                                                               |
+
+---
+
+## 8. OpenQG family map
+
+| Family             | Current status                            | Adapter rule                                                                                           |
+| ------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `ligogr_*`         | `predicted` if true GR deviation/null row | Emit (0.0)                                                                                             |
+| `microscope_*`     | `predicted`                               | Emit Eötvös ratio (0.0)                                                                                |
+| `sme_*`            | Conditional                               | Emit (0.0) only for SME coefficient/null-deviation rows; refuse if row is experimental bound magnitude |
+| `codata_*`         | `not_implemented`                         | (\alpha), mass ratios, (G), etc. not derived                                                           |
+| `pdg_*`            | `not_implemented`                         | Masses, widths, lifetimes need (Y_f,v,\Lambda_{\rm QCD})                                               |
+| `hepdata_*`        | `not_implemented`                         | Needs derived electroweak constants and radiative corrections                                          |
+| `nufit_*`          | `not_implemented`                         | PMNS and neutrino masses unresolved                                                                    |
+| `planck_*`         | `not_implemented`                         | Cosmological state and primordial parameters unresolved                                                |
+| `desi_*`, `boss_*` | `not_implemented`                         | Need (H(z)), sound horizon, matter content, state                                                      |
+| `pantheon_*`       | `not_implemented`                         | Needs cosmology plus supernova calibration/estimator                                                   |
+| `gwosc_*`          | `not_implemented`                         | Binary event masses/spins are source-state facts                                                       |
+| `eht_*`            | `not_implemented`                         | Needs (M,D,a_*,i), emission model, imaging estimator                                                   |
+| `asd_*`            | `not_implemented`                         | Needs constants, isotope/nuclear/QED/many-body data                                                    |
+| `horizons_*`       | `not_implemented`                         | Orbital elements are initial-condition dependent                                                       |
+| `sparc_*`          | `not_implemented`                         | Needs baryonic profiles and dark-sector/halo state                                                     |
+
+Current guaranteed emitted rows are only `ligogr_*` and `microscope_*`. `sme_*` is allowed only after row-shape validation.
+
+---
+
+## 9. Example JSONL policy
+
+For a true GR-null row:
+
+```json
+{
+  "observable_id": "ligogr_001",
+  "theory_id": "tdc-mcc-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "type": "exact_law_null",
+    "value": 0.0
+  },
+  "domain_validity": "valid only for GR deviation/null-test rows in the declared IR Einstein-Hilbert domain",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tdc_mcc.ir_gr_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "IR Einstein-Hilbert limit gives zero beyond-GR deviation parameter",
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_symmetry_null",
+    "calibration_status": "strict_none",
+    "observable_shape_match": "prefix ligogr_; domain gravity; row semantics must be GR-deviation/null"
+  }
+}
+```
+
+For a MICROSCOPE/WEP row:
+
+```json
+{
+  "observable_id": "microscope_001",
+  "theory_id": "tdc-mcc-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "distribution": "delta",
+  "domain_validity": "ordinary neutral matter with universal metric coupling",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tdc_mcc.wep_eotvos_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "universal point-particle action S=-m∫ds yields composition-independent geodesic motion",
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_wEP_null",
+    "calibration_status": "strict_none"
+  }
+}
+```
+
+For an SME row, the adapter must branch:
+
+```text
+if row is SME coefficient or coefficient-null/deviation:
+    predicted value = 0.0
+else if row is published experimental upper-bound magnitude:
+    status = not_implemented
+```
+
+For a CODATA alpha row:
+
+```json
+{
+  "observable_id": "codata_001",
+  "theory_id": "tdc-mcc-v1",
+  "status": "not_implemented",
+  "domain_validity": "in_scope_but_not_derived",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tdc_mcc.refusal.constants.v1",
+    "rule_version": "1.0",
+    "no_calibration_data_used": true,
+    "prediction_kind": "auditable_refusal",
+    "refusal_reason": "fine-structure constant and other dimensionless constants are not derived; CODATA values must not be copied"
+  }
+}
+```
+
+---
+
+## 10. Adapter policy
+
+The adapter may inspect:
+
+```text
+observable_id
+domain
+unit
+description / row-shape metadata
+source_family
+```
+
+It must not inspect target `value` or target `uncertainty` to decide whether to predict.
+
+Algorithm:
+
+```text
+for each row:
+    build dependency graph:
+        law dependencies
+        constants dependencies
+        state dependencies
+        estimator dependencies
+        unit dependencies
+
+    if graph is terminally closed and taint-free:
+        emit predicted row
+
+    else if observable is inside declared physics domain:
+        emit not_implemented with missing dependency list
+
+    else:
+        emit invalid_domain
+```
+
+Unsupported rows must not contain fake numeric prediction fields.
+
+---
+
+## 11. Falsifiers
+
+TDC-MCC is narrow but falsifiable.
+
+It is physically damaged if:
+
+1. A clean ordinary-matter WEP experiment establishes fundamental nonzero Eötvös violation inside the universal metric-coupling domain.
+2. A fundamental Lorentz/CPT-violating SME coefficient is established.
+3. A claimed GR-null row requires non-GR dynamics inside the declared IR Einstein-Hilbert domain.
+4. Low-energy gauge structure is not (SU(3)_c\times SU(2)_L\times U(1)_Y/\mathbb Z_6).
+5. Quark/lepton charge ratios violate the minimal chiral-closure result.
+6. The premise “minimal intrinsic weak CP capability” is rejected as a selection principle; then the (N_g=3) derivation downgrades to conditional only.
+
+It fails audit automatically if:
+
+```text
+any fixture value,
+validation row,
+benchmark score,
+reference predictor output,
+copied CODATA/PDG/NuFIT/Planck/DESI/EHT/SPARC/JPL/GWOSC value,
+hidden fitted coefficient,
+or empirical surrogate
+```
+
+enters a `predicted` row.
+
+---
+
+## 12. Section-by-section grade
+
+| Section               | Status                                  | Judgment                                                                       |
+| --------------------- | --------------------------------------- | ------------------------------------------------------------------------------ |
+| Foundations           | Partial-strong                          | Formal row-closure theorem plus chiral gauge closure; not full quantum gravity |
+| Low-energy limit      | Partial                                 | SM+GR form recovered; constants not fixed                                      |
+| Constants             | Partial                                 | Ledger is honest; hard dimensionless constants unresolved                      |
+| Particles             | Partial                                 | Charges/representations derived; masses/widths/lifetimes not derived           |
+| Interactions          | Partial                                 | Gauge skeleton derived; coupling values/running boundary conditions unresolved |
+| Flavor                | Partial                                 | (N_g=3) conditionally derived; Yukawas/CKM/PMNS values unresolved              |
+| QCD/nuclear           | Missing-partial                         | Color derived; (\Lambda_{\rm QCD}), hadrons, nuclear physics missing           |
+| Cosmology             | Missing                                 | No vacuum energy, dark matter, baryogenesis, primordial generator              |
+| Gravity               | Complete only for null rows             | GR-deviation nulls only; GWOSC source states refused                           |
+| Black holes           | Conditional/refused                     | Kerr law insufficient without state/estimator                                  |
+| Atomic physics        | Missing                                 | Needs constants, nuclear/isotope/QED/many-body inputs                          |
+| Solar system          | Conditional/refused                     | Laws exist; ephemeris state missing                                            |
+| Galaxy dynamics       | Missing                                 | Needs baryonic profiles and dark-sector closure                                |
+| Lorentz/CPT           | Complete only for coefficient-null rows | SME bounds need row-shape guard                                                |
+| Observable extraction | Strong                                  | Terminal Dependency Closure gives exact status rule                            |
+
+---
+
+## 13. Final scorecard
+
+| Category                                   | Max | Score | Reason                                                                                                                                                     |
+| ------------------------------------------ | --: | ----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness       |  25 |  20.0 | Adds real row-closure theorem, chiral/color/hypercharge derivation, conditional generation theorem, and exact null rows; hard numeric sectors still absent |
+| Constants and structural target accounting |  20 |  17.5 | Strong structural ledger; (N_c), charges, anomaly closure, conditional (N_g) improved; (\alpha), (v), Yukawas, QCD scale, vacuum energy unresolved         |
+| Observable extraction maps                 |  15 |  15.0 | Terminal closure gives a row-level prediction/refusal rule                                                                                                 |
+| Source-backed non-empirical provenance     |  15 |  12.5 | Anomaly/Witten/CP counting and null-symmetry logic are reconstructible; hard constants lack derivations                                                    |
+| Executable adapter readiness               |  10 |   9.0 | Adapter is mechanically clear but no actual `rtk` run is present                                                                                           |
+| Falsifiability and honesty                 |  10 |  10.0 | Strong falsifiers and automatic leakage failures                                                                                                           |
+| Clarity and auditability                   |   5 |   5.0 | Every emitted number is traceable; every refusal has a missing dependency                                                                                  |
+
+[
+20.0+17.5+15.0+12.5+9.0+10.0+5.0
+================================
+
+\boxed{89.0/100}
+]
+
+## Final verdict
+
+The best final answer is:
+
+[
+\boxed{
+\textbf{TDC-MCC v1: Terminal Dependency Closure with Minimal Chiral-CP Matter Closure}
+}
+]
+
+It keeps the safe null kernel, upgrades law/state separation into a formal theorem, and derives a real structural Standard Model skeleton rather than merely assuming (M_3(\mathbb C)).
+
+But it still does **not** honestly cross 90. The next score-moving breakthrough must derive one hard non-null sector fixture-independently, with the cleanest targets being:
+
+```text
+alpha
+gauge coupling boundary values
+Yukawa matrices
+CKM / PMNS numeric values
+Lambda_QCD and hadron bridge
+vacuum energy
+dark matter abundance
+baryogenesis
+primordial parameters
+```
+
+Until one of those fibers collapses to a unique taint-free value, the right answer is not broader coverage. It is stricter closure.
+

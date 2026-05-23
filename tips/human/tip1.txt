@@ -1,0 +1,274 @@
+I studied the new archive and then looked for the strongest **existing human** unified-theory method that could survive the archive’s OpenQG scoring discipline without adding new physics. My answer is:
+
+# Best existing human candidate: **Connes–Chamseddine noncommutative-geometry Spectral Standard Model**
+
+**Artifact name:** `NCG-SSM-OQG-v1`
+**Human method:** Chamseddine–Connes spectral action / Connes finite noncommutative geometry / Chamseddine–Connes–Marcolli Standard Model with neutrino mixing.
+**Fair pre-submission score under the archive scorecard:** **83.0 / 100**
+**Primary strict OpenQG coverage today:** **12.5 / 100** if `microscope_*` and coefficient-shaped `sme_*` rows are accepted.
+**Conditional coverage:** **18.75 / 100** if reviewers also accept the low-energy Einstein truncation for `ligogr_*`. I would not count that in the primary score because the original spectral action gives **Einstein plus Weyl gravity**, not pure exact GR.
+**Likely official strict `openqg_score`:** still likely near **0** without an implemented adapter and broader non-null derivations.
+
+This is the best existing human framework I found because it genuinely packages the Standard Model plus gravity into a compact geometric action. It still does **not** derive the hard numerical sectors the archive cares about.
+
+---
+
+## 1. Why this wins over other human candidates
+
+| Candidate                                           | Why it is strong                                                                                                                               | Why it loses under the archive’s scoring rule                                                                                                                                                                                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Noncommutative-geometry Spectral Standard Model** | Produces the SM Lagrangian, Higgs, gauge fields, fermion structure, gravity coupling, neutrino mixing/seesaw structure from spectral geometry. | Many constants remain inputs: spectral-action moments, cutoff scale, Higgs vev, finite Dirac/Yukawa matrices, Majorana masses.                                                                                                                                                        |
+| **String compactification / string phenomenology**  | Strongest general quantum-gravity unification framework and can realize gauge/gravity structures through compactification.                     | No unique compactification/state selector; recent reviews still list Yukawas, Higgs sector, SUSY breaking, detailed SM parameters, and cosmological constant as unresolved challenges. ([arXiv][1])                                                                                   |
+| **Asymptotic safety + Standard Model**              | Potentially powerful for deriving some SM parameters from UV fixed-point conditions.                                                           | Current work is still conditional/truncation-dependent; some studies explicitly fix low-energy SM/gravity couplings and masses from experiment, and top/Higgs predictions depend on assumptions about microscopic gravitational couplings and no-new-physics hypotheses. ([arXiv][2]) |
+| **SO(10) GUTs**                                     | Excellent for charge quantization, one-family structure, right-handed neutrino/seesaw ideas.                                                   | No gravity; fermion masses and mixings are typically handled by model-dependent fits, threshold assumptions, and added Higgs/Yukawa structures. ([arXiv][3])                                                                                                                          |
+
+The NCG Spectral Standard Model is therefore the best **existing human** choice for this benchmark style, but it is not an honest >85 candidate under the archive’s own gate unless one gives it credit for things it does not actually derive.
+
+---
+
+# 2. Human theory artifact: `NCG-SSM-OQG-v1`
+
+## Core primitive
+
+The primitive is a **real even spectral triple**:
+
+[
+(\mathcal A,\mathcal H,D,J,\gamma),
+]
+
+with product geometry
+
+[
+M\times F,
+]
+
+where (M) is an ordinary four-dimensional spin manifold and (F) is a finite noncommutative geometry. In the Standard Model version,
+
+[
+\mathcal A_F=\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C).
+]
+
+The bosonic action is the spectral action and the fermionic action is the Dirac action:
+
+[
+S_{\rm bos}=\operatorname{Tr}, f(D_A/\Lambda),
+]
+
+[
+S_{\rm ferm}=\frac12\langle J\Psi,D_A\Psi\rangle,
+]
+
+with fluctuated Dirac operator
+
+[
+D_A=D+A+JAJ^{-1},
+\qquad
+A=\sum_i a_i[D,b_i].
+]
+
+The original spectral-action paper states the universal action formula and says that applying it to the noncommutative space of the Standard Model gives the Standard Model action coupled to Einstein plus Weyl gravity, with high-scale relations among gauge couplings and the Higgs self-coupling. ([arXiv][4])
+
+## Published method basis
+
+The 2006 Chamseddine–Connes–Marcolli model presents an effective unified theory based on noncommutative geometry for the Standard Model with neutrino mixing, minimally coupled to gravity; it says the product of ordinary spacetime with a finite noncommutative geometry accounts for the Standard Model structure and spontaneous symmetry breaking. ([arXiv][5]) Connes’s 2006 paper says the KO-dimension-6 finite geometry addresses the finite-geometry input problem, fermion doubling, and generates the full Standard Model coupled with gravity, neutrino mixing, and a see-saw mechanism. ([arXiv][6]) A modern open-access treatment states that the full Standard Model Lagrangian can be derived from the almost-commutative manifold (M\times F_{\rm SM}). ([Springer][7])
+
+---
+
+# 3. What this theory really derives
+
+## Strong structural content
+
+`NCG-SSM-OQG-v1` can honestly claim the following, using only the published NCG method:
+
+| Quantity                       | Status                                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| SM gauge/Higgs/Yukawa **form** | Generated by inner fluctuations and spectral action once (F_{\rm SM}) is used.                       |
+| Fermion representation pattern | Encoded by the finite Hilbert space and finite algebra.                                              |
+| Higgs as geometric field       | Comes from the finite/discrete part of the fluctuated Dirac operator.                                |
+| Neutrino mixing/seesaw slot    | Present in the KO-dimension-6 model with right-handed neutrino/Majorana structure.                   |
+| Gravity coupling               | Produced in the spectral action; original action includes Einstein plus Weyl gravity.                |
+| High-scale coupling relations  | Existing method gives relations such as (g_3^2=g_2^2=\frac53 g_1^2) at an assumed unification scale. |
+
+The key limitation is explicit in the modern NCG phenomenology chapter: the Lagrangian coefficients depend on (f(0)), the moments (f_2,f_4), the cutoff (\Lambda), the Higgs vev (v), and coefficients determined by mass matrices in the finite Dirac operator (D_F). ([Springer][7]) That is fatal for many OpenQG rows: the theory supplies structure, but not the fixture-independent numerical constants.
+
+---
+
+# 4. What this theory does **not** derive
+
+I am not adding the anomaly-closure, CP-generation selector, or law/state theorem from prior agent artifacts. This is only the known human theory.
+
+| Target                                     | Status in published NCG Spectral Standard Model                                                                                                      |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (\alpha)                                   | Not derived fixture-independently.                                                                                                                   |
+| (g_1,g_2,g_3) low-energy values            | High-scale relation exists, but the unification scale and running inputs are not derived without empirical assumptions.                              |
+| (v), Higgs mass, Higgs potential constants | Not strictly derived as OpenQG row values. Earlier Higgs-mass prediction was later invalidated/modified.                                             |
+| Yukawa matrices                            | Contained in (D_F); not uniquely derived.                                                                                                            |
+| CKM                                        | Requires derived quark Yukawa matrices; not derived.                                                                                                 |
+| PMNS                                       | Neutrino structure exists, but measured angles/splittings/phases are not derived.                                                                    |
+| (\Lambda_{\rm QCD})                        | QCD gauge structure exists; confinement scale and hadron masses are not derived.                                                                     |
+| (m_p/m_e)                                  | Not derived because (\Lambda_{\rm QCD}) and electron Yukawa are not derived.                                                                         |
+| Strong CP                                  | No complete fixture-independent (\theta_{\rm QCD}) solution.                                                                                         |
+| Vacuum energy / cosmological constant      | Spectral action has a cosmological term, but not the observed value.                                                                                 |
+| Dark matter abundance                      | Not derived.                                                                                                                                         |
+| Baryogenesis                               | Not derived.                                                                                                                                         |
+| Inflation / primordial parameters          | Not derived.                                                                                                                                         |
+| Source-state rows                          | GWOSC masses, EHT angular scales, JPL ephemerides, SPARC velocities, BAO distances, supernova moduli are not predicted from the universal law alone. |
+
+The Higgs-history point is important: the original NCG phenomenology produced a Higgs mass range incompatible with the later observed (\sim125.5) GeV value, and later “resilience” work says a neglected singlet substantially modifies the RG analysis and invalidates the earlier 160–180 GeV prediction. ([Springer][7]) I therefore do **not** count NCG Higgs-mass claims as strict OpenQG predictions.
+
+---
+
+# 5. Constants ledger
+
+| Ledger class                   | Examples                                                                                           | NCG-SSM status                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Metrology anchors              | (c,\hbar,k_B)                                                                                      | Unit/convention anchors; not scored as derived dimensionless physics. |
+| Structural geometric data      | (\mathcal A_F=\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C)), (M\times F), spectral triple data    | Core published structure.                                             |
+| Structural SM outputs          | Gauge/Higgs/fermion Lagrangian form                                                                | Strongly supported once the finite geometry is accepted.              |
+| Existing high-scale relations  | Gauge-coupling relation, Higgs/Yukawa trace relations                                              | Published, but not enough for strict low-energy fixture rows.         |
+| Free/unresolved inputs         | (f(0),f_2,f_4,\Lambda,v,D_F) mass matrices, Majorana parameters                                    | Must remain free or unresolved.                                       |
+| Unsupported hard targets       | (\alpha), Yukawas, CKM, PMNS, (\Lambda_{\rm QCD}), vacuum energy, dark matter, baryogenesis        | `not_implemented`.                                                    |
+| Environmental/source variables | Binary masses, galaxy profiles, EHT source state, BAO/SN calibration, ephemeris initial conditions | `not_implemented`.                                                    |
+
+---
+
+# 6. OpenQG row policy
+
+| Family                                       | Status                                            | Reason                                                                                                                                                                                                                                                                     |
+| -------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `microscope_*`                               | `predicted = 0`, guarded                          | In the low-energy metric-coupled ordinary-matter regime, the model inherits universal metric coupling.                                                                                                                                                                     |
+| `sme_*`                                      | `predicted = 0`, only for coefficient-shaped rows | The published SM/gravity Lagrangian has no Lorentz/CPT-violating SME coefficient; experimental upper-bound rows are refused.                                                                                                                                               |
+| `ligogr_*`                                   | **conditional**, not counted primary              | If the row is explicitly an Einstein-Hilbert GR-null row and the benchmark accepts the IR Einstein truncation, emit 0. But the original spectral action includes Einstein plus Weyl gravity, so I do not count this as an unconditional exact NCG prediction. ([arXiv][4]) |
+| `codata_*`                                   | `not_implemented`                                 | (\alpha), mass ratios, (G), etc. are not derived.                                                                                                                                                                                                                          |
+| `pdg_*`                                      | `not_implemented`                                 | Masses, widths, lifetimes require Yukawas, (v), QCD, and radiative corrections.                                                                                                                                                                                            |
+| `hepdata_*`                                  | `not_implemented`                                 | Requires derived electroweak parameters and thresholds.                                                                                                                                                                                                                    |
+| `nufit_*`                                    | `not_implemented`                                 | PMNS values and splittings not derived.                                                                                                                                                                                                                                    |
+| `planck_*`, `desi_*`, `boss_*`, `pantheon_*` | `not_implemented`                                 | Cosmological state, primordial parameters, and calibration not derived.                                                                                                                                                                                                    |
+| `gwosc_*`, `eht_*`, `horizons_*`, `sparc_*`  | `not_implemented`                                 | These require source states and extraction pipelines.                                                                                                                                                                                                                      |
+| `asd_*`                                      | `not_implemented`                                 | Requires (\alpha,m_e), nuclear/isotope inputs, QED/QCD corrections.                                                                                                                                                                                                        |
+
+---
+
+# 7. Exact row templates it may emit
+
+For `microscope_*`:
+
+```json
+{
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "prediction_kind": "exact_low_energy_metric_null",
+  "theory_basis": "Connes-Chamseddine spectral Standard Model, low-energy metric coupling",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "no_calibration_data_used": true,
+    "observable_shape_match": "Eotvos/WEP-deviation row only"
+  }
+}
+```
+
+For coefficient-shaped `sme_*` rows:
+
+```json
+{
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "<row-compatible SME coefficient unit>",
+  "prediction_kind": "absence_of_lorentz_cpt_violating_operator",
+  "theory_basis": "published Lorentz/CPT-invariant SM+gravity spectral-action Lagrangian",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "no_calibration_data_used": true,
+    "observable_shape_match": "SME coefficient value, not experimental bound magnitude"
+  }
+}
+```
+
+For unsupported rows:
+
+```json
+{
+  "status": "not_implemented",
+  "domain_validity": "in_scope_but_not_fixture_independently_derived",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "no_calibration_data_used": true,
+    "refusal_reason": "Published NCG spectral model does not derive the required constant, source state, or extraction map."
+  }
+}
+```
+
+---
+
+# 8. Falsifiers and failure modes
+
+This human theory artifact fails as a strict OpenQG theory if it emits any of the following as `predicted` without extra published derivations:
+
+[
+\alpha,\quad
+g_i,\quad
+v,\quad
+Y_f,\quad
+V_{\rm CKM},\quad
+U_{\rm PMNS},\quad
+\Lambda_{\rm QCD},\quad
+m_p/m_e,\quad
+\rho_\Lambda,\quad
+\Omega_{\rm DM},\quad
+\eta_B,\quad
+A_s,n_s,r.
+]
+
+It also fails if it treats source catalogs as theory inputs. EHT source parameters, GWOSC event masses, SPARC baryonic profiles, JPL initial conditions, BAO distances, and supernova moduli are not universal-law outputs.
+
+Physics falsifiers include: confirmed fundamental Lorentz/CPT violation in the declared IR regime; confirmed ordinary-matter WEP violation; low-energy particle content incompatible with the finite SM spectral geometry; or gravitational observations requiring non-Einstein/Weyl behavior incompatible with the chosen spectral-action coefficients.
+
+---
+
+# 9. Fair scorecard
+
+| Category                                   | Max |    Score | Reason                                                                                                                                                                                        |
+| ------------------------------------------ | --: | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness       |  25 | **17.0** | Strong published derivation of SM Lagrangian form plus gravity from spectral geometry; missing hard constants, flavor values, QCD scale, cosmology, atomic, galaxy, and source-state sectors. |
+| Constants and structural target accounting |  20 | **16.0** | Ledger can honestly distinguish structural geometry from free parameters; most dimensionless physical targets remain unresolved.                                                              |
+| Observable extraction maps                 |  15 | **13.5** | Clean null/refusal adapter possible; `ligogr_*` is only conditional because spectral action includes Weyl gravity.                                                                            |
+| Source-backed non-empirical provenance     |  15 | **14.0** | Strong primary literature support; loses credit for approximate/falsified Higgs-mass history and unresolved parameter inputs.                                                                 |
+| Executable adapter readiness               |  10 |  **8.5** | Simple adapter for `microscope_*`, guarded `sme_*`, refusals; no broad numerical machinery.                                                                                                   |
+| Falsifiability and unsupported-row honesty |  10 |  **9.0** | Falsifiers and refusal policy are clear.                                                                                                                                                      |
+| Clarity and auditability                   |   5 |  **5.0** | Every accepted number is a symmetry/null value; every other row is refused.                                                                                                                   |
+
+[
+17.0+16.0+13.5+14.0+8.5+9.0+5.0
+===============================
+
+\boxed{83.0/100}
+]
+
+## Final verdict
+
+The best existing human unified theory for this archive’s scoring style is the **noncommutative-geometry Spectral Standard Model**, not because it solves all constants, but because it has the strongest published derivation of the Standard Model plus gravity from one compact mathematical object.
+
+It should be submitted only as:
+
+[
+\boxed{
+\text{a strong existing-human structural theory with guarded null rows, not a completed OpenQG theory.}
+}
+]
+
+It does **not** honestly clear 85, and it definitely does not clear 90, because the central missing sectors remain unclosed: (\alpha), gauge couplings, electroweak scale, Yukawas, CKM, PMNS, (\Lambda_{\rm QCD}), strong CP, vacuum energy, dark matter, baryogenesis, primordial cosmology, and independent source-state packs.
+
+[1]: https://arxiv.org/html/2401.01939v2 "Contents"
+[2]: https://arxiv.org/abs/2212.07456 "[2212.07456] Asymptotic safety of gravity with matter"
+[3]: https://arxiv.org/abs/hep-ph/0605006?utm_source=chatgpt.com "[hep-ph/0605006] Fermion masses and mixings in SO(10) ..."
+[4]: https://arxiv.org/abs/hep-th/9606001?utm_source=chatgpt.com "The Spectral Action Principle"
+[5]: https://arxiv.org/abs/hep-th/0610241 "[hep-th/0610241] Gravity and the standard model with neutrino mixing"
+[6]: https://arxiv.org/abs/hep-th/0608226 "[hep-th/0608226] Noncommutative Geometry and the standard model with neutrino mixing"
+[7]: https://link.springer.com/chapter/10.1007/978-3-031-59120-4_14 "Phenomenology of the Noncommutative Standard Model | Springer Nature Link"
+

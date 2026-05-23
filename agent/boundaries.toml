@@ -16,6 +16,7 @@ editable = [
   "benchmarks/**",
   "theories/**",
   "docs/**",
+  "reports/hero-judge-progress/**",
   "db/**",
   "crates/**",
   "python/ai-service/**",

@@ -1,0 +1,94 @@
+<<<ZYAL v1:daemon id=openqg-hero-judge-evolve>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+job:
+  name: openqg-hero-judge-evolve
+  objective: Evolve OpenQG hero and judge prompts through verifier, literature, red-team, and meta-judge gates.
+  risk:
+    - Do not treat unverified VEOX rolling-tip material as OpenQG evidence.
+    - Do not persist raw chain-of-thought or full provider payloads.
+
+loop:
+  policy: bounded
+  sleep: 30m
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-hero-judge || find target/openqg/hero-judge -path '*/complete.ok' -print -quit | grep -q complete.ok"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+checkpoint:
+  when: after_verified_change
+
+permissions:
+  git_push: deny
+  research: allow
+  webfetch: ask
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG hero/judge evolution
+
+hero_judge:
+  objective: Evolve dual hero and judge prompts for OpenQG theory discovery while compounding only verified knowledge.
+  generations: 2
+  output_root: target/openqg/hero-judge
+  population:
+    hero_lanes: 6
+    judge_lanes: 4
+    verifier_lanes: 2
+    literature_lanes: 2
+    red_team_lanes: 2
+    max_parallel: 8
+  budgets:
+    model_calls: 48
+    search_queries: 12
+    search_pages: 24
+  research:
+    enabled: true
+    live_when_available: true
+    missing_provider: skip_with_receipt
+    queries:
+      - "OpenQG falsifiable quantum gravity benchmark methodology"
+      - "quantum gravity theory admission scoring evidence claims"
+      - "prompt evolution verifier red team scientific hypothesis generation"
+  evidence:
+    - id: zyal-loops
+      role: workflow_doc
+      path: docs/zyal-research-loops.md
+      max_bytes: 16384
+    - id: theory-admission
+      role: theory_gate
+      path: docs/theory-admission.md
+      max_bytes: 16384
+    - id: benchmark-methodology
+      role: benchmark_gate
+      path: docs/benchmark-methodology.md
+      max_bytes: 16384
+    - id: scoring
+      role: scoring_gate
+      path: docs/scoring.md
+      max_bytes: 16384
+    - id: rolling-tip1
+      role: filtered_tip
+      path: tips/rolling/tip1.txt
+      max_bytes: 12288
+    - id: rolling-tip2
+      role: filtered_tip
+      path: tips/rolling/tip2.txt
+      max_bytes: 12288
+    - id: rolling-example1
+      role: filtered_tip
+      path: tips/rolling/example1.txt
+      max_bytes: 12288
+  promotion:
+    min_score: 0.75
+    canary_replay: true
+    anti_leak: true
+<<<END_ZYAL id=openqg-hero-judge-evolve>>>
+ZYAL_ARM RUN_FOREVER id=openqg-hero-judge-evolve

@@ -48,6 +48,7 @@
     "crates/domain/AGENTS.md": "domain",
     "python/ai-service/": "python/ai-service",
     "reports/releases/draft/": "workspace",
+    "reports/hero-judge-progress/": "workspace",
     "tips/": "seed"
   },
   "workspace": "openqg"

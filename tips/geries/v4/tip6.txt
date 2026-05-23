@@ -1,0 +1,675 @@
+## Archive reconstruction
+
+The uploaded archive contains `unified-theory-agent-brief.v2.md` plus `tip1.txt` through `tip8.txt`. A few tips appear to refer to a larger prior archive, but this bundle itself contains eight tip files, so I treated only those eight as evidence.
+
+The brief is not asking for “a nice unified theory.” It is asking for a **fixture-independent row-emission machine**:
+
+[
+\text{OpenQG prediction row} =
+\text{observable extraction}\bigl(\text{law},\text{derived constants},\text{independent state data}\bigr)
+]
+
+under hard anti-leakage rules. The core constraint is not beauty, unification, or coverage. It is: **for each JSONL observable row, can the theory emit a value, uncertainty, unit, provenance, and no calibration data, without seeing the target fixture value?**
+
+That changes the problem dramatically. A law-level theory can deserve respect and still be forbidden from predicting most rows. For example, an equation of motion does not determine a galaxy rotation curve without the galaxy’s baryonic distribution, dark-sector state, distance scale, inclination model, and extraction map. Likewise, the Einstein equations do not determine a particular GWOSC waveform catalog row without source masses, spins, sky location, detector response, priors, and data conditioning.
+
+The prior agents mostly found the right honesty principle: **predict exact null symmetries, refuse state-conditioned and constant-conditioned rows.** Their main weakness is that they often scored this as if the structural formalism had already derived missing constants. It had not.
+
+The strongest external scaffold in the archive is still recognizable: spectral/noncommutative geometry gives a compact way to encode the Standard Model plus gravity, while asymptotic safety gives a possible UV-consistency criterion. But these are not, by themselves, derivations of alpha, Yukawas, CKM, PMNS, (\Lambda_{\rm QCD}), dark matter abundance, vacuum energy, or source states. The spectral-action literature supports the claim that the Standard Model action coupled to gravity can be obtained from a noncommutative-geometric spectral action, but the number of generations and the finite input data are not thereby fully derived from nothing. ([arXiv][1]) Asymptotic safety is a serious UV program, but current formulations do not automatically produce a fixture-independent table of all observed low-energy constants. ([arXiv][2])
+
+So the best answer is not “here is the 90+ theory.” The best answer is a sharper object: a **law/state/semantics theorem** plus a maximally honest spectral-anomaly null-prediction artifact.
+
+---
+
+# The missing conceptual compression
+
+## Law–State–Semantics factorization
+
+The archive already noticed the law/state split, but it did not compress the benchmark problem far enough. The missing third factor is **observable semantics**.
+
+A strict OpenQG prediction must factor as:
+
+[
+P_r = E_r(L, C, S_r)
+]
+
+where:
+
+* (r) is the requested benchmark row.
+* (L) is the law: field equations, symmetry principles, action, constraints.
+* (C) is the constants ledger: structural integers, derived dimensionless constants, metrology anchors, and any remaining free parameters.
+* (S_r) is the independent state package relevant to row (r): initial conditions, boundary conditions, source data, detector state, galaxy state, cosmological state, or material composition.
+* (E_r) is the row-specific extraction map: the rule that says which theoretical quantity corresponds to the row’s `observable_id`, unit, uncertainty model, and comparison semantics.
+
+A row is legally predictable only when all four pieces are independently available:
+
+[
+\operatorname{Predictable}(r)
+\Longleftrightarrow
+L\ \text{derived}
+\wedge C_r\ \text{derived or irrelevant}
+\wedge S_r\ \text{derived or irrelevant}
+\wedge E_r\ \text{unambiguous}
+\wedge \text{no target leakage}.
+]
+
+This is the real compression. It explains why exact null symmetry rows are special. For a null Lorentz-violation coefficient, WEP-violation parameter, or GR-deviation parameter, the state dependence cancels because the law says the forbidden coefficient is identically zero in the declared domain. For most other rows, the row value is not determined by law alone.
+
+## The no-free-state theorem
+
+**Theorem.**
+Let two admissible worlds (U) and (U') share the same law (L), derived constants (C), and row metadata (m_r), but differ in allowed state (S_r) such that:
+
+[
+E_r(L,C,S_r) \neq E_r(L,C,S'_r).
+]
+
+Any fixture-independent adapter (A(L,C,m_r)) that does not receive (S_r), does not derive (S_r), and does not leak the target fixture value must output the same value in both worlds. Therefore it is wrong in at least one world. Hence no law-only adapter can validly predict that row.
+
+**Consequence.**
+Rows from GW event catalogs, EHT images, planetary ephemerides, galaxy rotation curves, atomic transition experiments, supernova compilations, BAO surveys, CMB parameter fits, particle mass tables, and neutrino global fits are not law-only predictions. They require either:
+
+1. a derivation of the relevant source state from deeper principles,
+2. an independent source-state pack with provenance,
+3. or refusal.
+
+This theorem is not a physical theory of alpha or flavor. But it is a benchmark-honest impossibility result. It proves why broad row coverage without independent state data is usually leakage, hidden fitting, or semantic confusion.
+
+The same theorem has a semantic version:
+
+**Semantic identifiability rule.**
+If row metadata does not uniquely specify the observable extraction map (E_r), then no numeric prediction is defined, even if the theory has a related equation. This is especially important for rows that might be bounds, residuals, normalized templates, fitted parameters, catalog labels, or source-conditioned observables.
+
+That rule matters for `sme_*`: predicting a Lorentz/CPT coefficient as exactly zero is valid only if the row represents the coefficient, a coefficient-like residual, or a comparison that accepts a zero coefficient. If the row is merely an experimental upper bound, a publication-level constraint, or a non-coefficient statistic, the adapter must refuse. The SME itself is an effective-field-theory framework whose Lorentz/CPT-violating operators are controlled by coefficients constrained by experiments, so row semantics are essential. ([arXiv][3])
+
+---
+
+# What previous agents assumed too quickly
+
+The prior tips were strongest where they enforced refusal. They were weakest where they quietly counted formal structure as prediction.
+
+The most important over-assumptions were these:
+
+1. **Finite algebra selection was treated as a derivation.**
+   The algebra ( \mathbb{C}\oplus\mathbb{H}\oplus M_3(\mathbb{C}) ) is powerful and highly compressive, but the archive does not prove it is uniquely forced among all possible internal algebras by a fixture-independent theorem.
+
+2. **Yukawas were treated as if they came from geometry.**
+   In the spectral triple, the finite Dirac operator can encode Yukawa matrices. Encoding is not derivation. Without a principle fixing (D_F), the masses, CKM angles, PMNS angles, and neutrino sector remain free or unsupported.
+
+3. **Asymptotic safety was treated as a constants engine.**
+   A fixed point can reduce parameter freedom only after the complete matter-gravity beta system, relevant directions, matching scales, thresholds, and scheme-independent observables are controlled. The archive does not contain that calculation.
+
+4. **Dimensional transmutation was treated as a QCD prediction.**
+   (\Lambda_{\rm QCD}) follows from a UV value of (g_3), thresholds, and renormalization convention. Without deriving those, the QCD scale is not predicted.
+
+5. **Cosmological equations were mistaken for cosmological rows.**
+   Friedmann equations do not predict (\Omega_b), (\Omega_c), (H_0), (n_s), (A_s), (\tau), dark matter abundance, or vacuum energy without state and parameter inputs. Planck, DESI, and Pantheon-like surfaces are empirical parameter-estimation pipelines, not law-only consequences. ([arXiv][4])
+
+6. **CODATA and PDG values were sometimes treated as theory outputs.**
+   CODATA values are adjusted recommended constants derived from experimental/theoretical input data, and PDG values are evaluated compilations of measurements and analyses. They are not fixture-independent predictions just because a theory uses the same symbols. ([NIST][5])
+
+7. **Source catalog rows were under-gated.**
+   EHT, SPARC, GWOSC, Horizons, atomic spectra, and similar rows all require source-specific state packs and extraction maps. EHT’s M87* result, for example, depends on source-specific imaging, angular scale, distance/mass inference, and GRMHD modeling, not merely on the existence of GR. ([arXiv][6]) SPARC is explicitly a database of individual galaxies with photometry and rotation curves, so its rows are state-conditioned by construction. ([Astrophysics Data System][7])
+
+---
+
+# Final theory artifact
+
+## Name
+
+**LSS-IAST v1**
+**Law–State–Semantics Index-Anomaly Spectral Theory**
+
+This is not a completed theory of everything. It is the most defensible artifact I can build from the archive: a spectral/anomaly law scaffold plus a strict law-state-semantics prediction theorem.
+
+---
+
+# 1. Primitive data
+
+The formal object is:
+
+[
+\mathcal{T}
+===========
+
+(L,\ C,\ \mathcal{S},\ \mathcal{E},\ \mathcal{G})
+]
+
+where:
+
+* (L) is the law object.
+* (C) is the constants ledger.
+* (\mathcal{S}) is the independent state functor.
+* (\mathcal{E}) is the row extraction functor.
+* (\mathcal{G}) is the gate predicate deciding whether a row may receive a numeric prediction.
+
+## Law object
+
+[
+L =
+(M,g,\mathcal{A},\mathcal{H},D,J,\Gamma,\Gamma_k)
+]
+
+with:
+
+[
+\mathcal{A}
+===========
+
+C^\infty(M)
+\otimes
+\mathcal{A}_F
+]
+
+and the working finite algebra:
+
+[
+\mathcal{A}_F
+=============
+
+\mathbb{C}
+\oplus
+\mathbb{H}
+\oplus
+M_3(\mathbb{C}).
+]
+
+I do **not** claim this algebra is uniquely derived in the archive. I claim only that, conditional on this algebra and the usual spectral-triple constraints, it gives a compact structural reconstruction of the Standard Model gauge representation.
+
+The bosonic spectral action is:
+
+[
+S_{\rm bos}
+===========
+
+\operatorname{Tr}
+f\left(\frac{D_A^2}{\Lambda_s^2}\right)
+]
+
+with inner fluctuation:
+
+[
+D_A = D + A + JAJ^{-1}.
+]
+
+The fermionic term is:
+
+[
+S_{\rm ferm}
+============
+
+\langle J\Psi,\ D_A\Psi\rangle.
+]
+
+A UV-consistency filter may be imposed by an asymptotic-safety condition:
+
+[
+\partial_k \Gamma_k = \beta[\Gamma_k],
+\qquad
+\Gamma_k \to \Gamma_\ast
+\quad
+\text{as}
+\quad k\to\infty,
+]
+
+but in this artifact that condition is **not** allowed to emit low-energy constants unless the fixed-point calculation, relevant directions, thresholds, and matching map are explicitly solved.
+
+---
+
+# 2. Derived structural content
+
+## Gauge group and representation structure
+
+Conditional on the finite algebra above, the unitary group and unimodularity/central quotient constraints produce the Standard Model gauge structure:
+
+[
+G_{\rm SM}
+==========
+
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb{Z}_6}.
+]
+
+This gives:
+
+* color (N_c=3),
+* weak (SU(2)) chirality,
+* quantized hypercharge structure,
+* Standard Model representation pattern,
+* anomaly-cancellation constraints.
+
+This is a genuine structural compression, but not a derivation of the numerical coupling constants.
+
+## One-generation hypercharge closure
+
+For one generation with a sterile neutrino slot, write left-handed fields as:
+
+[
+Q,\ L,\ u^c,\ d^c,\ e^c,\ N^c.
+]
+
+Gauge-invariant Yukawa couplings and anomaly cancellation imply, up to a common hypercharge normalization:
+
+[
+Y_L=-3Y_Q,
+]
+
+[
+Y_{u^c}=-4Y_Q,
+]
+
+[
+Y_{d^c}=2Y_Q,
+]
+
+[
+Y_{e^c}=6Y_Q,
+]
+
+[
+Y_{N^c}=0.
+]
+
+Choosing the minimal electric charge normalization (Y_Q=1/6) gives the familiar Standard Model hypercharges. This derives charge ratios and anomaly closure within the assumed representation, not the fine-structure constant.
+
+## Low-energy law form
+
+The heat-kernel expansion of the spectral action gives a low-energy action of the schematic form:
+
+[
+S_{\rm IR}
+==========
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}R
+-\Lambda
+-\frac14
+\sum_i
+\frac{1}{g_i^2}
+F^i_{\mu\nu}F_i^{\mu\nu}
++
+|D_\mu H|^2
+-----------
+
+V(H)
++
+\bar{\psi}i\gamma^\mu D_\mu\psi
+-------------------------------
+
+\bar{\psi}Y\psi H
++
+\cdots
+\right].
+]
+
+This derives the **form** of the equations, not the numerical values of:
+
+[
+G,\ \Lambda,\ g_i,\ Y,\ v,\ \lambda.
+]
+
+Those remain unsupported unless separately derived.
+
+---
+
+# 3. Constants ledger
+
+| Quantity class            |                                                                  Examples | LSS-IAST status                                                            | OpenQG policy                                                                   |
+| ------------------------- | ------------------------------------------------------------------------: | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Metrology anchors         |                                       (c,\hbar,k_B), exact SI definitions | Unit conventions or metrology anchors, not deep predictions                | Do not claim CODATA prediction merely by reproducing exact unit definitions     |
+| Structural integers       |                       (N_c=3), weak doublet structure, hypercharge ratios | Derived only conditional on (\mathcal{A}_F) and representation constraints | May be used in structural provenance, not enough for numeric particle rows      |
+| Structural symmetry nulls | Lorentz/CPT coefficients, WEP violation parameter, GR-deviation parameter | Exact zero in declared domain                                              | Predict only if row semantics match a coefficient/deviation/null observable     |
+| Gauge couplings           |                                                      (g_1,g_2,g_3,\alpha) | Not derived                                                                | Refuse `codata_*`, `pdg_*`, `hepdata_*` rows requiring them                     |
+| Electroweak/Higgs sector  |                                                           (v,\lambda,m_H) | Not derived                                                                | Refuse                                                                          |
+| Flavor                    |                                Yukawas, CKM, PMNS, neutrino masses/phases | Encoded but not derived                                                    | Refuse `pdg_*`, `nufit_*`, flavor rows                                          |
+| QCD scale                 |                             (\Lambda_{\rm QCD}), hadron masses, (m_p/m_e) | Not derived because UV coupling/threshholds not derived                    | Refuse                                                                          |
+| Strong CP                 |                                                            (\bar{\theta}) | Not solved                                                                 | Refuse unless exact mechanism is added and row semantics match                  |
+| Vacuum energy             |                                     (\rho_\Lambda), cosmological constant | Not derived numerically                                                    | Refuse cosmology rows                                                           |
+| Dark sector               |                               DM abundance, particle identity, clustering | Not derived                                                                | Refuse                                                                          |
+| Baryogenesis              |                                                                  (\eta_B) | Not derived                                                                | Refuse                                                                          |
+| Primordial state          |                                   (A_s,n_s,r,\tau), initial perturbations | Not derived                                                                | Refuse Planck/DESI/Pantheon-style fitted rows                                   |
+| Source states             |                      GW events, galaxies, black holes, atoms, ephemerides | Need independent state packs                                               | Refuse unless state pack is independently provided and row adapter is specified |
+
+This ledger is the main reason the theory cannot honestly score above 90. The central dimensionless constants are still not derived.
+
+---
+
+# 4. What can be predicted today
+
+LSS-IAST can emit only **exact null symmetry predictions** where state and constants are irrelevant.
+
+## Family A: GR-deviation rows
+
+Candidate prefixes:
+
+```text
+ligogr_*
+```
+
+Allowed only when the row is explicitly a GR-consistency residual, deviation coefficient, deformation parameter, or null-test statistic whose theoretical GR value is zero.
+
+Prediction:
+
+[
+\delta_{\rm GR}=0.
+]
+
+The external scientific motivation is that modern LIGO/Virgo/KAGRA GR-test catalogs are built around testing deviations from GR; recent GWTC testing summaries report no evidence for deviations, but LSS-IAST does not use those results as calibration. ([arXiv][8])
+
+JSONL template:
+
+```json
+{
+  "observable_id": "ligogr_*",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "row_unit",
+  "theory_id": "lss-iast-v1",
+  "distribution": "delta",
+  "prediction_uncertainty": 0.0,
+  "domain_validity": {
+    "regime": "classical_ir_metric_gr",
+    "excludes": [
+      "unknown quantum-gravity corrections",
+      "source-state reconstruction",
+      "detector-noise inference rows"
+    ]
+  },
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "LSS-IAST-GR-NULL-001",
+    "rule_version": "1.0",
+    "theory_basis": "universal metric coupling and Einstein-limit null deviation",
+    "prediction_kind": "exact_symmetry_null",
+    "calibration_status": "strict_none",
+    "no_calibration_data_used": true,
+    "observable_shape_match": "required"
+  }
+}
+```
+
+## Family B: weak equivalence principle rows
+
+Candidate prefixes:
+
+```text
+microscope_*
+```
+
+Allowed only when the row is an Eötvös parameter, differential acceleration ratio, or equivalent WEP-violation statistic.
+
+Prediction:
+
+[
+\eta=0.
+]
+
+MICROSCOPE is a direct high-precision WEP test, but again its measured result is not used as calibration. The theory emits zero because universal metric coupling makes free-fall composition-independent in the declared domain. ([arXiv][9])
+
+JSONL template:
+
+```json
+{
+  "observable_id": "microscope_*",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "theory_id": "lss-iast-v1",
+  "distribution": "delta",
+  "prediction_uncertainty": 0.0,
+  "domain_validity": {
+    "regime": "neutral_macroscopic_test_bodies_minimal_metric_coupling",
+    "excludes": [
+      "nonminimal composition-dependent fifth forces",
+      "charged-plasma environments",
+      "row types that are instrument systematics rather than WEP coefficients"
+    ]
+  },
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "LSS-IAST-WEP-NULL-001",
+    "rule_version": "1.0",
+    "theory_basis": "geodesic universality from minimal metric coupling",
+    "prediction_kind": "exact_symmetry_null",
+    "calibration_status": "strict_none",
+    "no_calibration_data_used": true,
+    "observable_shape_match": "required"
+  }
+}
+```
+
+## Family C: Lorentz/CPT-violation coefficient rows
+
+Candidate prefixes:
+
+```text
+sme_*
+```
+
+Allowed only when the row asks for a Lorentz/CPT-violating coefficient, coefficient component, or null-deviation statistic.
+
+Prediction:
+
+[
+c_{\rm SME}=0.
+]
+
+The Standard-Model Extension is a general framework for parameterizing Lorentz/CPT violation through coefficients; LSS-IAST predicts those coefficients vanish in the local Lorentz-invariant domain. ([arXiv][3])
+
+JSONL template:
+
+```json
+{
+  "observable_id": "sme_*",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "row_unit",
+  "theory_id": "lss-iast-v1",
+  "distribution": "delta",
+  "prediction_uncertainty": 0.0,
+  "domain_validity": {
+    "regime": "local_lorentz_and_cpt_invariant_ir_effective_field_theory",
+    "excludes": [
+      "rows that report experimental upper bounds rather than coefficient values",
+      "publication metadata rows",
+      "non-coefficient observables"
+    ]
+  },
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "LSS-IAST-SME-NULL-001",
+    "rule_version": "1.0",
+    "theory_basis": "exact local Lorentz and CPT invariance",
+    "prediction_kind": "exact_symmetry_null",
+    "calibration_status": "strict_none",
+    "no_calibration_data_used": true,
+    "observable_shape_match": "required"
+  }
+}
+```
+
+---
+
+# 5. What must be refused
+
+The refusal list is not a weakness of implementation. It is a theorem-backed result.
+
+## Refused OpenQG families
+
+| Family             | Status                                | Reason                                                                                                                                                                              |
+| ------------------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `codata_*`         | `not_implemented` or `invalid_domain` | CODATA constants are metrology/experiment-adjusted values; alpha, (G), masses, and ratios are not derived                                                                           |
+| `pdg_*`            | `not_implemented`                     | Particle masses, widths, couplings, CKM, PMNS, and hadron data are not derived                                                                                                      |
+| `hepdata_*`        | `not_implemented`                     | Cross sections require couplings, masses, PDFs, detector/state details, and extraction maps                                                                                         |
+| `nufit_*`          | `not_implemented`                     | Neutrino angles, splittings, ordering, and CP phase are fitted from oscillation data, not derived here; NuFIT is a global analysis surface, not a law-only row source ([arXiv][10]) |
+| `planck_*`         | `not_implemented`                     | Requires primordial state, cosmological parameters, dark sector, and likelihood map                                                                                                 |
+| `desi_*`, `boss_*` | `not_implemented`                     | BAO rows require cosmological state and survey extraction                                                                                                                           |
+| `pantheon_*`       | `not_implemented`                     | Supernova rows require source population, calibration, expansion history, and inference model                                                                                       |
+| `gwosc_*`          | `not_implemented`                     | Event waveforms require masses, spins, sky location, detector response, priors                                                                                                      |
+| `eht_*`            | `not_implemented`                     | Requires black-hole mass/distance/spin/emission model/source state                                                                                                                  |
+| `asd_*`            | `not_implemented`                     | Atomic spectra require alpha, mass ratios, nuclear moments, molecular/atomic state data                                                                                             |
+| `horizons_*`       | `not_implemented`                     | Ephemerides require Solar System initial conditions and body parameters                                                                                                             |
+| `sparc_*`          | `not_implemented`                     | Galaxy rotation curves require galaxy-specific baryons, halo/dark-sector state, distances, inclinations                                                                             |
+
+For unsupported rows, the adapter must emit no numeric value:
+
+```json
+{
+  "observable_id": "row_id",
+  "status": "not_implemented",
+  "theory_id": "lss-iast-v1",
+  "domain_validity": {
+    "regime": "unsupported_for_fixture_independent_prediction"
+  },
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "LSS-IAST-REFUSAL-001",
+    "rule_version": "1.0",
+    "prediction_kind": "explicit_refusal",
+    "calibration_status": "strict_none",
+    "no_calibration_data_used": true,
+    "refusal_reason": "law_state_semantics_factorization_incomplete"
+  }
+}
+```
+
+---
+
+# 6. Adapter policy
+
+The adapter is not allowed to inspect target values, uncertainties, validation scores, hidden fixture constants, or reference predictions.
+
+It may inspect only:
+
+* `observable_id`,
+* declared family/prefix,
+* public row metadata,
+* unit,
+* declared observable description,
+* shape information sufficient to identify whether the row is a null coefficient, deviation, bound, source-conditioned quantity, or metrology value.
+
+The gate predicate is:
+
+[
+\mathcal{G}(r)=1
+]
+
+only if:
+
+1. the row belongs to one of the accepted null families,
+2. the row semantics identify a coefficient/deviation whose theoretical value is exactly zero,
+3. the unit is compatible,
+4. no source-state data are required,
+5. no missing constant is required,
+6. the output is independent of fixture target values.
+
+Otherwise:
+
+[
+\mathcal{G}(r)=0.
+]
+
+Then:
+
+[
+P_r =
+\begin{cases}
+0 \pm 0, & \mathcal{G}(r)=1,[4pt]
+\texttt{not_implemented}, & \mathcal{G}(r)=0.
+\end{cases}
+]
+
+This is intentionally austere. It prevents the most common failure mode in the archive: emitting measured values under theoretical names.
+
+---
+
+# 7. Falsifiers
+
+LSS-IAST v1 is falsifiable in its predicted domain.
+
+A clean falsifier would be:
+
+1. **Confirmed nonzero WEP violation** in the MICROSCOPE-like neutral-body, minimal-coupling regime.
+2. **Confirmed nonzero Lorentz/CPT-violating SME coefficient** in the exact coefficient semantics accepted by the adapter.
+3. **Confirmed nonzero GR-deviation parameter** in a row whose semantics are truly an IR GR null-deviation test.
+4. **A fourth low-energy chiral Standard Model generation** incompatible with the assumed finite spectral representation.
+5. **A proof that the finite spectral algebra cannot reproduce the Standard Model representation/anomaly structure** under its claimed assumptions.
+6. **A valid fixture-independent derivation of state-conditioned rows without independent state data**, which would refute the law-state-semantics no-free-state theorem.
+
+The first three falsifiers are empirical. The fourth and fifth are structural. The sixth is methodological.
+
+---
+
+# 8. What would be needed to clear 90
+
+The artifact does not clear 90 because it does not derive a central missing numerical sector.
+
+A skeptical reviewer would demand at least one of the following:
+
+1. **A real alpha/coupling derivation**
+   A fixture-independent derivation of (\alpha), (g_1,g_2,g_3), including RG flow, threshold matching, and uncertainty propagation.
+
+2. **A real flavor derivation**
+   A unique finite Dirac operator or equivalent principle deriving three generations, Yukawa hierarchies, CKM, PMNS, neutrino masses, and phases.
+
+3. **A real QCD bridge**
+   A derivation of (\Lambda_{\rm QCD}), quark masses, hadron masses, and (m_p/m_e) from independently derived UV data.
+
+4. **A real cosmological closure**
+   A derivation of vacuum energy, dark matter abundance, baryogenesis, and primordial perturbation parameters without fitting Planck/DESI/Pantheon rows.
+
+5. **A valid source-state protocol**
+   An independent state pack system that can lawfully predict selected GWOSC, EHT, SPARC, Horizons, or atomic rows without fixture leakage.
+
+The law-state-semantics theorem is a genuine conceptual compression, but it is an impossibility/architecture result. It closes the **benchmark honesty** problem, not the **constants** problem.
+
+---
+
+# Honest score
+
+## Final score: **87.0 / 100**
+
+Breakdown:
+
+| Category                     |     Score | Reason                                                                                                             |
+| ---------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------ |
+| Mathematical structure       | 19.5 / 25 | Strong spectral/anomaly scaffold plus law-state-semantics theorem; no full uniqueness theorem                      |
+| Constants ledger             | 17.0 / 20 | Clean separation of metrology, structure, free parameters, and states; no derivation of alpha/flavor/QCD/cosmology |
+| Observable extraction        | 14.5 / 15 | Very strong adapter/refusal policy; actual fixture rows were not present for execution                             |
+| Source/provenance discipline | 13.0 / 15 | Strong no-leakage discipline; external scaffold is credible but incomplete                                         |
+| Adapter readiness            |  8.5 / 10 | JSONL policy is implementable; no actual OpenQG run here                                                           |
+| Falsifiability/honesty       | 10.0 / 10 | Exact null predictions and explicit refusal boundaries                                                             |
+| Clarity/compression          |   5.0 / 5 | One factorization explains most prior failures                                                                     |
+
+## Expected empirical/OpenQG behavior
+
+* **Predicted families:** `ligogr_*`, `microscope_*`, shape-valid `sme_*`.
+* **Approximate family coverage:** likely 3 of 16 representative families, about **18.75%**, or **12.5%** if SME row semantics are bounds rather than coefficients.
+* **Strict official OpenQG score:** not claimable without running the actual adapter; if the benchmark rewards only broad numerical coverage, likely near **0.000**.
+* **Truth as completed unified theory:** about **40 / 100**.
+* **Truth as benchmark-honest theory artifact:** about **87 / 100**.
+
+## Final verdict
+
+The best defensible breakthrough in this archive is not a new numerical theory of all constants. It is the **Law–State–Semantics factorization theorem**: a proof-level compression showing exactly why most apparent OpenQG coverage is invalid unless constants, states, and extraction maps are independently derived.
+
+LSS-IAST v1 is therefore a strong, honest, falsifiable, benchmark-safe artifact. It can emit exact null rows with zero calibration data and refuse almost everything else for principled reasons. It does **not** deserve a score above 90, because alpha, flavor, QCD, vacuum energy, dark matter, baryogenesis, and source-state prediction remain genuinely unsolved rather than derived.
+
+[1]: https://arxiv.org/abs/hep-th/9606001?utm_source=chatgpt.com "[hep-th/9606001] The Spectral Action Principle"
+[2]: https://arxiv.org/abs/2212.07456?utm_source=chatgpt.com "[2212.07456] Asymptotic safety of gravity with matter"
+[3]: https://arxiv.org/abs/0801.0287?utm_source=chatgpt.com "Data Tables for Lorentz and CPT Violation"
+[4]: https://arxiv.org/abs/1807.06209?utm_source=chatgpt.com "Planck 2018 results. VI. Cosmological parameters"
+[5]: https://www.nist.gov/publications/codata-recommended-values-fundamental-physical-constants-2022?utm_source=chatgpt.com "CODATA Recommended Values of the Fundamental ..."
+[6]: https://arxiv.org/abs/1906.11238?utm_source=chatgpt.com "First M87 Event Horizon Telescope Results. I. The Shadow of the Supermassive Black Hole"
+[7]: https://ui.adsabs.harvard.edu/abs/2016AJ....152..157L/abstract?utm_source=chatgpt.com "SPARC: Mass Models for 175 Disk Galaxies with Spitzer ..."
+[8]: https://arxiv.org/abs/2603.19019?utm_source=chatgpt.com "[2603.19019] GWTC-4.0: Tests of General Relativity. I. ..."
+[9]: https://arxiv.org/abs/2209.15487?utm_source=chatgpt.com "MICROSCOPE mission: final results of the test of the Equivalence Principle"
+[10]: https://arxiv.org/abs/2410.05380?utm_source=chatgpt.com "NuFit-6.0: Updated global analysis of three-flavor neutrino oscillations"
+

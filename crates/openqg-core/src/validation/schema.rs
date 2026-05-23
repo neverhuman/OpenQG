@@ -129,6 +129,10 @@ pub fn validate_zyal_value(value: &Value) -> Result<Vec<String>> {
         expect_string_field(research, "version", Some("v1"))?;
     }
 
+    if let Some(hero_judge) = mapping.get(&Value::String("hero_judge".into())) {
+        validate_hero_judge(hero_judge)?;
+    }
+
     let mut warnings = Vec::new();
     if !mapping.contains_key(&Value::String("checkpoint".into())) {
         warnings.push("checkpoint block absent".to_string());
@@ -137,6 +141,80 @@ pub fn validate_zyal_value(value: &Value) -> Result<Vec<String>> {
         warnings.push("permissions block absent".to_string());
     }
     Ok(warnings)
+}
+
+fn validate_hero_judge(value: &Value) -> Result<()> {
+    let hero_judge = expect_mapping(value, "hero_judge")?;
+    assert_keys(
+        "hero_judge",
+        hero_judge,
+        &[
+            "objective",
+            "generations",
+            "population",
+            "budgets",
+            "research",
+            "evidence",
+            "promotion",
+            "output_root",
+        ],
+    )?;
+    if let Some(population) = hero_judge.get(&Value::String("population".into())) {
+        let population = expect_mapping(population, "hero_judge.population")?;
+        assert_keys(
+            "hero_judge.population",
+            population,
+            &[
+                "hero_lanes",
+                "judge_lanes",
+                "verifier_lanes",
+                "literature_lanes",
+                "red_team_lanes",
+                "max_parallel",
+            ],
+        )?;
+    }
+    if let Some(budgets) = hero_judge.get(&Value::String("budgets".into())) {
+        let budgets = expect_mapping(budgets, "hero_judge.budgets")?;
+        assert_keys(
+            "hero_judge.budgets",
+            budgets,
+            &["model_calls", "search_queries", "search_pages"],
+        )?;
+    }
+    if let Some(research) = hero_judge.get(&Value::String("research".into())) {
+        let research = expect_mapping(research, "hero_judge.research")?;
+        assert_keys(
+            "hero_judge.research",
+            research,
+            &[
+                "enabled",
+                "live_when_available",
+                "missing_provider",
+                "queries",
+            ],
+        )?;
+    }
+    if let Some(evidence) = hero_judge.get(&Value::String("evidence".into())) {
+        let evidence = expect_sequence(evidence, "hero_judge.evidence")?;
+        for (index, item) in evidence.iter().enumerate() {
+            let item = expect_mapping(item, &format!("hero_judge.evidence[{index}]"))?;
+            assert_keys(
+                &format!("hero_judge.evidence[{index}]"),
+                item,
+                &["id", "role", "path", "max_bytes"],
+            )?;
+        }
+    }
+    if let Some(promotion) = hero_judge.get(&Value::String("promotion".into())) {
+        let promotion = expect_mapping(promotion, "hero_judge.promotion")?;
+        assert_keys(
+            "hero_judge.promotion",
+            promotion,
+            &["min_score", "canary_replay", "anti_leak"],
+        )?;
+    }
+    Ok(())
 }
 
 fn validate_stop_condition(value: &Value, path: &str) -> Result<()> {

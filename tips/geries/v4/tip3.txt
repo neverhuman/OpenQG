@@ -1,0 +1,571 @@
+I studied the uploaded archive. The actual archive contains **`unified-theory-agent-brief.v2.md` plus `tip1.txt` through `tip8.txt`**. Several tips say they reviewed 13 or 14 tips, but those extra files are **not present in this uploaded archive**, so I am treating only the eight actual tips as auditable.
+
+# Final verdict
+
+The tips are all converging on the same correct insight:
+
+**The brief is not asking for a poetic “theory of everything.” It is asking for an OpenQG-compliant, derivation-first, anti-leakage theory artifact.**
+
+That means:
+
+> Predict only rows whose values follow from fixture-independent derivations. Refuse everything else honestly.
+
+The best final answer is therefore **not** a high-coverage fake theory. It is a **law/state-gated spectral/anomaly candidate** that emits only exact null/symmetry predictions today and marks the hard unsolved domains as `not_implemented`.
+
+My final candidate:
+
+# **LS-IASG-H: Law/State Index–Anomaly Spectral Geometry, Honesty-Gated**
+
+**Final pre-submission dossier score:** **84.5 / 100**
+
+That is **below the brief’s 85 review gate**, deliberately. I would not honestly submit this yet as a review-ready “candidate unified theory.” The 86–88 scores in several tips are too generous because the central hard sectors are still not derived.
+
+Expected current behavior:
+
+| Surface                           |                                                                          Score / result |
+| --------------------------------- | --------------------------------------------------------------------------------------: |
+| Honest non-empirical coverage     | **18.75 / 100** if `ligogr_*`, `microscope_*`, and row-shape-valid `sme_*` are accepted |
+| Strict `openqg_score`             |            likely **0.000** until broader derived coverage exists and an adapter is run |
+| Pre-submission dossier score      |                                                                          **84.5 / 100** |
+| Truth-status as completed physics |                                                     much lower, roughly **35–45 / 100** |
+
+The best answer is strong as an **audit-safe partial theory artifact**, not as a completed unified theory of nature.
+
+---
+
+# 1. What the brief is really demanding
+
+The `unified-theory-agent-brief.v2.md` imposes a hard order:
+
+1. Derivation dossier first.
+2. Constants and structural ledger second.
+3. Fixture extraction map third.
+4. Self-grade before implementation.
+5. Adapter only for rows with fixture-independent derivations.
+6. Universal lanes only after dossier and scorecard.
+
+The decisive rule is:
+
+**Unsupported rows are acceptable. Dishonest numeric rows are fatal.**
+
+So the winning strategy is not “predict every OpenQG row.” The winning strategy is:
+
+```text
+derive what is truly derived
+predict only those rows
+refuse everything else
+never copy fixture values
+never use benchmark feedback
+never use reference predictor outputs
+never hide fitted constants
+```
+
+The tips understand this well.
+
+---
+
+# 2. Tip-by-tip audit
+
+| File       | Main final stance       | Strongest part                                                                            | Main weakness                                                                |      My score |
+| ---------- | ----------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------: |
+| `tip1.txt` | IASCG-2H, score 86      | Strong synthesis; good distinction between dossier score, coverage score, and truth score | Too willing to cross 85 despite unresolved constants/flavor/cosmology        |     **84–85** |
+| `tip2.txt` | IASCG-Ω-LS v3, score 86 | Best broad law/state framing and clean refusal policy                                     | Still no hard constants engine, no real adapter run                          |     **84–85** |
+| `tip3.txt` | IASCG-H, score 84       | Most honest strict audit; correctly says “not review-ready”                               | Slightly conservative, but scientifically cleaner                            |        **84** |
+| `tip4.txt` | IASCG-LS-R1, score 86   | Best compact “final answer” structure; good spectral/anomaly core                         | Score inflated by treating structural equations as near-complete derivations |      **84.5** |
+| `tip5.txt` | IASCG-LS-v3, score 82.5 | Most appropriately skeptical of 86–88 claims                                              | Slightly undercredits the value of a complete refusal ledger                 | **82.5–83.5** |
+| `tip6.txt` | IASG-LS-2, score 86     | Strong constants ledger and row policy                                                    | Still above-gates a partial null-row artifact                                |      **84.5** |
+| `tip7.txt` | LS-CSFPU v1, score 86.5 | Strongest ambitious synthesis and falsifier section                                       | Overcredits unsolved fixed-point/flavor/cosmology machinery                  |     **84–85** |
+| `tip8.txt` | LS-IASG-2, score 84.5   | Best strict final judgment; below-gate honesty is right                                   | Could give slightly more artifact-readiness detail                           |      **84.5** |
+
+**Best single uploaded tip:** `tip8.txt`.
+
+**Best synthesis:** combine `tip8`’s strict scoring, `tip4`/`tip6`’s structural formulation, and `tip1`/`tip2`’s clean coverage/truth-score distinction.
+
+---
+
+# 3. Where the tips are strong
+
+They correctly identify the **three safe prediction families**:
+
+| Fixture family | Prediction | Reason                                                                                                  |
+| -------------- | ---------: | ------------------------------------------------------------------------------------------------------- |
+| `ligogr_*`     |        `0` | If the IR limit is Einstein-Hilbert GR, GR-deviation observables vanish                                 |
+| `microscope_*` |        `0` | Universal metric coupling gives zero Eötvös/WEP violation                                               |
+| `sme_*`        |        `0` | Exact local Lorentz/CPT symmetry gives zero SME violation coefficients, subject to row-shape validation |
+
+They also converge on a useful structural framework:
+
+[
+\mathcal A =
+C^\infty(M_4)\otimes\mathcal A_F,
+\qquad
+\mathcal A_F =
+\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C).
+]
+
+From this, after unimodularity and quotienting the shared center, the candidate gets the Standard Model gauge skeleton:
+
+[
+G_{\rm SM}
+==========
+
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb Z_6}.
+]
+
+That is real structural value. It supports:
+
+```text
+SU(3) color
+SU(2) weak chirality
+U(1) hypercharge structure
+charge quantization
+one-generation anomaly cancellation
+```
+
+The tips also correctly emphasize the **law/state split**:
+
+A theory can derive GR equations, but it does not thereby derive the mass of a particular GWOSC binary.
+A theory can derive a Kerr shadow formula, but it does not thereby derive an EHT angular diameter without mass, distance, spin, inclination, and emission state.
+A theory can derive orbital dynamics, but it does not thereby derive JPL Horizons orbital elements without initial conditions.
+A theory can derive a galaxy-dynamics law, but it does not thereby derive SPARC rotation points without baryonic profiles and halo/state data.
+
+That law/state distinction is the most important conceptual improvement in the tips.
+
+---
+
+# 4. Where the tips are weak
+
+The repeated weakness is **score inflation**.
+
+Many tips score themselves 86–88 because they write equations for every domain. But the brief does not ask whether equations exist. It asks whether the artifact can derive fixture-row numbers independently, with provenance, uncertainty propagation, metadata, and no leakage.
+
+These are still not solved:
+
+[
+\alpha,\quad
+g_1,g_2,g_3,\quad
+v,\quad
+m_H,\quad
+Y_f,\quad
+V_{\rm CKM},\quad
+U_{\rm PMNS},
+]
+
+[
+\Lambda_{\rm QCD},\quad
+m_p/m_e,\quad
+\rho_\Lambda,\quad
+\Omega_{\rm DM},\quad
+\eta_B,\quad
+A_s,\quad
+n_s,\quad
+H_0.
+]
+
+Examples of the problem:
+
+| Formal equation               | Why it is not enough                                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| (V_{\rm CKM}=U_u^\dagger U_d) | Defines CKM once Yukawas are known; does not derive CKM values                                                   |
+| (m_f=y_f v/\sqrt 2)           | Maps Yukawas to masses; does not derive Yukawas or (v)                                                           |
+| Friedmann equations           | Do not derive Planck/DESI/BOSS/Pantheon rows without cosmological state parameters                               |
+| QCD beta function             | Does not derive hadron masses or (\Lambda_{\rm QCD}) without boundary conditions and nonperturbative extraction  |
+| Kerr shadow formula           | Does not derive EHT rows without independent black-hole state data                                               |
+| Atomic Hamiltonian            | Does not derive NIST ASD rows without constants, isotope/nuclear data, QED/QCD corrections, and species metadata |
+
+The tips also lack an executed artifact. There is no actual `manifest.yml`, no adapter, no prediction JSONL, and no run of:
+
+```bash
+rtk just fast
+rtk just universal-micro
+rtk just universal-mini
+```
+
+So all scores here are **dossier judgments**, not benchmark results.
+
+---
+
+# 5. What is missing
+
+The missing pieces are central:
+
+| Missing piece                                   | Why it matters                                                    |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
+| Fine-structure constant (\alpha)                | Blocks CODATA/QED/atomic/electroweak rows                         |
+| Gauge coupling boundary values                  | Blocks precision electroweak and running-coupling predictions     |
+| Electroweak scale (v), Higgs mass, quartic      | Blocks W/Z/Higgs and many HEPData rows                            |
+| Yukawa matrices                                 | Blocks particle masses, CKM, PMNS, flavor                         |
+| Three-generation theorem                        | Current candidates mostly assume or motivate three generations    |
+| Neutrino masses and ordering                    | Blocks NuFIT rows                                                 |
+| (\Lambda_{\rm QCD}), confinement, hadron bridge | Blocks hadrons, proton/electron ratio, nuclear/atomic corrections |
+| Strong CP solution                              | Needed for EDM/axion/CP-sector credibility                        |
+| Vacuum energy                                   | Blocks real cosmology                                             |
+| Dark matter candidate and abundance             | Blocks Planck/SPARC/structure rows                                |
+| Baryogenesis                                    | Blocks baryon asymmetry                                           |
+| Primordial state generator                      | Blocks (A_s,n_s,r), CMB, BAO                                      |
+| Independent state packs                         | Needed for GWOSC, EHT, JPL, SPARC, Pantheon, ASD                  |
+| Actual adapter run                              | Needed before any official OpenQG claim                           |
+
+---
+
+# 6. Best final answer: LS-IASG-H
+
+## Core claim
+
+Low-energy physics is the law/state-separated infrared limit of an almost-commutative spectral geometry whose finite algebra and anomaly constraints encode the Standard Model gauge-representation skeleton, while the gravitational sector reduces to Einstein-Hilbert GR in the infrared. An asymptotic-safety or fixed-point condition is treated as a UV consistency requirement, **not** as a hidden numerical fitting engine.
+
+The primitive object is:
+
+[
+\mathfrak S =
+\left(
+M_4,g_{\mu\nu},\mathcal C;
+\mathcal A,\mathcal H,D,J,\Gamma;
+\Gamma_k;
+\mathcal L_{\rm state}
+\right).
+]
+
+with
+
+[
+\mathcal A =
+C^\infty(M_4)\otimes
+\left(
+\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C)
+\right).
+]
+
+The fluctuated Dirac operator is:
+
+[
+D_A=D+A+JAJ^{-1},
+\qquad
+A=\sum_i a_i[D,b_i].
+]
+
+The action is dossier-level, not a completed numeric solver:
+
+[
+S_{\rm LS-IASG-H}
+=================
+
+{\rm Tr},f(D_A^2/\Lambda_s^2)
++
+\langle J\Psi,D_A\Psi\rangle
++
+\Gamma^{\rm AS}*{k\to0}[g,A,H,\Psi]
++
+S*{\rm state}.
+]
+
+Here `S_state` is **not** a fitting reservoir. It is an audit ledger for independent initial conditions, source states, boundary data, and observational-pipeline inputs. If the row requires state data and those state data are not fixture-independent, the row is refused.
+
+---
+
+# 7. Structural derivations retained
+
+The finite algebra gives:
+
+[
+U(\mathcal A_F)=U(1)\times SU(2)\times U(3).
+]
+
+With unimodularity and the common-center quotient:
+
+[
+G_{\rm SM}
+==========
+
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb Z_6}.
+]
+
+For one left-handed generation:
+
+[
+Q_L:(3,2)*{1/6},\quad
+u^c:(\bar3,1)*{-2/3},\quad
+d^c:(\bar3,1)_{1/3},
+]
+
+[
+L_L:(1,2)_{-1/2},\quad
+e^c:(1,1)_1,\quad
+N^c:(1,1)_0.
+]
+
+The anomaly checks are exact:
+
+[
+[SU(3)]^2U(1):\quad
+2Y_Q+Y_{u^c}+Y_{d^c}=0,
+]
+
+[
+[SU(2)]^2U(1):\quad
+3Y_Q+Y_L=0,
+]
+
+[
+[\mathrm{grav}]^2U(1):\quad
+6Y_Q+3Y_{u^c}+3Y_{d^c}+2Y_L+Y_{e^c}+Y_{N^c}=0,
+]
+
+[
+[U(1)]^3:\quad
+6Y_Q^3+3Y_{u^c}^3+3Y_{d^c}^3+2Y_L^3+Y_{e^c}^3+Y_{N^c}^3=0.
+]
+
+These are genuine structural wins:
+
+```text
+gauge group skeleton
+three colors conditional on M3(C)
+weak chirality
+charge quantization
+hypercharge consistency
+one-generation anomaly cancellation
+```
+
+They do **not** derive:
+
+```text
+three generations
+Yukawa eigenvalues
+CKM
+PMNS
+particle masses
+alpha
+QCD scale
+vacuum energy
+dark matter abundance
+primordial parameters
+```
+
+---
+
+# 8. Low-energy limit
+
+The heat-kernel expansion gives the form:
+
+[
+{\rm Tr},f(D_A^2/\Lambda_s^2)
+\sim
+\sum_{n\ge0}
+f_{4-n}\Lambda_s^{4-n}a_n(D_A^2).
+]
+
+The infrared action has the schematic form:
+
+[
+S_{\rm IR}
+==========
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}(R-2\Lambda)
+-\frac14\sum_a F^a_{\mu\nu}F_a^{\mu\nu}
++|D_\mu H|^2
+-V(H)
++\bar\psi i\gamma^\mu D_\mu\psi
++\bar\psi_LYH\psi_R
++\mathrm{h.c.}
++\cdots
+\right].
+]
+
+This recovers the **form** of SM + GR. It does not derive the observed numerical values of (G), (\Lambda), (\alpha), (v), (Y_f), (\Lambda_{\rm QCD}), or cosmological parameters.
+
+---
+
+# 9. Strict prediction policy
+
+LS-IASG-H should emit `predicted` only for the following families.
+
+| Family         | Status                                 | Prediction | Rule                                                         |
+| -------------- | -------------------------------------- | ---------: | ------------------------------------------------------------ |
+| `ligogr_*`     | `predicted` after row-shape validation |        `0` | IR Einstein-Hilbert GR gives zero beyond-GR deviation        |
+| `microscope_*` | `predicted`                            |        `0` | universal metric coupling gives zero Eötvös/WEP violation    |
+| `sme_*`        | shape-guarded `predicted`              |        `0` | exact local Lorentz/CPT symmetry gives zero SME coefficients |
+
+For `ligogr_*`:
+
+[
+\Delta_{\rm GR}=0.
+]
+
+For `microscope_*`:
+
+[
+\eta_{AB}
+=========
+
+# 2\frac{a_A-a_B}{a_A+a_B}
+
+0.
+
+]
+
+For `sme_*`:
+
+[
+k_{\rm SME}=0.
+]
+
+The `sme_*` rule is valid only if the row is a coefficient-value, coefficient-magnitude, or null-deviation row where zero is a meaningful theory prediction. If the row is purely a published experimental upper bound, the adapter must not copy the bound; it should either emit a zero coefficient with clear “below bound” semantics if the schema allows it, or mark the row `not_implemented`.
+
+---
+
+# 10. Refused row families
+
+| Family             | Status                                                    | Reason                                                                                               |
+| ------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `codata_*`         | `not_implemented`, except possible metrology-anchor notes | (\alpha), mass ratios, (G), and dimensionless constants are not derived                              |
+| `pdg_*`            | `not_implemented`                                         | particle masses, widths, lifetimes, and branching structures require (Y_f), (v), QCD, and amplitudes |
+| `hepdata_*`        | `not_implemented`                                         | electroweak/scattering rows require derived couplings, thresholds, cuts, and radiative corrections   |
+| `nufit_*`          | `not_implemented`                                         | PMNS, mass splittings, ordering, and CP phase are unresolved                                         |
+| `planck_*`         | `not_implemented`                                         | (\Omega_i,H_0,A_s,n_s,\rho_\Lambda,\Omega_{\rm DM}) not derived                                      |
+| `desi_*`, `boss_*` | `not_implemented`                                         | BAO requires derived (H(z)), sound horizon, and cosmological state                                   |
+| `pantheon_*`       | `not_implemented`                                         | distance moduli require cosmology plus calibration/source state                                      |
+| `gwosc_*`          | `not_implemented`                                         | event masses, spins, and distances are historical source-state data                                  |
+| `eht_*`            | conditional, default `not_implemented`                    | Kerr law exists, but (M,D,a,i), plasma/emission state, and imaging assumptions are needed            |
+| `asd_*`            | `not_implemented`                                         | atomic spectra require (\alpha,m_e), nuclear/isotope data, QED/QCD/many-body corrections             |
+| `horizons_*`       | `not_implemented`                                         | orbital elements require initial conditions                                                          |
+| `sparc_*`          | `not_implemented`                                         | rotation curves require baryonic profiles and dark-sector/halo state                                 |
+
+---
+
+# 11. Constants and structural ledger
+
+| Target                          | LS-IASG-H status                                                              |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| (c)                             | invariant causal speed and SI anchor; SI number is metrology, not prediction  |
+| (\hbar)                         | quantum action normalization; SI value is unit convention                     |
+| (k_B)                           | thermodynamic conversion factor; SI anchor                                    |
+| (G,M_{\rm Pl})                  | effective low-energy coupling relation accounted for; numeric (G) not derived |
+| gauge group                     | structurally derived conditional on (\mathcal A_F)                            |
+| colors                          | (N_c=3) from (M_3(\mathbb C)), but algebra selection is still an input        |
+| charge quantization             | strong structural derivation through hypercharge/anomaly consistency          |
+| anomaly cancellation            | complete for one generation                                                   |
+| chiral weak structure           | structurally derived                                                          |
+| generations                     | not fully derived                                                             |
+| (\alpha)                        | not derived                                                                   |
+| (g_1,g_2,g_3)                   | RG form known; boundary values not derived                                    |
+| Yukawas                         | not derived                                                                   |
+| Higgs scale / electroweak scale | not derived                                                                   |
+| CKM / PMNS                      | extraction equations known; values not derived                                |
+| (\Lambda_{\rm QCD})             | dimensional-transmutation form known; numeric value not derived               |
+| strong CP                       | no complete row-ready mechanism                                               |
+| (m_p/m_e)                       | not derived                                                                   |
+| vacuum energy                   | not derived                                                                   |
+| baryon asymmetry                | not derived                                                                   |
+| dark matter                     | candidate/abundance not derived                                               |
+| primordial parameters           | (A_s,n_s,r) not derived                                                       |
+
+---
+
+# 12. Adapter policy
+
+For strict predicted rows:
+
+```json
+{
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "distribution": "delta",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_version": "ls_iasg_h_v1",
+    "no_calibration_data_used": true,
+    "calibration_status": "strict_none",
+    "prediction_kind": "exact_symmetry_null",
+    "observable_shape_match": {
+      "required": "null_deviation_or_coefficient_value",
+      "row_shape_guard": true
+    }
+  }
+}
+```
+
+For unsupported rows:
+
+```json
+{
+  "status": "not_implemented",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "domain_validity": "in_scope_but_not_derived",
+  "metadata": {
+    "no_calibration_data_used": true,
+    "prediction_kind": "auditable_refusal",
+    "refusal_reason": "requires unresolved constants, missing derivation, or independent source-state data"
+  }
+}
+```
+
+Unsupported rows must not contain fake numeric prediction fields.
+
+---
+
+# 13. Final scorecard
+
+| Category                                               | Max |    Score | Reason                                                                                                                                                           |
+| ------------------------------------------------------ | --: | -------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness                   |  25 | **18.5** | Strong foundations, SM structural skeleton, anomaly checks, GR/WEP/SME nulls; major constants, flavor, QCD, cosmology, atomic, galaxy, and state rows incomplete |
+| Constants and structural accounting                    |  20 | **15.5** | Good ledger and metrology/structural/free/unsupported separation; central dimensionless constants unresolved                                                     |
+| Observable extraction maps                             |  15 | **14.5** | Clear family-level prediction/refusal map; actual row-by-row fixture validation still unrun                                                                      |
+| Source-backed non-empirical provenance                 |  15 | **12.5** | Plausible spectral/anomaly/GR/WEP/SME basis; hard selector mechanisms not proven and local source-pack integration absent                                        |
+| Executable adapter readiness                           |  10 |  **8.5** | Null/refusal adapter is straightforward; no actual adapter or `rtk` run in archive                                                                               |
+| Falsifiability, unsupported-row honesty, failure modes |  10 | **10.0** | Excellent refusal discipline and clear failure modes                                                                                                             |
+| Clarity and auditability                               |   5 |  **5.0** | Emitted numbers are traceable; unsupported domains explicit                                                                                                      |
+
+[
+18.5+15.5+14.5+12.5+8.5+10+5
+============================
+
+\boxed{84.5/100}
+]
+
+---
+
+# Final answer
+
+The strongest honest result is:
+
+[
+\boxed{
+\textbf{LS-IASG-H}
+==================
+
+\text{spectral SM+gravity skeleton}
++
+\text{index/anomaly structural constraints}
++
+\text{asymptotic-safety UV discipline}
++
+\text{strict law/state ledger}
+}
+]
+
+It should currently emit only:
+
+```text
+ligogr_*       -> predicted 0
+microscope_*   -> predicted 0
+sme_*          -> predicted 0, row-shape guarded
+```
+
+Everything else should be:
+
+```text
+not_implemented
+```
+
+until a fixture-independent derivation or independent state pack exists.
+
+**Final score:** **84.5 / 100**
+
+**Review status:** just below the 85 gate. The fastest legitimate path above 85 is not another renamed spectral theory; it is one real breakthrough module: derive (\alpha), Yukawas/CKM/PMNS, (\Lambda_{\rm QCD}), vacuum energy/dark matter/cosmology, or implement a rigorous independent state-pack protocol plus a real adapter run.
+

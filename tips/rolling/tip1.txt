@@ -1,0 +1,1224 @@
+I agree with your phase-0 instinct. The original “test against real data immediately” ambition is admirable, but too easy to game and too likely to punish honest early-stage theory work. The better first target is a **research-evolution engine**: one population tries to produce increasingly ambitious unified-theory candidates; a second population tries to harden the rubric, detect hidden assumptions, and improve the pathway from idea → derivation → row-level prediction.
+
+The design I would build is:
+
+# **OpenQG-HeroJudge: a co-evolutionary research engine for novel physics and mathematics**
+
+Its north star is not “get a high benchmark score today.” Its north star is:
+
+[
+\boxed{
+\text{increase the rate at which speculative ideas become falsifiable, derivable, auditable mathematics.}
+}
+]
+
+OpenQG already has the right skeleton for this. The repo describes itself as an evidence-gated benchmark/control plane for interpretable unified-physics theories; it keeps theories close to typed manifests, reproducible smoke data, explicit scores, and auditable release receipts. Its first release is deliberately conservative, anchored to `SM + GR + LambdaCDM + massive neutrinos`, with public data tracked by manifests rather than raw dumps and candidate theories required to expose named physical parameters. ([GitHub][1])
+
+---
+
+# 1. What OpenQG currently is, and what that implies
+
+OpenQG is not yet a giant universal-physics oracle. It is currently a **contracted workflow**:
+
+[
+\text{theory manifest}
+\rightarrow
+\text{adapter}
+\rightarrow
+\text{fixtures}
+\rightarrow
+\text{scorecard}
+\rightarrow
+\text{release evidence}.
+]
+
+The repo’s own docs say scoring is still intentionally simple in v0.1, using coverage, missing predictions, invalid prediction count, and parameter-count penalty. The benchmark methodology tracks likelihood-style and compression-style metrics such as log likelihood, AIC, BIC, MDL, coverage, and parameter-count penalty, while rewarding named parameters, complete observable coverage, reproducible fixtures, and explicit invalid-domain handling. ([GitHub][2])
+
+The theory-admission rules are especially important: a candidate needs a stable id, citations, observables, named parameters, and an executable adapter; every parameter needs a unit, meaning, fixed/free status, and reason. The docs explicitly say gray-box optimizers do not get promoted. ([GitHub][3])
+
+That means the **phase-0 goal should not be “beat physics.”** It should be:
+
+[
+\boxed{
+\text{build the best automated system for turning theory claims into audited derivation artifacts.}
+}
+]
+
+The current smoke suite is tiny: `h0`, `omega_m`, and `sum_mnu`, with baseline predictions matching the smoke observables. That is useful for plumbing, but it is not yet a scientific discriminator for a new unified theory. ([GitHub][4])
+
+---
+
+# 2. The right mental model: not “one agent,” but a scientific adversarial league
+
+I would not run one heroic agent and one judge agent. I would run a **league** with several specialized populations:
+
+[
+\text{Heroes}
++
+\text{Judges}
++
+\text{Formalizers}
++
+\text{Archivists}
++
+\text{Canary Attackers}
++
+\text{Benchmark Engineers}.
+]
+
+The key is that **the judge does not merely score the hero**. The judge evolves the definition of what would count as real progress. The hero tries to find a theory. The judge tries to make sure “finding a theory” cannot mean “hiding a fit,” “renaming constants,” or “writing elegant equations with no extraction map.”
+
+AutoResearch gives the right operational pattern: fixed experimental loop, small editable surface, repeated experiments, keep/discard based on an evaluator. Karpathy’s AutoResearch repo is intentionally minimal: an agent edits the experiment file, runs a fixed-time training experiment, checks whether the validation metric improved, and repeats; the human programs the research org through `program.md`. ([GitHub][5])
+
+HyperAgents adds the meta-evolution idea: the task agent solves the task, while a meta-agent modifies the task agent and the modification process itself. The paper’s key claim is that the meta-level modification procedure is editable, enabling improvement not just of task behavior but of future self-improvement mechanisms. ([arXiv][6])
+
+For OpenQG, I would combine those ideas, but with one crucial correction: **the evaluator cannot be a single scalar score.** A single score will be hacked. The evaluator must be a multi-stage proof-and-provenance gate.
+
+---
+
+# 3. The core architecture
+
+## 3.1 The hero population
+
+Each hero agent produces a candidate artifact, not just prose.
+
+A hero submission must contain:
+
+```text
+candidate/
+  theory_card.md
+  primitives.md
+  action_or_formal_object.md
+  derivation_dossier.md
+  constants_ledger.json
+  claim_ledger.jsonl
+  row_policy.jsonl
+  falsifiers.md
+  adapter_stub/
+  citations.bib
+  proof_tasks/
+  self_score.json
+```
+
+The hero is allowed to be wildly ambitious, but every claim must be typed:
+
+```json
+{
+  "claim_id": "derive_nc_3_from_anomaly_closure",
+  "claim_type": "structural_theorem",
+  "status": "proved_sketch | formalized | conjectural | refused",
+  "depends_on": ["local_gauge_anomaly_cancellation", "minimal_chiral_closure"],
+  "free_parameters_introduced": [],
+  "observable_relevance": ["particle_structural"],
+  "row_emission_allowed": false,
+  "citations": [...]
+}
+```
+
+That one field, `row_emission_allowed`, is essential. It prevents beautiful structural ideas from pretending to be CODATA, PDG, Planck, EHT, or GWOSC predictions.
+
+Heroes should come in different species:
+
+1. **Theory heroes** invent or refine primitives.
+2. **Human-theory heroes** are constrained to existing literature only, such as NCG, string compactifications, asymptotic safety, causal sets, loop/spinfoam/GFT, CDT, SO(10), etc.
+3. **No-go heroes** try to prove impossibility theorems: “this row family cannot be predicted without independent source-state data.”
+4. **Constants heroes** focus on one hard missing sector: (\alpha), Yukawas, CKM, PMNS, (\Lambda_{\rm QCD}), vacuum energy, dark matter abundance, baryogenesis, or primordial parameters.
+5. **Adapter heroes** convert already-derived rules into OpenQG row policies.
+6. **Formalization heroes** turn derivation claims into Lean/Coq/Isabelle/Sage/SymPy/unit-checked notebooks.
+
+The most valuable hero is not the one with the biggest scope. The most valuable hero is the one that turns one previously unsupported class into a **certificate-backed derivation**.
+
+---
+
+## 3.2 The judge population
+
+Each judge agent is adversarial but constrained. It cannot just say “bad” or “good.” It must produce machine-readable objections.
+
+A judge review should look like:
+
+```json
+{
+  "target_candidate": "ncg-ssm-oqg-v1",
+  "finding_id": "finite_dirac_operator_contains_yukawa_data",
+  "severity": "major",
+  "finding_type": "hidden_free_parameter",
+  "affected_claims": ["derive_ckm", "derive_fermion_masses"],
+  "required_fix": "mark Yukawa matrices as free unless a fixture-independent selector is provided",
+  "rubric_patch_suggested": true,
+  "rubric_patch": {
+    "rule": "finite_operator_entries_count_as parameters unless uniquely derived",
+    "canary_needed": true
+  }
+}
+```
+
+Judges should include:
+
+1. **Leakage judge**: detects fixture-value copying, validation-feedback tuning, reference-predictor reuse, post-hoc matching.
+2. **Law/state judge**: asks whether a row is a universal law row or a source-state/catalog row.
+3. **Constants judge**: checks whether dimensionless constants are derived or merely imported.
+4. **Math judge**: attacks derivation gaps.
+5. **Physics judge**: checks known constraints, no-go theorems, phenomenology, and domain boundaries.
+6. **Row-semantics judge**: verifies that a row prefix actually means what the hero claims it means.
+7. **Citation judge**: distinguishes primary literature from speculation.
+8. **Compression judge**: estimates whether the theory actually reduces description length or simply adds renamed knobs.
+9. **Canary judge**: maintains adversarial fake theories designed to expose rubric weaknesses.
+10. **Meta-judge**: scores the judges themselves.
+
+The judge population evolves by writing **rubric diffs**, not by silently changing scores.
+
+---
+
+# 4. The most important design rule: the judge must also be judged
+
+If the judge evolves freely, it can become arbitrary, political, or overfit to the current hero population. So every judge improvement must pass a **meta-rubric**.
+
+A proposed rubric change is accepted only if it passes these tests:
+
+```text
+1. Monotonicity:
+   It catches a real failure mode without making previously valid derivations invalid for irrelevant reasons.
+
+2. Generality:
+   It is not targeted to one candidate name or one agent’s writing style.
+
+3. Canary performance:
+   It rejects known fake candidates and does not reject known valid toy derivations.
+
+4. Replay stability:
+   It improves historical review quality when replayed against archived candidates.
+
+5. Non-leakage:
+   It does not encode hidden benchmark fixture values or current leaderboard artifacts.
+
+6. Auditability:
+   It can be expressed as a clear criterion, not a vibe.
+
+7. Cost discipline:
+   It improves expected research quality enough to justify added complexity.
+```
+
+The judge’s score is not “how harsh was it?” The judge’s score is:
+
+[
+\text{judge quality}
+====================
+
+## \text{true-positive detection}
+
+## \text{false rejection}
+
+## \text{rubric complexity penalty}
+
+\text{winner-specific targeting penalty}.
+]
+
+This is how the system avoids becoming a cynicism machine.
+
+---
+
+# 5. What to borrow from AutoResearch
+
+AutoResearch’s core insight is not “LLMs can do research overnight.” It is: **make the research loop executable, bounded, comparable, and versioned.** The repo uses a small editable surface, fixed training budget, and a validation metric to decide whether changes are useful. ([GitHub][5])
+
+For OpenQG, the analogous editable surfaces should be:
+
+```text
+hero_program.md
+judge_program.md
+rubric.yml
+canary_pack.yml
+theory_card.schema.yml
+claim_ledger.schema.yml
+derivation_dossier.schema.yml
+```
+
+Instead of “edit `train.py`, run five minutes, compare `val_bpb`,” the loop becomes:
+
+```text
+edit theory_card / derivation_dossier / row_policy
+run admission gate
+run claim-ledger check
+run judge panel
+run formalization attempt
+run adapter smoke if allowed
+run canary replay
+select Pareto survivors
+archive evidence
+```
+
+This means every generation leaves a Git history of:
+
+```text
+what was proposed
+what failed
+what survived
+what the judge learned
+what rubric changed
+what formal tasks remain
+```
+
+OpenQG already has some of this shape. Its ZYAL runbooks include a hypothesis tournament objective, a theory incubator objective, knowledge-hardening loops, literature radar loops, and benchmark-nightly loops. The knowledge-hardening and literature-radar runbooks already emphasize claim-level evidence, citations, provider receipts, provenance tracking, hash chains, prompt-injection handling, and preserving failed lanes as negative memory. ([GitHub][7])
+
+So I would not replace OpenQG. I would **upgrade its ZYAL research loops into a co-evolutionary theorem-and-rubric tournament**.
+
+---
+
+# 6. What to borrow from HyperAgents
+
+HyperAgents are useful for OpenQG because the important thing to evolve is not just the candidate theory. It is the **research method**: prompts, review criteria, proof decompositions, claim schemas, canary tests, and reducer logic. HyperAgents explicitly combine a task agent and a meta-agent into a single editable program, with meta-level modifications themselves becoming editable. ([arXiv][6])
+
+But for OpenQG, I would impose hard governance:
+
+```text
+Hero meta-agent may modify:
+  - hero prompt
+  - search strategy
+  - decomposition plan
+  - proof-task generation
+
+Judge meta-agent may modify:
+  - rubric proposal
+  - canary tests
+  - review templates
+  - failure taxonomy
+
+Neither may modify:
+  - archived evidence
+  - past scorecards
+  - hidden holdouts
+  - canary labels
+  - release receipts
+  - source citations
+  - fixture values
+```
+
+In other words:
+
+[
+\boxed{
+\text{self-improvement may alter search behavior, not the evidence trail.}
+}
+]
+
+This is crucial. Otherwise HyperAgent-style self-modification becomes just a faster route to benchmark hacking.
+
+---
+
+# 7. What to borrow from FunSearch, AlphaTensor, and formal math systems
+
+For novel mathematics, the highest-leverage pattern is:
+
+[
+\text{creative generator}
++
+\text{hard evaluator}
++
+\text{evolutionary archive}.
+]
+
+FunSearch paired an LLM with a systematic evaluator and evolutionary search, and DeepMind reported that it surpassed best-known results in mathematical/computer-science problems. ([Google DeepMind][8]) AlphaTensor framed matrix-multiplication algorithm discovery as a game and used reinforcement learning to discover efficient, provably correct algorithms. ([Nature][9]) AlphaProof and AlphaGeometry show a related lesson: formal or domain-specific proof systems matter because they convert reasoning into checkable mathematical objects. ([Google DeepMind][10])
+
+OpenQG should borrow this aggressively.
+
+A physics hero should not only write:
+
+> “A spectral-asymptotic causal closure derives (\alpha).”
+
+It should have to produce one of:
+
+```text
+1. a symbolic derivation notebook,
+2. a Lean theorem skeleton,
+3. a Sage/SymPy computation,
+4. a dimensional-analysis certificate,
+5. an RG-flow integration with declared boundary theorem,
+6. a row adapter with no target-data access,
+7. a no-go proof showing why the row is underdetermined.
+```
+
+The breakthrough target should be:
+
+[
+\boxed{
+\text{make every beautiful claim either computable, formalizable, falsifiable, or refused.}
+}
+]
+
+---
+
+# 8. What not to copy from AI Scientist-style systems
+
+AI Scientist-style systems are useful as a workflow reference: ideation, literature search, experiment planning, implementation, result analysis, manuscript writing, and automated peer review. The AI-Researcher paper similarly describes a multi-agent pipeline spanning literature review, hypothesis generation, algorithm implementation, and publication-like documentation. ([arXiv][11])
+
+But OpenQG should be stricter than AI-paper generation. Physics theory search cannot be allowed to optimize for “paper-like plausibility.” The benchmark should reward only:
+
+```text
+derivation,
+formal proof,
+computable consequence,
+honest refusal,
+or falsifier.
+```
+
+Not rhetoric. Not paper polish. Not “sounds like a theory.”
+
+---
+
+# 9. The scoring system I would use
+
+Do not use one score in phase 0. Use a **score vector**.
+
+A candidate’s scorecard should be:
+
+```json
+{
+  "candidate_id": "...",
+  "generation": 17,
+  "scores": {
+    "derivation_integrity": 0.0,
+    "constant_discipline": 0.0,
+    "law_state_separation": 0.0,
+    "formalization_readiness": 0.0,
+    "row_adapter_readiness": 0.0,
+    "non_empirical_coverage": 0.0,
+    "empirical_score": 0.0,
+    "novel_compression": 0.0,
+    "falsifiability": 0.0,
+    "citation_quality": 0.0,
+    "red_team_survival": 0.0,
+    "research_value": 0.0
+  },
+  "automatic_failures": [],
+  "rubric_version": "v0.4.2",
+  "judge_panel_hash": "...",
+  "evidence_bundle_hash": "..."
+}
+```
+
+Then select by **Pareto frontier**, not by one leaderboard rank.
+
+A theory that scores low empirically but proves a new no-go theorem may survive. A theory that scores high empirically by copying Planck constants dies. A theory that derives one clean structural sector survives even if it refuses most rows.
+
+OpenQG’s current KPI categories already point this way: empirical likelihood, coverage, predictive compression, parameter discipline, theoretical consistency, reproducibility, falsifiability, and prediction sharpness. ([GitHub][12])
+
+I would split these into two layers:
+
+## Layer A: Research-quality score
+
+This is phase-0. It asks:
+
+```text
+Did the candidate make science more possible?
+```
+
+Suggested weights:
+
+| Category                           | Weight |
+| ---------------------------------- | -----: |
+| Derivation integrity               |     20 |
+| Constant/free-parameter discipline |     15 |
+| Law/state/row-semantics discipline |     15 |
+| Formalization readiness            |     15 |
+| Novel compression                  |     15 |
+| Falsifiability/no-go value         |     10 |
+| Citation/provenance quality        |      5 |
+| Clarity and reproducibility        |      5 |
+
+## Layer B: OpenQG empirical score
+
+This activates only after the candidate has row-level certificates.
+
+```text
+No certificate → no empirical row.
+No row semantics → no empirical row.
+No uncertainty propagation → no empirical row.
+No provenance → no empirical row.
+```
+
+This avoids the trap where the system tries to win the benchmark before it has earned the right to emit predictions.
+
+---
+
+# 10. The data ladder
+
+I would implement five levels.
+
+## Level 0: Dossier-only
+
+No real data scoring. Candidate must produce:
+
+```text
+primitives
+action/formal object
+constants ledger
+claim ledger
+row policy
+refusals
+falsifiers
+```
+
+This is where most speculative theories should live.
+
+## Level 1: Structural theorem benchmarks
+
+No measured constants yet. Test structural derivations:
+
+```text
+anomaly cancellation
+charge quantization
+representation uniqueness
+degree-of-freedom counts
+symmetry-breaking constraints
+index-theorem consequences
+RG fixed-point existence
+no-go theorems
+```
+
+This is where NCG, anomaly closure, SO(10), asymptotic safety, categorical/topological ideas, and causal approaches can compete without pretending to predict (H_0).
+
+## Level 2: Exact null rows
+
+Allow rows like:
+
+```text
+WEP null
+Lorentz/CPT coefficient null
+GR-deviation null
+forbidden operator null
+selection-rule zero
+```
+
+This matches the strongest honest part of the previous OpenQG theory attempts.
+
+## Level 3: One hard non-null sector
+
+A candidate must pick **one** difficult numerical sector and close it:
+
+```text
+alpha
+gauge coupling ratios
+Yukawa texture
+CKM
+PMNS
+neutrino mass scale
+Lambda_QCD
+strong CP
+vacuum energy
+dark matter abundance
+baryogenesis
+primordial spectrum
+```
+
+The benchmark should reward one real breakthrough more than broad fake coverage.
+
+## Level 4: Public benchmark rows
+
+Only after Level 3 does broad data-level testing become meaningful.
+
+---
+
+# 11. The canary pack
+
+The canary pack is essential. It prevents the judge from becoming too credulous.
+
+I would maintain fake candidates such as:
+
+```text
+1. Fixture Copier
+   Copies h0, omega_m, sum_mnu from smoke fixtures.
+
+2. Renamed LambdaCDM
+   Uses baseline as a "derived quantum state."
+
+3. Hidden Parameter Theory
+   Introduces a "topological integer" that is actually a fitted real number.
+
+4. State-Law Confuser
+   Claims Kerr geometry predicts EHT angular diameter without mass/distance/emission state.
+
+5. RG Boundary Smuggler
+   Claims beta functions derive alpha while importing alpha at a reference scale.
+
+6. Spectral Overclaimer
+   Claims NCG derives Yukawas even though finite Dirac entries are free.
+
+7. SME Bound Confuser
+   Predicts experimental upper-bound magnitudes instead of theory coefficients.
+
+8. Cosmology Equation Confuser
+   Claims Friedmann equations derive Planck/DESI/Pantheon rows without state parameters.
+
+9. Impressive Essay
+   Beautiful prose, no executable claims.
+
+10. Null-Spammer
+   Emits zero for every row regardless of row semantics.
+```
+
+A judge is not promoted unless it catches these.
+
+This is also how the rubric improves: each time a real hero finds a new loophole, the judge adds a canary version of that loophole.
+
+---
+
+# 12. The artifact grammar
+
+To make this work, OpenQG needs a stricter theory DSL. Not a full physics language yet; just enough to type claims.
+
+A `claim_ledger.jsonl` row should look like:
+
+```json
+{
+  "claim_id": "wep_null_ir_metric_coupling",
+  "claim_kind": "exact_null_prediction",
+  "status": "admissible",
+  "mathematical_object": "single Lorentzian metric with universal minimal coupling",
+  "inputs_required": [],
+  "free_parameters_required": [],
+  "state_inputs_required": [],
+  "fixture_values_used": [],
+  "row_families_allowed": ["microscope_*"],
+  "row_families_refused": ["gwosc_*", "eht_*", "sparc_*"],
+  "uncertainty_model": "delta at zero, theory uncertainty zero inside declared domain",
+  "domain_limitations": ["ordinary matter", "IR regime", "no new long-range composition-dependent force"],
+  "falsifiers": ["confirmed ordinary-matter WEP violation"],
+  "citations": [...]
+}
+```
+
+A constants ledger row should look like:
+
+```json
+{
+  "symbol": "alpha",
+  "name": "fine-structure constant",
+  "ledger_class": "dimensionless_physical_target",
+  "status": "not_derived",
+  "may_be_used_in_prediction": false,
+  "reason": "No fixture-independent derivation of low-energy value or boundary selector.",
+  "if_used_then_status": "free_parameter_or_leakage"
+}
+```
+
+A row policy should look like:
+
+```json
+{
+  "observable_family": "sme_*",
+  "allowed_if": [
+    "row is a Lorentz/CPT coefficient value",
+    "unit matches coefficient dimensionality"
+  ],
+  "refuse_if": [
+    "row is an experimental upper-bound magnitude",
+    "row is a catalog summary rather than coefficient value"
+  ],
+  "prediction": {
+    "value": 0,
+    "uncertainty": 0,
+    "basis": "exact Lorentz/CPT invariance"
+  }
+}
+```
+
+This makes theory candidates inspectable before code exists.
+
+---
+
+# 13. The concrete OpenQG repo additions I would make
+
+I would add these directories:
+
+```text
+research/tournaments/
+  0001-phase0-structural/
+  0002-hard-sector-alpha/
+  0003-law-state-canaries/
+
+research/candidates/
+  <candidate_id>/
+    theory_card.md
+    derivation_dossier.md
+    constants_ledger.json
+    claim_ledger.jsonl
+    row_policy.jsonl
+    judge_reviews.jsonl
+    scorecard.json
+
+research/rubrics/
+  rubric.v0.1.yml
+  rubric.v0.2.yml
+  diffs/
+  replay_results/
+
+research/canaries/
+  fixture_copier/
+  hidden_parameter/
+  state_law_confuser/
+  null_spammer/
+  rg_boundary_smuggler/
+
+contracts/specs/
+  claim-ledger.yml
+  constants-ledger.yml
+  row-policy.yml
+  judge-review.yml
+  rubric-diff.yml
+  theorem-task.yml
+
+agent/zyal/
+  openqg-hero-population.zyal
+  openqg-judge-hardening.zyal
+  openqg-rubric-replay.zyal
+  openqg-canary-tournament.zyal
+  openqg-formalization-bridge.zyal
+  openqg-hard-sector-lab.zyal
+```
+
+And these proof lanes:
+
+```toml
+[[lane]]
+name = "candidate-admission"
+command = "just candidate-admission"
+
+[[lane]]
+name = "claim-ledger-check"
+command = "just claim-ledger-check"
+
+[[lane]]
+name = "constants-ledger-check"
+command = "just constants-ledger-check"
+
+[[lane]]
+name = "row-policy-check"
+command = "just row-policy-check"
+
+[[lane]]
+name = "canary-replay"
+command = "just canary-replay"
+
+[[lane]]
+name = "rubric-replay"
+command = "just rubric-replay"
+
+[[lane]]
+name = "formalization-smoke"
+command = "just formalization-smoke"
+
+[[lane]]
+name = "tournament-reduce"
+command = "just tournament-reduce"
+```
+
+OpenQG already has proof-lane concepts such as `fast`, `schema-check`, `check`, `data-verify`, `bench-smoke`, `zyal-validate`, `score`, `security`, and `release-check`. ([GitHub][13]) The above additions would turn that into a real research league.
+
+---
+
+# 14. Hero prompt template
+
+This is the kind of hero prompt I would use.
+
+```text
+You are a Hero theory agent in OpenQG-HeroJudge.
+
+Your job is not to maximize benchmark coverage. Your job is to create one theory artifact that increases the chance of a genuine physics or mathematics breakthrough.
+
+You must produce:
+
+1. A named theory candidate.
+2. Primitives and motivation.
+3. A formal object: action, axiom system, category, spectral triple, RG system, state rule, theorem, or equivalent.
+4. A derivation dossier.
+5. A constants ledger.
+6. A claim ledger.
+7. A row policy.
+8. A list of refused rows.
+9. Falsifiers.
+10. A self-score.
+
+Rules:
+
+- Do not use fixture values.
+- Do not use validation feedback.
+- Do not copy baseline predictions.
+- Do not call a free parameter derived.
+- Do not emit a row unless the extraction path is closed.
+- Prefer one genuine hard-sector derivation over broad decorative coverage.
+- If the best contribution is a no-go theorem, submit the no-go theorem.
+- If a step is conjectural, mark it conjectural.
+- If a claim can be formalized, create a formalization task.
+
+You may invent freely, but every claim must become one of:
+- derivation,
+- formal proof task,
+- computable rule,
+- falsifier,
+- row adapter rule,
+- explicit refusal.
+```
+
+---
+
+# 15. Judge prompt template
+
+```text
+You are a Judge agent in OpenQG-HeroJudge.
+
+Your task is to review one candidate theory artifact.
+
+You must not reward beauty, ambition, or broad coverage unless the candidate provides derivations and row-level extraction certificates.
+
+Review for:
+
+1. fixture leakage,
+2. hidden fitted parameters,
+3. copied constants,
+4. law/state confusion,
+5. row-semantics errors,
+6. unsupported constants,
+7. non-derived source states,
+8. invalid uncertainty propagation,
+9. vague citations,
+10. overclaimed novelty,
+11. missing falsifiers,
+12. non-executable claims.
+
+For every objection, provide:
+- finding id,
+- severity,
+- affected claim ids,
+- exact failure mode,
+- what would repair it,
+- whether this suggests a rubric patch,
+- whether a canary should be added.
+
+You must also identify:
+- the strongest real contribution,
+- the smallest formalization task that would increase confidence,
+- the highest-value next experiment.
+```
+
+---
+
+# 16. Meta-judge prompt template
+
+```text
+You are the Meta-Judge.
+
+You evaluate judge reviews and proposed rubric changes.
+
+A rubric change is accepted only if it is:
+- general,
+- replay-stable,
+- canary-tested,
+- not targeted to a specific candidate,
+- not dependent on hidden benchmark values,
+- clear enough to be implemented,
+- useful enough to justify complexity.
+
+Score the judge on:
+- true failure detection,
+- false rejection rate,
+- clarity,
+- reproducibility,
+- evidence quality,
+- usefulness of proposed rubric patches.
+
+Reject judge behavior that is merely cynical, stylistic, or impossible to satisfy.
+```
+
+---
+
+# 17. Reducer logic: how winners are selected
+
+Do not select one winner by total score. Select a portfolio.
+
+Each generation should output:
+
+```text
+1. Best ambitious theory candidate.
+2. Best existing-human-theory candidate.
+3. Best no-go theorem.
+4. Best formalization task.
+5. Best row-adapter improvement.
+6. Best rubric improvement.
+7. Best canary addition.
+8. Best hard-sector attempt.
+9. Most dangerous false-positive candidate.
+10. Most useful failure.
+```
+
+The “most useful failure” is important. A failed attempt that exposes a new category of hidden free parameter may be more valuable than a polished theory card.
+
+The reducer should maintain a **research frontier**, not a leaderboard.
+
+---
+
+# 18. How the judge adapts without corrupting the benchmark
+
+A judge can propose rubric patches like this:
+
+```yaml
+rubric_patch_id: rg_boundary_certificate_v1
+trigger_failure_mode: "RG equations claimed to derive low-energy constants while importing boundary values."
+new_rule:
+  name: "RG boundary selector required"
+  text: >
+    Any prediction of a low-energy running coupling must provide a fixture-independent
+    UV/IR boundary selector, scheme declaration, threshold map, and uncertainty propagation.
+    Otherwise the coupling is a free parameter.
+canary:
+  id: rg_boundary_smuggler
+  expected_result: reject
+replay_required: true
+effective_after_generation: N+2
+```
+
+Rubric changes should not apply immediately to the current tournament. They should become active after replay and canary validation. That prevents the judge from moving the goalposts to kill a specific hero.
+
+---
+
+# 19. The first three tournaments I would run
+
+## Tournament 1: Existing human theories under strict OpenQG discipline
+
+Candidates:
+
+```text
+NCG spectral action
+asymptotic safety
+string compactification
+SO(10) GUT/seesaw/axion
+causal sets
+loop quantum gravity/spinfoam/GFT
+CDT
+holography/amplitudes
+restricted modified gravity
+SM+GR+LambdaCDM baseline
+```
+
+Goal:
+
+```text
+Build honest claim ledgers and constants ledgers.
+No new physics additions.
+No benchmark optimization.
+```
+
+Expected outcome:
+
+```text
+NCG likely wins structural compactness.
+Asymptotic safety may win RG promise.
+String theory wins quantum-gravity breadth but loses uniqueness.
+SO(10) wins charge/family elegance but lacks gravity and flavor derivation.
+Most row-level output remains null/refusal.
+```
+
+This tournament creates the baseline library of honest human theory cards.
+
+## Tournament 2: Canary and rubric hardening
+
+Run fake theories against the judges.
+
+Goal:
+
+```text
+Make the judge population hard to fool.
+```
+
+Expected output:
+
+```text
+rubric.v0.2
+canary_pack.v0.2
+failure_taxonomy.md
+judge_calibration_scorecard.json
+```
+
+## Tournament 3: One hard sector
+
+Pick one missing sector. I would start with one of:
+
+```text
+structural SM uniqueness,
+alpha,
+Yukawa/CKM texture,
+strong CP,
+vacuum energy no-go,
+QCD scale bridge,
+source-state impossibility theorem.
+```
+
+The key rule:
+
+[
+\boxed{
+\text{one hard sector, many heroes, many judges, no broad coverage pressure.}
+}
+]
+
+This is where actual innovation becomes plausible.
+
+---
+
+# 20. How to chase novel mathematics specifically
+
+For new mathematics, the system should not ask the hero to “write a new theory.” It should ask for small, hard, formalizable tasks.
+
+Examples:
+
+```text
+1. Prove uniqueness of a finite algebra under stated constraints.
+2. Classify anomaly-free chiral gauge closures under minimality constraints.
+3. Search for integer/index constraints that force SM-like representations.
+4. Prove a no-go theorem for deriving source-state catalog rows from universal law alone.
+5. Find a compression-optimal set of primitives that reproduces known structural facts.
+6. Search for RG boundary conditions that are overconstrained rather than fitted.
+7. Formalize row-identifiability as a theorem.
+8. Discover a new invariant distinguishing law rows from state rows.
+```
+
+This is where FunSearch-like methods become relevant. Use LLMs to generate candidate constructions, but require a systematic evaluator. In math, the evaluator can be a proof checker, exhaustive finite search, counterexample generator, SAT/SMT solver, symbolic algebra system, or unit/dimension checker. FunSearch’s success came from pairing creative LLM generation with a systematic evaluator, not from trusting generated prose. ([Google DeepMind][8])
+
+A useful OpenQG math loop would be:
+
+```text
+Generate conjecture
+→ search finite cases
+→ look for counterexample
+→ formalize lemma
+→ prove or refute
+→ add to claim ledger
+→ map to physics relevance
+→ judge for overclaiming
+```
+
+The system should reward both:
+
+```text
+new theorem found
+new impossibility theorem found
+```
+
+because either one improves the research frontier.
+
+---
+
+# 21. The “theory kernel DSL”
+
+Eventually, OpenQG needs a small theory-kernel language.
+
+Something like:
+
+```yaml
+theory_kernel:
+  id: terminal_anomaly_closure_v1
+  primitives:
+    - local_gauge_invariance
+    - chiral_fermion_content
+    - anomaly_cancellation
+    - minimal_color_nonabelianity
+  derived_structures:
+    - su3_color
+    - hypercharge_quantization
+  free_parameters:
+    - gauge_coupling_values
+    - yukawa_matrices
+  refused_targets:
+    - alpha
+    - ckm
+    - pmns
+    - lambda_qcd
+  row_rules:
+    - microscope_wep_null
+```
+
+The point is not to encode all physics. The point is to make hidden assumptions visible.
+
+The DSL should be able to answer:
+
+```text
+What was assumed?
+What was derived?
+What constants remain?
+What state inputs remain?
+What rows can this emit?
+What rows must it refuse?
+What would falsify it?
+```
+
+That is enough to make the hero/judge tournament productive.
+
+---
+
+# 22. The biggest anti-patterns to prevent
+
+The system must automatically punish these:
+
+```text
+1. Broad coverage by copied constants.
+2. Hidden calibration under “boundary conditions.”
+3. Experimental source rows treated as universal law rows.
+4. Prose-only derivations.
+5. “Framework can fit X” treated as “theory predicts X.”
+6. High score from smoke fixtures.
+7. Rubric drift that rewards current winners.
+8. Judge cynicism that rejects all novelty.
+9. Literature citation without claim extraction.
+10. Adapter code inventing theory not in the dossier.
+```
+
+The most dangerous one is number 5:
+
+[
+\boxed{
+\text{a framework in which a number can be inserted is not a prediction of that number.}
+}
+]
+
+That should become a permanent OpenQG rubric law.
+
+---
+
+# 23. What the system should optimize
+
+Not:
+
+```text
+highest score today
+```
+
+But:
+
+```text
+highest expected future derivation yield.
+```
+
+That means the reducer should ask:
+
+```text
+Which candidate exposed a new primitive?
+Which candidate closed a real proof edge?
+Which candidate reduced hidden freedom?
+Which candidate created a formalization target?
+Which candidate found a new impossibility theorem?
+Which candidate improved row semantics?
+Which candidate improved the judge?
+```
+
+A candidate can be valuable even if its current `openqg_score` is zero.
+
+---
+
+# 24. My concrete recommendation for phase 0
+
+I would define phase 0 as:
+
+# **Phase 0: Research Engine, Not Universe Engine**
+
+Success criteria:
+
+```text
+1. 20 candidate theory cards generated.
+2. 10 existing human theories represented honestly.
+3. 25 canary failure modes implemented.
+4. 5 rubric versions replayed on archived candidates.
+5. 3 structural theorem tasks formalized.
+6. 1 no-go theorem written cleanly.
+7. 1 narrow row family adapter emitted with proof-carrying metadata.
+8. 0 fixture-leakage false positives promoted.
+```
+
+No broad real-data score required.
+
+The output of phase 0 should be a **better research machine**, not a claim that quantum gravity is solved.
+
+---
+
+# 25. Why this could become powerful
+
+The exciting possibility is not that an agent writes a brilliant final theory in one pass. The exciting possibility is cumulative pressure.
+
+Each cycle does this:
+
+[
+\text{hero overclaims}
+\rightarrow
+\text{judge catches}
+\rightarrow
+\text{rubric hardens}
+\rightarrow
+\text{canary added}
+\rightarrow
+\text{future heroes cannot reuse that trick}
+\rightarrow
+\text{search pressure moves toward real derivation}.
+]
+
+Over many cycles, cheap ideas die. Hidden parameter tricks die. Fixture-copy tricks die. “Equation without extraction map” dies. What remains are:
+
+```text
+formalizable primitives,
+structural theorems,
+computable modules,
+real no-go results,
+narrow but honest predictions.
+```
+
+That is exactly the environment where a genuinely novel mathematical compression has a chance to stand out.
+
+---
+
+# Final design summary
+
+Build **OpenQG-HeroJudge** as a co-evolving research league:
+
+```text
+Hero agents:
+  invent, formalize, derive, refuse, adapt.
+
+Judge agents:
+  attack, score, harden rubrics, create canaries.
+
+Meta-judges:
+  evaluate judges and prevent arbitrary rubric drift.
+
+Formalizers:
+  convert claims into proof tasks and executable checks.
+
+Archivists:
+  maintain claim ledgers, negative memory, citations, and provenance.
+
+Reducers:
+  select a Pareto frontier, not a single leaderboard winner.
+```
+
+Use AutoResearch-style fixed-budget iteration for operational discipline. Use HyperAgent-style meta-evolution for prompts, rubrics, and canaries, but never for mutable evidence. Use FunSearch/AlphaTensor-style hard evaluators wherever a mathematical search problem can be made executable. Use OpenQG’s existing manifests, proof lanes, ZYAL loops, release gates, and evidence receipts as the control plane. ([GitHub][5])
+
+The best phase-0 ambition is:
+
+[
+\boxed{
+\text{create the world’s most adversarial, cumulative, proof-seeking research tournament for unified physics.}
+}
+]
+
+Not because it will instantly solve physics, but because it will make false progress increasingly hard and real progress increasingly visible.
+
+[1]: https://github.com/neverhuman/openQG "GitHub - neverhuman/OpenQG: Benchmark and control plane for interpretable unified-physics theories. · GitHub"
+[2]: https://github.com/neverhuman/OpenQG/raw/refs/heads/main/docs/scoring.md "raw.githubusercontent.com"
+[3]: https://github.com/neverhuman/OpenQG/raw/refs/heads/main/docs/theory-admission.md "raw.githubusercontent.com"
+[4]: https://raw.githubusercontent.com/neverhuman/OpenQG/refs/heads/main/benchmarks/suites/smoke.yml "raw.githubusercontent.com"
+[5]: https://github.com/karpathy/autoresearch "GitHub - karpathy/autoresearch: AI agents running research on single-GPU nanochat training automatically · GitHub"
+[6]: https://arxiv.org/abs/2603.19461 "[2603.19461] Hyperagents"
+[7]: https://raw.githubusercontent.com/neverhuman/OpenQG/refs/heads/main/agent/zyal/openqg-hypothesis-tournament.zyal "raw.githubusercontent.com"
+[8]: https://deepmind.google/blog/funsearch-making-new-discoveries-in-mathematical-sciences-using-large-language-models/?utm_source=chatgpt.com "FunSearch: Making new discoveries in mathematical ..."
+[9]: https://www.nature.com/articles/s41586-022-05172-4?utm_source=chatgpt.com "Discovering faster matrix multiplication algorithms with ..."
+[10]: https://deepmind.google/blog/ai-solves-imo-problems-at-silver-medal-level/?utm_source=chatgpt.com "AI achieves silver-medal standard solving International ..."
+[11]: https://arxiv.org/abs/2408.06292?utm_source=chatgpt.com "The AI Scientist: Towards Fully Automated Open-Ended Scientific Discovery"
+[12]: https://raw.githubusercontent.com/neverhuman/OpenQG/refs/heads/main/benchmarks/kpis.yml "raw.githubusercontent.com"
+[13]: https://raw.githubusercontent.com/neverhuman/OpenQG/refs/heads/main/agent/proof-lanes.toml "raw.githubusercontent.com"
+

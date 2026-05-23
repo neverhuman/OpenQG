@@ -1,0 +1,605 @@
+I extracted and studied the archive as evidence. This upload contains `unified-theory-agent-brief.v2.md`, `tip1.txt` through `tip15.txt`, plus macOS `._*` metadata files. A repeated flaw inside several tips is that they self-report an older eight-tip archive; that is stale and should not be inherited. The real archive shows an evolution: early tips converge on law/state gating and below-gate honesty; middle tips add invariant-kernel or no-state theorems; later tips try to cross 90 by promoting the row-semantics architecture itself. I do **not** accept the >90 scores as physics scores, because no hard non-null sector is actually derived.
+
+# 1. What the problem is really asking
+
+The brief is not asking for a beautiful “theory of everything” essay. It is asking for an **OpenQG-compliant derivation artifact**.
+
+A row may be marked `predicted` only when an auditor can reconstruct:
+
+```json
+{
+  "value": "...",
+  "uncertainty": "...",
+  "unit": "...",
+  "provenance": "...",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata.no_calibration_data_used": true
+}
+```
+
+from theory alone, or from theory plus independently certified non-target state data. A row is not predicted merely because the theory has a related equation.
+
+The central hidden issue is that OpenQG rows are typed. Some are law-null rows. Some are structural rows. Some are constants. Some are source-state rows. Some are estimator-pipeline summaries. Treating all of them as “physics constants” is the main failure mode.
+
+# 2. Where the archive is strong
+
+The archive’s strongest contribution is the **refusal discipline**. It correctly recognizes that a partial strict theory can be scientifically honest even if its official strict `openqg_score` remains near zero.
+
+The safe current row families are narrow:
+
+```text
+ligogr_*       -> 0, only for GR-deviation/null-test rows
+microscope_*   -> 0, for WEP/Eötvös rows
+sme_*          -> 0, only for Lorentz/CPT coefficient or coefficient-null rows
+everything else -> not_implemented unless independently closed
+```
+
+That is defensible. MICROSCOPE was designed to test the Weak Equivalence Principle using the Eötvös ratio at about the (10^{-15}) precision scale, so a universal-metric law can emit the exact-null value (\eta=0) for a true WEP-violation row without using the measured value as calibration. ([arXiv][1]) The LIGO/Virgo/KAGRA tests-of-GR surface is a deviation/null-test surface, not a source-state catalog; a GR-limit theory can emit zero only for the deviation variables, not for GWOSC masses or spins. ([APS Link][2]) The SME tables are about coefficients for Lorentz/CPT violation, so exact Lorentz/CPT symmetry predicts zero coefficients, but not the published experimental upper bounds themselves. ([arXiv][3])
+
+The archive is also right to keep spectral/noncommutative geometry as a useful scaffold rather than a magic constants engine. The spectral action literature gives a real route from noncommutative spectral data to a Standard Model action coupled to gravity, but using that route does not by itself derive (\alpha), Yukawa matrices, CKM, PMNS, (\Lambda_{\rm QCD}), dark matter abundance, or vacuum energy. ([arXiv][4])
+
+# 3. Where the archive is weak
+
+The repeated weakness is **score inflation by formalism**.
+
+Writing
+
+[
+\mu \frac{dg_i}{d\mu}=\beta_i(g)
+]
+
+does not derive (\alpha), (g_1,g_2,g_3), or (\Lambda_{\rm QCD}). It only gives a flow once boundary conditions, thresholds, schemes, and relevant directions are fixed.
+
+Writing
+
+[
+m_f = y_f v/\sqrt2
+]
+
+does not derive masses. It maps already-known Yukawas and (v) into masses.
+
+Writing
+
+[
+V_{\rm CKM}=U_u^\dagger U_d
+]
+
+does not derive CKM angles. It defines the mixing matrix after the Yukawa matrices are known.
+
+Writing Friedmann equations does not derive Planck, DESI, BOSS, or Pantheon rows. It leaves (\Omega_i), (H_0), (A_s), (n_s), (r), (\rho_\Lambda), reheating, sound horizon, and estimator choices unresolved.
+
+Writing a Kerr shadow formula does not derive an EHT angular diameter. It needs (M), distance, spin, inclination, plasma/emission state, imaging estimator, and uncertainty propagation.
+
+The later tips that score 91–92 are useful as **architecture proposals**, but they cross the line if interpreted as a 90+ physical theory. They add a proof/compiler layer, not a derived hard numerical sector.
+
+# 4. The missing compression
+
+The best compression I can defend is:
+
+[
+\boxed{
+\textbf{A prediction is a closed, taint-free typed map, not a law equation.}
+}
+]
+
+For each row (r), define the extraction functional
+
+[
+\widehat y_r =
+\mathcal E_r
+\left[
+\Phi_{\mathcal L}
+\left(S_r;\theta\right),
+\Pi_r,
+U_r
+\right],
+]
+
+where:
+
+| Symbol         | Meaning                                                              |
+| -------------- | -------------------------------------------------------------------- |
+| (\mathcal L)   | law kernel: fields, action, symmetries, constraints                  |
+| (\theta)       | constants/relevant couplings/Yukawas/vacuum parameters               |
+| (S_r)          | source, boundary, initial, environmental, or cosmological state      |
+| (\Pi_r)        | estimator/pipeline: binning, catalog convention, reduction algorithm |
+| (U_r)          | units, metrology, dimensional map                                    |
+| (\mathcal E_r) | row extraction map                                                   |
+| (\widehat y_r) | predicted value                                                      |
+
+Now define the admissible fiber:
+
+[
+\mathcal F_r =
+{(\theta,S_r,\Pi_r,U_r):
+\text{all inputs are compatible with the submitted theory and allowed non-target provenance}}.
+]
+
+Then:
+
+[
+\boxed{
+r \text{ may be } \texttt{predicted}
+\iff
+\operatorname{diam}
+\mathcal E_r(\mathcal F_r)
+\le
+\sigma^{\rm theory}_r
+\text{ and the dependency DAG is taint-free.}
+}
+]
+
+If the row value varies over unresolved constants, source states, estimator choices, or hidden boundary data, then a single numeric output would require an extra selector. If that selector is not derived independently, the row must be `not_implemented`.
+
+This one rule explains nearly every failure:
+
+```text
+No constants solver -> no CODATA alpha row.
+No Yukawa solver -> no PDG masses, CKM, PMNS.
+No QCD bridge -> no proton/electron ratio or hadron rows.
+No cosmological state -> no Planck/DESI/Pantheon rows.
+No source-state pack -> no EHT/GWOSC/JPL/SPARC rows.
+No estimator pack -> no catalog-normalized or pipeline-summary rows.
+No row-shape validation -> no SME-bound copying.
+```
+
+# 5. Final artifact: **TACE-LSE v1**
+
+**Name:** TACE-LSE v1
+**Expanded name:** Terminal Anomaly Closure with Law/State/Estimator certificates
+**Status:** honest partial strict-theory dossier; not a completed theory of all constants
+**Immediate strict predictions:** `ligogr_*`, `microscope_*`, guarded `sme_*`
+**Immediate theory-lane coverage:** about (3/16=18.75%), or (2/16=12.5%) if `sme_*` rows are bound-value rows rather than coefficient/null rows
+**Expected strict `openqg_score`:** likely still `0.000` until broad non-null rows are derived and an adapter is actually run
+**My final defended score:** **89.0 / 100 as a dossier artifact**, **not above 90**
+**Truth score as a completed theory of nature:** roughly **45–55 / 100**
+
+The primitive is:
+
+[
+\boxed{
+\text{law}+\text{terminal anomaly closure}
++\text{typed row certificates}
++\text{taint-free source/estimator closure}.
+}
+]
+
+It improves the archive in two real ways:
+
+1. It turns law/state/estimator separation into a formal admissibility theorem.
+2. It derives a structural Standard Model core more sharply than “choose (M_3(\mathbb C)).”
+
+It does **not** derive the hard numerical constants.
+
+# 6. Primitives and action
+
+The theory object is:
+
+[
+\mathfrak T_{\rm TACE}
+======================
+
+\left(
+\mathcal L,
+\mathcal C_{\rm anom},
+\Theta_{\rm rel},
+\Sigma_{\rm state},
+\mathcal P_{\rm est},
+\mathcal D_{\rm row}
+\right).
+]
+
+The low-energy law kernel is the SM+GR effective form:
+
+[
+S_{\rm IR}=
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}(R-2\Lambda)
+-\frac14\sum_a F^a_{\mu\nu}F_a^{\mu\nu}
+
+* |D_\mu H|^2
+
+- V(H)
+
+* \bar\psi i\gamma^\mu D_\mu\psi
+
+- \left(\bar QY_u\tilde H u_R+\bar QY_dHd_R+\bar LY_eHe_R+\bar LY_\nu\tilde H\nu_R+\text{h.c.}\right)
+  +\frac{\theta_{\rm QCD}}{32\pi^2}G\tilde G
+  +\sum_{d>4}\frac{c_i^{(d)}}{M^{d-4}}\mathcal O_i^{(d)}
+  \right].
+  ]
+
+But TACE-LSE treats
+
+[
+G,\Lambda,g_i,v,\lambda_H,Y_f,\theta_{\rm QCD},c_i^{(d)}
+]
+
+as **unresolved unless separately derived**. The action gives the law form; it does not give every row value.
+
+Spectral geometry is allowed as a representation layer:
+
+[
+\mathcal A =
+C^\infty(M_4)\otimes \mathcal A_F,
+\qquad
+D_A=D+A+JAJ^{-1},
+]
+
+but the preferred derivation does not start by assuming (\mathcal A_F=\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C)). It starts from terminal anomaly closure.
+
+# 7. Structural derivation: terminal anomaly closure
+
+Start with a minimal chiral gauge form:
+
+[
+G_N = SU(N_c)\times SU(2)_L\times U(1)_Y,
+]
+
+with one quark doublet, one lepton doublet, a single Higgs doublet, and optional sterile (\nu^c):
+
+[
+Q:(N_c,2)_a,\quad
+u^c:(\bar N_c,1)_b,\quad
+d^c:(\bar N_c,1)_c,
+]
+
+[
+L:(1,2)_d,\quad
+e^c:(1,1)_e,\quad
+\nu^c:(1,1)_0.
+]
+
+The anomaly equations are:
+
+[
+[SU(N_c)]^2U(1):\quad 2a+b+c=0,
+]
+
+[
+[SU(2)]^2U(1):\quad N_ca+d=0,
+]
+
+[
+[\mathrm{grav}]^2U(1):\quad
+2N_ca+N_cb+N_cc+2d+e=0,
+]
+
+[
+[U(1)]^3:\quad
+2N_ca^3+N_cb^3+N_cc^3+2d^3+e^3=0.
+]
+
+Yukawa closure with a Higgs doublet of hypercharge (h) gives:
+
+[
+a+h+b=0,\qquad a-h+c=0,\qquad d-h+e=0,\qquad d+h=0.
+]
+
+Solving gives:
+
+[
+d=-N_ca,\qquad h=N_ca,
+]
+
+[
+b=-(N_c+1)a,\qquad c=(N_c-1)a,\qquad e=2N_ca.
+]
+
+Normalize the charged lepton unit by (e=1). Then:
+
+[
+a=\frac{1}{2N_c}.
+]
+
+So:
+
+[
+Y_Q=\frac{1}{2N_c},\quad
+Y_{u^c}=-\frac{N_c+1}{2N_c},\quad
+Y_{d^c}=\frac{N_c-1}{2N_c},
+]
+
+[
+Y_L=-\frac12,\quad
+Y_{e^c}=1,\quad
+Y_{\nu^c}=0.
+]
+
+Electric charges are:
+
+[
+Q_u=\frac12+Y_Q=\frac{N_c+1}{2N_c},
+]
+
+[
+Q_d=-\frac12+Y_Q=-\frac{N_c-1}{2N_c}.
+]
+
+The Witten (SU(2)) global anomaly requires an even number of left-handed weak doublets. Per generation that number is (N_c+1), so (N_c) must be odd. With nonabelian color and minimality, the smallest allowed value is:
+
+[
+\boxed{N_c=3}.
+]
+
+Then:
+
+[
+\boxed{
+Y_Q=\frac16,\quad
+Y_{u^c}=-\frac23,\quad
+Y_{d^c}=\frac13,\quad
+Y_L=-\frac12,\quad
+Y_{e^c}=1,\quad
+Y_{\nu^c}=0
+}
+]
+
+and:
+
+[
+\boxed{
+Q_u=\frac23,\qquad Q_d=-\frac13,\qquad Q_e=-1,\qquad Q_\nu=0.
+}
+]
+
+This is not invented from nothing; the (N_c)-dependent anomaly logic and Witten anomaly constraint are known structural facts. The key improvement is to make them the selector rather than silently choosing an (M_3(\mathbb C)) block. ([arXiv][5])
+
+# 8. Conditional generation-count result
+
+The best generation-count result is conditional, not absolute.
+
+For (N_g) generations, the number of physical CKM-type CP phases is:
+
+[
+N_{\rm CP}=\frac{(N_g-1)(N_g-2)}{2}.
+]
+
+Thus (N_g=1) and (N_g=2) have no intrinsic CKM-type CP phase; (N_g=3) is the first value with one irreducible phase. Standard CKM parameter counting gives one complex phase for three generations. ([nikhef.nl][6])
+
+So TACE-LSE may claim:
+
+[
+\boxed{
+\text{minimal anomaly-clean chiral matter}
++
+\text{irreducible weak-sector CP capability}
+\Rightarrow
+N_g=3.
+}
+]
+
+But this is **not** a derivation of CKM angles, the CKM phase value, PMNS, neutrino masses, or baryogenesis. It is a structural minimality theorem.
+
+# 9. Constants ledger
+
+| Target                 | Class                               | TACE-LSE status                                                                                         | Row policy                             |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| (c)                    | metrology anchor / causal invariant | SI anchor; invariant causal speed assumed in Lorentzian structure                                       | not score-driving                      |
+| (\hbar)                | quantum unit / action scale         | unit normalization; dimensionless predictions must be independent                                       | not score-driving                      |
+| (k_B)                  | thermodynamic conversion            | SI anchor                                                                                               | not score-driving                      |
+| (G,M_{\rm Pl})         | low-energy gravitational coupling   | present in IR action; not derived numerically                                                           | `not_implemented` for CODATA-like rows |
+| gauge group            | structural                          | (SU(3)\times SU(2)\times U(1)/\mathbb Z_6) from anomaly/minimality closure plus representation quotient | structural only                        |
+| colors (N_c)           | structural integer                  | derived as (3) under terminal anomaly/Witten/minimality assumptions                                     | predicted only for structural rows     |
+| charge quantization    | structural                          | derived as above                                                                                        | structural only                        |
+| chiral weak structure  | structural                          | assumed as minimal chiral closure; anomaly-checked                                                      | structural only                        |
+| generations (N_g)      | conditional structural              | (3) if irreducible weak CP capability is required                                                       | structural only, not flavor values     |
+| anomaly cancellation   | consistency theorem                 | local and Witten anomaly checks close                                                                   | structural only                        |
+| (\alpha)               | dimensionless constant              | not derived                                                                                             | refuse                                 |
+| (g_1,g_2,g_3)          | gauge couplings                     | running equations known, boundary values not derived                                                    | refuse                                 |
+| (v,m_H,\lambda_H)      | electroweak scale                   | not derived                                                                                             | refuse                                 |
+| Yukawa matrices        | flavor constants                    | not derived                                                                                             | refuse                                 |
+| CKM values             | flavor observable                   | only structural CP possibility derived, not entries                                                     | refuse                                 |
+| PMNS values            | lepton flavor                       | not derived                                                                                             | refuse                                 |
+| neutrino masses        | mass sector                         | not derived                                                                                             | refuse                                 |
+| (\Lambda_{\rm QCD})    | dimensional transmutation scale     | not derived because UV (g_3), thresholds, and scheme are not fixed                                      | refuse                                 |
+| (m_p/m_e)              | dimensionless ratio                 | requires QCD plus electron Yukawa                                                                       | refuse                                 |
+| strong CP              | topological parameter               | no complete axion/symmetry solution claimed                                                             | refuse                                 |
+| vacuum energy          | cosmological constant scale         | not derived                                                                                             | refuse                                 |
+| dark matter            | particle/state sector               | no candidate abundance derived                                                                          | refuse                                 |
+| baryon asymmetry       | cosmological history                | not derived                                                                                             | refuse                                 |
+| primordial (A_s,n_s,r) | cosmological initial state          | not derived                                                                                             | refuse                                 |
+| source states          | state data                          | require independent non-target packs                                                                    | conditional only                       |
+| estimator pipelines    | observer layer                      | require source-locked pipeline definitions                                                              | conditional only                       |
+
+# 10. OpenQG family map
+
+| Family             | Status                                     | Reason                                                                       |
+| ------------------ | ------------------------------------------ | ---------------------------------------------------------------------------- |
+| `ligogr_*`         | `predicted`, shape-guarded                 | exact IR GR null/deviation rows get (0)                                      |
+| `microscope_*`     | `predicted`                                | universal metric coupling gives (\eta_{AB}=0)                                |
+| `sme_*`            | `predicted` only for coefficient/null rows | exact Lorentz/CPT gives zero SME coefficient; refuse pure bound targets      |
+| `codata_*`         | `not_implemented` except metrology notes   | (\alpha), mass ratios, (G), etc. not derived                                 |
+| `pdg_*`            | `not_implemented`                          | masses, widths, lifetimes need (Y_f,v,\Lambda_{\rm QCD})                     |
+| `hepdata_*`        | `not_implemented`                          | electroweak rows need couplings, thresholds, amplitudes, cuts                |
+| `nufit_*`          | `not_implemented`                          | PMNS, splittings, ordering, CP phase not derived                             |
+| `planck_*`         | `not_implemented`                          | cosmological state and primordial parameters not derived                     |
+| `desi_*`, `boss_*` | `not_implemented`                          | BAO needs (H(z)), (r_d), matter content, estimator                           |
+| `pantheon_*`       | `not_implemented`                          | supernova rows need cosmology, calibration, source/pipeline state            |
+| `gwosc_*`          | `not_implemented`                          | event masses/spins/distances are source-state inference outputs              |
+| `eht_*`            | conditional, not counted                   | needs independent (M,D,a,i), emission model, estimator                       |
+| `asd_*`            | `not_implemented`                          | needs (\alpha,m_e), isotope/nuclear state, QED/QCD corrections               |
+| `horizons_*`       | conditional, not counted                   | ephemerides require independent initial conditions and conventions           |
+| `sparc_*`          | `not_implemented`                          | needs galaxy baryonic profiles, distances, inclinations, dark-sector closure |
+
+# 11. Exact rows it can emit today
+
+For a true GR deviation row:
+
+```json
+{
+  "observable_id": "ligogr_*",
+  "theory_id": "tace-lse-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "distribution": "delta",
+  "prediction_uncertainty": {"kind": "exact_law_null", "value": 0.0},
+  "domain_validity": "IR Einstein-Hilbert GR null-test/deviation row only; not GWOSC event-state rows",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tace_lse.ir_gr_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "Einstein-Hilbert IR limit",
+    "prediction_kind": "law_null",
+    "no_calibration_data_used": true,
+    "calibration_status": "strict_none",
+    "observable_shape_match": "GR-deviation/null residual"
+  }
+}
+```
+
+For a MICROSCOPE/WEP row:
+
+```json
+{
+  "observable_id": "microscope_*",
+  "theory_id": "tace-lse-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "distribution": "delta",
+  "prediction_uncertainty": {"kind": "exact_law_null", "value": 0.0},
+  "domain_validity": "ordinary neutral matter under universal metric coupling",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tace_lse.wep_eotvos_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "universal metric coupling implies composition-independent geodesic motion",
+    "prediction_kind": "law_null",
+    "no_calibration_data_used": true,
+    "calibration_status": "strict_none",
+    "observable_shape_match": "Eotvos/WEP violation parameter"
+  }
+}
+```
+
+For an SME coefficient row:
+
+```json
+{
+  "observable_id": "sme_*",
+  "theory_id": "tace-lse-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "row_unit",
+  "distribution": "delta",
+  "prediction_uncertainty": {"kind": "exact_symmetry_null", "value": 0.0},
+  "domain_validity": "valid only for SME coefficient, coefficient magnitude, or Lorentz/CPT null-deviation rows; refuse published-bound targets",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tace_lse.sme_lorentz_cpt_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "exact local Lorentz and CPT symmetry",
+    "prediction_kind": "law_null",
+    "no_calibration_data_used": true,
+    "calibration_status": "strict_none",
+    "observable_shape_match": "coefficient/deviation semantics only"
+  }
+}
+```
+
+A refused row should look like:
+
+```json
+{
+  "observable_id": "codata_001",
+  "theory_id": "tace-lse-v1",
+  "status": "not_implemented",
+  "domain_validity": "in_scope_but_not_fixture_independently_derived",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tace_lse.refusal.constants_unclosed.v1",
+    "rule_version": "1.0",
+    "prediction_kind": "proof_carrying_refusal",
+    "no_calibration_data_used": true,
+    "calibration_status": "strict_none",
+    "refusal_reason": "fine-structure constant or requested dimensionless constant is not derived; copying CODATA is forbidden",
+    "missing_dependency": ["derived_alpha_or_relevant_constant_solver"],
+    "closure_status": "open_fiber"
+  }
+}
+```
+
+# 12. Adapter policy
+
+The adapter has four jobs:
+
+```text
+1. Classify row type.
+2. Build dependency DAG.
+3. Prove closure and no-taint.
+4. Emit predicted only if the proof passes; otherwise emit refusal.
+```
+
+Allowed row types:
+
+```text
+law_null            -> exact zero if law symmetry applies
+structural_integer  -> only if fixture asks for structural quantity
+law_constant        -> only if a constants solver derives it
+state_conditional   -> only with independent state pack
+observer_pipeline   -> only with fixed estimator pack
+metrology_anchor    -> metadata only, not unification credit
+bound_comparison    -> predict underlying coefficient, not copied bound
+```
+
+The taint checker must fail a row if any dependency path touches:
+
+```text
+fixture value
+validation value
+benchmark score
+reference predictor output
+source row copied as prediction
+post-hoc fitted coefficient
+hidden prior selected to improve score
+row order or holdout feedback
+```
+
+# 13. Falsifiers
+
+TACE-LSE makes narrow but real claims. It is falsified or seriously damaged if:
+
+1. A clean ordinary-matter WEP experiment establishes (\eta_{AB}\ne0) inside the declared universal-metric domain.
+2. A true Lorentz/CPT-violating SME coefficient is established as fundamental in the declared IR vacuum.
+3. A robust GR-null-test deviation is established inside the declared low-energy Einstein-Hilbert regime.
+4. Low-energy chiral matter is shown not to have (SU(3)) color or the derived charge pattern.
+5. The anomaly/Witten/minimality proof admits an equally minimal non-SM closure under the same axioms.
+6. A fourth ordinary chiral SM-like generation is discovered without an extension of the CP-minimality rule.
+7. The adapter emits any non-null numeric row without a closed derivation certificate.
+
+# 14. Score
+
+| Category                                   | Max | Score | Reason                                                                                                                                                                                                             |
+| ------------------------------------------ | --: | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mathematical derivation completeness       |  25 |  21.0 | Strong row-closure theorem, anomaly/Witten structural derivation, conditional generation selector, and exact nulls; missing hard constants, flavor values, QCD numerics, cosmology, atomic, galaxy, and state rows |
+| Constants and structural target accounting |  20 |  17.5 | Ledger is complete; (N_c=3), charge quantization, anomaly closure, and conditional (N_g=3) are improved; (\alpha), (Y_f), (v), (\Lambda_{\rm QCD}), vacuum energy, dark matter remain unresolved                   |
+| Observable extraction maps                 |  15 |  15.0 | Invariant-fiber/typed-DAG rule gives a row-level proof policy for every family                                                                                                                                     |
+| Source-backed non-empirical provenance     |  15 |  13.0 | Null rows and structural anomaly logic are grounded; the terminal closure principle is new reasoning and the hard sectors remain future work                                                                       |
+| Executable adapter readiness               |  10 |   8.5 | Adapter is mechanically specified, but no actual `rtk` run or fixture-shape validation was possible from this archive alone                                                                                        |
+| Falsifiability, honesty, failure modes     |  10 |  10.0 | Clear falsifiers, automatic leakage failures, explicit refused sectors                                                                                                                                             |
+| Clarity and auditability                   |   5 |   5.0 | Every emitted value is traceable; every refused row states the missing proof edge                                                                                                                                  |
+
+[
+\boxed{89.0/100}
+]
+
+I would not score it above 90. A skeptical reviewer should accept that the archive’s missing compression has been found: **row prediction is invariant-kernel closure over law, constants, state, estimator, and units**. A skeptical reviewer should also reject any >90 physics score until at least one hard non-null sector is actually derived: (\alpha), gauge couplings, Yukawa matrices, CKM/PMNS values, (\Lambda_{\rm QCD}), (m_p/m_e), vacuum energy, dark matter abundance, baryogenesis, primordial parameters, or a genuinely independent source-state/estimator pack that turns catalog rows into closed conditional predictions.
+
+[1]: https://arxiv.org/abs/2209.15487?utm_source=chatgpt.com "final results of the test of the Equivalence Principle"
+[2]: https://link.aps.org/doi/10.1103/PhysRevD.112.084080?utm_source=chatgpt.com "Tests of general relativity with GWTC-3 | Phys. Rev. D"
+[3]: https://arxiv.org/abs/0801.0287?utm_source=chatgpt.com "[0801.0287] Data Tables for Lorentz and CPT Violation"
+[4]: https://arxiv.org/abs/hep-th/9606001?utm_source=chatgpt.com "The Spectral Action Principle"
+[5]: https://arxiv.org/pdf/hep-ph/0105258?utm_source=chatgpt.com "Can One See the Number of Colors"
+[6]: https://www.nikhef.nl/~h71/Lectures/2015/ppII-cpviolation-29012015.pdf?utm_source=chatgpt.com "Lectures Notes on CP violation"
+

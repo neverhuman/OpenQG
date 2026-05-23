@@ -1,0 +1,591 @@
+## Final judgment
+
+The archive’s strongest ideas are **law/state gating**, **exact-null predictions**, **anomaly closure**, and the late-file addition of an **estimator/pipeline layer**. Its biggest failure is repeated score inflation: many tips score an architecture as if it had derived constants, flavor, QCD, cosmology, and source-state data. It has not.
+
+My best final artifact is:
+
+# **ARC-MCC v1 — Admissible Row Closure with a Minimal Chiral Core**
+
+**Theory ID:** `arc-mcc-v1`
+**Status:** honest partial unified-theory dossier, adapter-ready for null rows, not a completed theory of constants
+**Fair pre-submission dossier score:** **89.0 / 100**
+**Immediate honest OpenQG theory-lane coverage:** **18.75 / 100** if `ligogr_*`, `microscope_*`, and coefficient-shaped `sme_*` rows validate; **12.5 / 100** if `sme_*` rows are interpreted as published-bound rows rather than coefficient/null rows
+**Likely strict `openqg_score`:** still probably **0.000** until broad non-null fixture-independent coverage exists
+**Truth score as a completed physical theory:** roughly **45–55 / 100**
+
+I do **not** claim above 90. ARC-MCC genuinely closes one structural sector—color count plus hypercharge/electric-charge ratios under a declared minimal chiral-closure principle—and it gives a sharper row-admissibility theorem. It still does **not** derive (\alpha), gauge-coupling boundary values, (v), Yukawa matrices, CKM/PMNS numerical values, (\Lambda_{\rm QCD}), (m_p/m_e), vacuum energy, baryogenesis, dark matter abundance, or primordial parameters.
+
+---
+
+## 1. What the archive is actually asking for
+
+The brief is not asking for a pretty “theory of everything.” It is asking for a **proof-carrying compiler from derivations to OpenQG JSONL rows**.
+
+A row is admissible only when the artifact can derive:
+
+[
+\text{law}+\text{constants}+\text{boundary/source state}+\text{estimator}+\text{unit map}
+\Longrightarrow
+(\text{value},\text{uncertainty},\text{metadata})
+]
+
+without using fixture values, validation rows, source dataset values as calibration data, benchmark feedback, reference predictors, fitted surrogates, copied constants, or hidden free parameters.
+
+That means the central question is not “can my theory write equations for this domain?” The central question is:
+
+[
+\boxed{
+\text{Is this exact row fixed by the submitted derivation, or does it require an unprovided state/estimator/constant?}
+}
+]
+
+---
+
+## 2. Archive audit: strengths and failures
+
+The current uploaded archive contains the brief plus `tip1.txt` through `tip15.txt`. Several tips incorrectly say only tips 1–8 are present; that is a stale self-audit inside those files, not true of this upload.
+
+| File    | Strongest contribution                                                         | Main weakness                                                                                          |
+| ------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `tip1`  | Clean law/state split; honest below-85 scoring.                                | Too spectral by default; stale archive inventory.                                                      |
+| `tip2`  | Strong refusal discipline and constants ledger framing.                        | Same null-row coverage; no new hard sector.                                                            |
+| `tip3`  | Best early warning against score inflation.                                    | Conservative but does not add a new closure module.                                                    |
+| `tip4`  | “Prediction-fiber invariance” is a real benchmark insight.                     | Score too high relative to missing constants/flavor/QCD.                                               |
+| `tip5`  | Best structural physics: minimal chiral closure derives (N_c=3) conditionally. | Does not derive generations or numeric constants.                                                      |
+| `tip6`  | Strong no-free-state theorem and row templates.                                | Still mostly baseline null coverage.                                                                   |
+| `tip7`  | Good observable-autonomy gate and anomaly/Yukawa hypercharge lock.             | Fixed-point/selectors remain slogans unless solved.                                                    |
+| `tip8`  | Strong transductive non-identifiability theorem.                               | No new emitted non-null rows.                                                                          |
+| `tip9`  | Determinacy certificates; good adapter semantics.                              | Still no constants engine.                                                                             |
+| `tip10` | Minimal anomaly–CP closure; useful CP/generation discussion.                   | Three-generation claim is conditional, not unconditional.                                              |
+| `tip11` | Terminal anomaly closure and law/state admissibility.                          | Same missing numerical sectors.                                                                        |
+| `tip12` | Certificate-first rule and RG relevance warning.                               | Correctly refuses >90; no central numerical derivation.                                                |
+| `tip13` | “Invariant kernel” is the cleanest row criterion.                              | Still no (\alpha), flavor, QCD, cosmology, or state packs.                                             |
+| `tip14` | Typed observable closure; recognizes estimator layer.                          | Its 90+ score is for architecture, not physical derivation.                                            |
+| `tip15` | Best law/state/estimator separation.                                           | Its 91 score violates the user’s stricter standard: no central physical sector is numerically derived. |
+
+The tips are strongest when they refuse rows. They are weakest when they confuse **formal availability** with **fixture-emittable derivation**.
+
+---
+
+## 3. The missing compression
+
+ARC-MCC uses two primitives.
+
+### Primitive A: Admissible row closure
+
+For each fixture row (i), define:
+
+[
+\widehat y_i =
+E_i!\left(
+R_i!\left[
+\Phi_{\mathcal L,\theta}(s_i)
+\right]
+\right)
+]
+
+where:
+
+[
+\mathcal L = \text{law kernel},\quad
+\theta = \text{derived constants / free constants / RG trajectory data},
+]
+[
+s_i = \text{source, boundary, initial, or vacuum state},\quad
+R_i = \text{physical reduction map},\quad
+E_i = \text{source-specific estimator/pipeline}.
+]
+
+A strict prediction is allowed only if the proof ledger contains:
+
+[
+P_i =
+P_{\rm law}
+\land P_{\theta}
+\land P_{\rm state}
+\land P_{\rm estimator}
+\land P_{\rm units}
+\land P_{\rm uncertainty}.
+]
+
+If any factor is missing, the adapter must emit `not_implemented` or `invalid_domain`.
+
+This is the sharpened version of law/state gating: many OpenQG rows are not just law-plus-state; they are **law-plus-state-plus-estimator** rows.
+
+### Primitive B: Minimal chiral core
+
+Instead of assuming the Standard Model internal structure, ARC-MCC starts from the minimal chiral seed class:
+
+[
+G_N = SU(N)_c \times SU(2)_L \times U(1)_Y
+]
+
+with one electroweak chiral family:
+
+[
+Q_L:(N,2)*{Y_Q},\quad
+u^c:(\bar N,1)*{Y_u},\quad
+d^c:(\bar N,1)_{Y_d},
+]
+
+[
+L_L:(1,2)*{Y_L},\quad
+e^c:(1,1)*{Y_e},\quad
+\nu^c:(1,1)_0.
+]
+
+Local anomaly cancellation gives:
+
+[
+[SU(N)]^2U(1):\quad 2Y_Q+Y_u+Y_d=0,
+]
+
+[
+[SU(2)]^2U(1):\quad NY_Q+Y_L=0,
+]
+
+[
+[\mathrm{grav}]^2U(1):\quad
+2NY_Q+NY_u+NY_d+2Y_L+Y_e=0,
+]
+
+[
+[U(1)]^3:\quad
+2NY_Q^3+NY_u^3+NY_d^3+2Y_L^3+Y_e^3=0.
+]
+
+With a single Higgs doublet normalized by (Y_H=1/2) and gauge-invariant Yukawa couplings, the unique solution up to (U(1)) normalization is:
+
+[
+Y_Q=\frac{1}{2N},\quad
+Y_L=-\frac12,
+]
+
+[
+Y_u=-\frac{N+1}{2N},\quad
+Y_d=\frac{N-1}{2N},\quad
+Y_e=1,\quad
+Y_\nu=0.
+]
+
+Then:
+
+[
+Q_{\rm em}=T_3+Y,
+]
+
+so:
+
+[
+Q_u=\frac{N+1}{2N},\quad
+Q_d=\frac{1-N}{2N},\quad
+Q_e=-1,\quad
+Q_\nu=0.
+]
+
+The Witten (SU(2)) global anomaly requires an even number of left-handed (SU(2)) doublets. With (N) colored quark doublets plus one lepton doublet, the count is (N+1), so consistency requires (N) odd. Known arbitrary-(N_c) Standard Model analyses reach the same point: Witten anomaly cancellation requires (N_c) odd, while triangle anomalies fix the (N_c)-dependent quark charges. ([arXiv][1])
+
+ARC-MCC adds the explicit minimality condition:
+
+[
+\boxed{
+N_c=\min{N>1:\ N\text{ is nonabelian and Witten-consistent}}=3.
+}
+]
+
+Therefore:
+
+[
+\boxed{
+N_c=3,\quad
+Y_Q=\frac16,\quad
+Y_u=-\frac23,\quad
+Y_d=\frac13,\quad
+Y_L=-\frac12,\quad
+Y_e=1
+}
+]
+
+and:
+
+[
+\boxed{
+Q_u=\frac23,\quad
+Q_d=-\frac13,\quad
+Q_e=-1,\quad
+Q_\nu=0.
+}
+]
+
+This is ARC-MCC’s real physical gain. It derives the color count and charge ratios **inside a declared seed class**. It does not derive (\alpha), particle masses, CKM angles, PMNS angles, or QCD scales.
+
+---
+
+## 4. Formal object and action
+
+ARC-MCC is the tuple:
+
+[
+\mathfrak T_{\rm ARC}
+=====================
+
+\left(
+M_4,g_{\mu\nu},\mathrm{Spin};
+G_N,\mathcal R_N,\mathcal C_{\rm anom};
+\mathcal L_{\rm IR};
+\Sigma_{\rm state};
+\mathcal E_{\rm row};
+\Pi_{\rm proof}
+\right).
+]
+
+The closure functional is:
+
+[
+\mathcal C_{\rm anom}(N)=
+\begin{cases}
+0, & \text{local anomalies vanish, Witten anomaly vanishes, and }N=N_{\min},\
+\infty, & \text{otherwise}.
+\end{cases}
+]
+
+After closure:
+
+[
+G_{\rm IR}
+==========
+
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb Z_6}.
+]
+
+The low-energy action form is:
+
+[
+S_{\rm ARC}
+===========
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}(R-2\Lambda)
+-\frac14\sum_a \frac{1}{g_a^2}\mathrm{tr}(F^a_{\mu\nu}F_a^{\mu\nu})
++|D_\mu H|^2
+-V(H)
++\bar\psi i\gamma^\mu D_\mu\psi
++\bar Q_LY_u\tilde H u_R
++\bar Q_LY_d H d_R
++\bar L_LY_e H e_R
++\bar L_LY_\nu\tilde H\nu_R
++\mathrm{h.c.}
+\right].
+]
+
+Crucially, (G,\Lambda,g_a,V(H),Y_u,Y_d,Y_e,Y_\nu) are **not** claimed as numerically derived. They are symbolic low-energy slots. ARC-MCC may use the action form to justify exact symmetry/null predictions, but it may not use it to emit masses, couplings, cosmological parameters, or flavor rows.
+
+---
+
+## 5. Derived quantities
+
+### Strictly derived structural quantities
+
+| Quantity                            | ARC-MCC status                                                                                                                                                                                                                                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nonabelian color count              | (N_c=3), from minimal Witten-consistent chiral color closure.                                                                                                                                                                                                                                     |
+| Hypercharge ratios                  | Derived from local anomaly cancellation plus Yukawa closure.                                                                                                                                                                                                                                      |
+| Electric charge ratios              | Derived from (Q_{\rm em}=T_3+Y).                                                                                                                                                                                                                                                                  |
+| Gauge anomaly cancellation          | Derived for each chiral family.                                                                                                                                                                                                                                                                   |
+| Witten (SU(2)) anomaly cancellation | Derived because (N_c+1=4) doublets per generation.                                                                                                                                                                                                                                                |
+| Low-energy gauge group              | Derived within the minimal seed class as (SU(3)\times SU(2)\times U(1)/\mathbb Z_6).                                                                                                                                                                                                              |
+| CKM CP-phase capacity               | Conditional: (N_g=3) is the minimal generation count that can host one CKM-type CP phase, but this does not derive the CKM numerical values. The PDG review states the three-generation CKM matrix is a (3\times3) unitary matrix parameterized by three mixing angles and a CP-violating phase.  |
+
+### Strictly derived OpenQG numeric rows today
+
+Only exact null rows:
+
+[
+\Delta_{\rm GR}=0
+]
+
+for true `ligogr_*` GR-deviation/null-test rows.
+
+[
+\eta_{AB}=2\frac{a_A-a_B}{a_A+a_B}=0
+]
+
+for true `microscope_*` Eötvös/WEP rows. MICROSCOPE is explicitly a weak-equivalence-principle test in terms of the Eötvös ratio (\eta). ([arXiv][2])
+
+[
+k_{\rm SME}=0
+]
+
+for true `sme_*` coefficient/deviation rows. The SME framework treats Lorentz-violation tests as measurements of coefficients controlling Lorentz-violating operators, so zero is a theory value only for coefficient/deviation semantics, not a copied upper bound. ([Physics NMU][3])
+
+---
+
+## 6. Constants ledger
+
+NIST’s SI specification fixes exact numerical values for defining constants such as (c,h,e,k_B,N_A); those exact numerical values define units and have no uncertainty. CODATA recommended constants, by contrast, are determined by least-squares adjustment of theoretical and experimental information. Therefore CODATA tables are not derivations of (\alpha), (G), mass ratios, or couplings. ([NIST][4])
+
+| Target                | ARC-MCC classification                                                              | Row policy                                                 |
+| --------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| (c)                   | Structural invariant causal speed assumed in Lorentzian law; SI value is metrology. | No unification credit for SI number.                       |
+| (\hbar)               | Quantum action scale/unit normalization; SI value follows from (h).                 | No dimensionless prediction.                               |
+| (k_B)                 | Thermodynamic conversion anchor.                                                    | No dimensionless prediction.                               |
+| (e)                   | SI-defining charge unit; charge ratios derived, (\alpha) not derived.               | Refuse (\alpha)-like rows.                                 |
+| (G,M_{\rm Pl})        | Effective IR gravitational coupling.                                                | Numeric (G) not derived.                                   |
+| Gauge group           | Derived within minimal chiral seed.                                                 | Structural claim.                                          |
+| Colors                | (N_c=3) derived conditionally by minimal chiral closure.                            | Structural claim; emit only if fixture has structural row. |
+| Charge quantization   | Hypercharge/electric ratios derived.                                                | Structural claim.                                          |
+| Anomaly cancellation  | Derived.                                                                            | Structural claim.                                          |
+| Chiral weak structure | Partly assumed as seed, anomaly-validated.                                          | Partial, not full derivation.                              |
+| Generations           | (N_g=3) only conditional on irreducible weak CP minimality.                         | Do not emit generation row unconditionally.                |
+| (\alpha)              | Not derived.                                                                        | `not_implemented`.                                         |
+| (g_1,g_2,g_3)         | Running equations only; no boundary selector.                                       | `not_implemented`.                                         |
+| (v,m_H,\lambda_H)     | Not derived.                                                                        | `not_implemented`.                                         |
+| Yukawas               | Not derived.                                                                        | `not_implemented`.                                         |
+| CKM                   | Formal extraction only; values not derived.                                         | `not_implemented`.                                         |
+| PMNS/neutrino masses  | Not derived.                                                                        | `not_implemented`.                                         |
+| (\Lambda_{\rm QCD})   | Transmutation form requires boundary coupling, scheme, thresholds.                  | `not_implemented`.                                         |
+| (m_p/m_e)             | Needs QCD plus electron Yukawa.                                                     | `not_implemented`.                                         |
+| Strong CP             | No forced mechanism in ARC-MCC; axion/PQ would be an added module, not counted.     | `not_implemented`.                                         |
+| Vacuum energy         | Not derived.                                                                        | `not_implemented`.                                         |
+| Dark matter           | No candidate/abundance derivation.                                                  | `not_implemented`.                                         |
+| Baryogenesis          | No CP/out-of-equilibrium/abundance derivation.                                      | `not_implemented`.                                         |
+| Primordial parameters | (A_s,n_s,r) not derived.                                                            | `not_implemented`.                                         |
+| Source-state packs    | Architecture specified, no independent packs present.                               | `not_implemented` for state rows.                          |
+
+---
+
+## 7. OpenQG family map
+
+| Fixture family     | ARC-MCC row status                               | Reason                                                                                |
+| ------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `ligogr_*`         | `predicted`, shape-guarded                       | Exact IR GR null: deviation parameter (0).                                            |
+| `microscope_*`     | `predicted`, shape-guarded                       | Universal metric coupling gives (\eta_{AB}=0).                                        |
+| `sme_*`            | `predicted`, only for coefficient/deviation rows | Exact Lorentz/CPT symmetry gives zero SME coefficient.                                |
+| `codata_*`         | `not_implemented`                                | (\alpha,G,m)-ratios not derived; SI anchors are metrology.                            |
+| `pdg_*`            | `not_implemented`                                | Masses, widths, lifetimes need Yukawas, (v), QCD, amplitudes.                         |
+| `hepdata_*`        | `not_implemented`                                | Needs electroweak constants, thresholds, cuts, radiative corrections.                 |
+| `nufit_*`          | `not_implemented`                                | PMNS, splittings, ordering, CP phase unresolved.                                      |
+| `planck_*`         | `not_implemented`                                | Needs cosmological state, dark matter, vacuum energy, primordial spectrum, estimator. |
+| `desi_*`, `boss_*` | `not_implemented`                                | BAO needs (H(z)), (r_d), matter content, estimator.                                   |
+| `pantheon_*`       | `not_implemented`                                | Supernova rows need source calibration and cosmological state.                        |
+| `gwosc_*`          | `not_implemented`                                | Event masses/spins/distances are source-state/estimator outputs.                      |
+| `eht_*`            | `not_implemented`                                | Needs (M,D,a,i), plasma/emission model, image estimator.                              |
+| `asd_*`            | `not_implemented`                                | Needs (\alpha,m_e), nuclear/isotope state, QED/many-body solver.                      |
+| `horizons_*`       | `not_implemented`                                | Ephemerides need independent initial conditions and coordinate convention.            |
+| `sparc_*`          | `not_implemented`                                | Needs baryonic profiles, mass-to-light assumptions, dark-sector closure.              |
+
+---
+
+## 8. Exact JSONL rows ARC-MCC could emit today
+
+For `ligogr_*` rows whose observable shape is a dimensionless GR-deviation/null residual:
+
+```json
+{
+  "observable_id": "ligogr_001",
+  "theory_id": "arc-mcc-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "exact_symmetry_null",
+    "value": 0.0
+  },
+  "domain_validity": "IR Einstein-Hilbert GR null-test observable; not a compact-binary source-state catalog row",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "arc_mcc.ir_gr_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "IR Einstein-Hilbert limit implies zero beyond-GR deviation parameter",
+    "source_references": ["ARC-MCC derivation dossier: universal metric IR GR limit"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "law_exact_null",
+    "calibration_status": "strict_none",
+    "observable_shape_match": {
+      "required_prefix": "ligogr_",
+      "required_domain": "gravity",
+      "accepted_shape": "dimensionless GR-deviation or null residual"
+    }
+  }
+}
+```
+
+For `microscope_*` rows whose observable shape is an Eötvös/WEP violation parameter:
+
+```json
+{
+  "observable_id": "microscope_001",
+  "theory_id": "arc-mcc-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "exact_symmetry_null",
+    "value": 0.0
+  },
+  "domain_validity": "ordinary neutral matter in the universal metric-coupling limit; no fifth-force sector",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "arc_mcc.wep_eotvos_null.v1",
+    "rule_version": "1.0",
+    "theory_basis": "universal metric coupling gives composition-independent geodesic motion",
+    "source_references": ["ARC-MCC derivation dossier: universal metric matter coupling"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "law_exact_null",
+    "calibration_status": "strict_none",
+    "observable_shape_match": {
+      "required_prefix": "microscope_",
+      "required_domain": "equivalence_principle",
+      "accepted_shape": "Eotvos ratio or WEP violation parameter"
+    }
+  }
+}
+```
+
+For `sme_*` rows only when the row is a coefficient/deviation value, not a request to reproduce a published upper bound:
+
+```json
+{
+  "observable_id": "sme_001",
+  "theory_id": "arc-mcc-v1",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "GeV",
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "exact_symmetry_null",
+    "value": 0.0
+  },
+  "domain_validity": "exact local Lorentz/CPT invariant vacuum; no preferred tensor vevs",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "arc_mcc.lorentz_cpt_zero_coeff.v1",
+    "rule_version": "1.0",
+    "theory_basis": "exact local Lorentz and CPT symmetry sets Lorentz/CPT-violating SME coefficients to zero",
+    "source_references": ["ARC-MCC derivation dossier: exact Lorentz/CPT symmetry"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "law_exact_null",
+    "calibration_status": "strict_none",
+    "observable_shape_match": {
+      "required_prefix": "sme_",
+      "required_domain": "lorentz_cpt",
+      "accepted_shape": "SME coefficient value, coefficient magnitude, or null-deviation row; not a bound-copying row"
+    }
+  }
+}
+```
+
+For a structural row, if OpenQG later adds one:
+
+```json
+{
+  "observable_id": "struct_color_count",
+  "theory_id": "arc-mcc-v1",
+  "status": "predicted",
+  "value": 3,
+  "uncertainty": 0,
+  "unit": "count",
+  "distribution": "delta",
+  "prediction_uncertainty": {
+    "kind": "structural_integer",
+    "value": 0
+  },
+  "domain_validity": "minimal nonabelian chiral color seed with local anomaly cancellation and Witten SU(2) anomaly cancellation",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "arc_mcc.minimal_chiral_color.v1",
+    "rule_version": "1.0",
+    "theory_basis": "N colored weak doublets plus one lepton doublet require N odd; minimal nonabelian N>1 gives N=3",
+    "no_calibration_data_used": true,
+    "prediction_kind": "structural_integer",
+    "calibration_status": "strict_none"
+  }
+}
+```
+
+---
+
+## 9. Adapter policy
+
+The adapter is a proof checker, not a formula picker.
+
+For each observable:
+
+1. Read `observable_id`, `domain`, `source_dataset_id`, `unit`, and row metadata.
+2. Classify the row type: `law_null`, `structural_integer`, `law_plus_state`, `law_plus_state_plus_estimator`, `metrology_anchor`, or `unsupported_dimensionless_constant`.
+3. Emit `predicted` only if the proof ledger has all required closure factors.
+4. For `ligogr_*`, `microscope_*`, and `sme_*`, require shape validation before emitting zero.
+5. For every other row, emit `not_implemented` with `metadata.missing_dependency`.
+6. Never use observed row value, source fixture lock, benchmark score, validation row, or reference predictor as input.
+7. Preserve row-order independence.
+
+Unsupported row example:
+
+```json
+{
+  "observable_id": "codata_001",
+  "theory_id": "arc-mcc-v1",
+  "status": "not_implemented",
+  "domain_validity": "dimensionless constants are in scope, but alpha/gauge-coupling boundary values are not derived",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "arc_mcc.refusal.alpha_missing.v1",
+    "rule_version": "1.0",
+    "no_calibration_data_used": true,
+    "prediction_kind": "auditable_refusal",
+    "missing_dependency": "fixture-independent derivation of fine-structure constant and coupling normalization"
+  }
+}
+```
+
+---
+
+## 10. Falsifiers
+
+ARC-MCC is falsified or damaged if any of these occur inside its declared domain:
+
+1. A clean WEP/Eötvös experiment establishes (\eta_{AB}\neq0) for ordinary neutral matter without an allowed fifth-force/state-sector extension.
+2. A fundamental Lorentz/CPT-violating SME coefficient is established as nonzero.
+3. A true GR-deviation row—not a source-state catalog row—requires a nonzero beyond-GR parameter in ARC-MCC’s declared IR regime.
+4. Low-energy color is shown not to be (SU(3)), or the quark/lepton charge ratios violate the minimal chiral-closure result.
+5. The adapter emits (\alpha), masses, CKM/PMNS entries, cosmological parameters, EHT diameters, SPARC velocities, JPL elements, or GWOSC event quantities without a complete independent law/state/estimator proof.
+6. A reviewer finds that the (N_c=3) derivation smuggles in measured charge values rather than using only anomaly, Yukawa closure, (U(1)) normalization, and minimality.
+
+---
+
+## 11. Final scorecard
+
+| Category                                   | Max | Score | Reason                                                                                                                                                                                        |
+| ------------------------------------------ | --: | ----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness       |  25 |  20.0 | Strong foundations, anomaly/hypercharge/color derivation, GR/WEP/Lorentz nulls, row theorem. Missing hard constants, flavor values, QCD numerics, cosmology, atomic, galaxy, and state packs. |
+| Constants and structural target accounting |  20 |  17.0 | Excellent ledger; (N_c), hypercharge ratios, charge ratios, anomaly closure derived. (\alpha), (g_i), (v), Yukawas, (\Lambda_{\rm QCD}), vacuum energy, dark matter, baryogenesis unresolved. |
+| Observable extraction maps                 |  15 |  15.0 | Every emitted row has a closure rule; every refused family has a missing-dependency reason.                                                                                                   |
+| Source-backed non-empirical provenance     |  15 |  13.0 | Anomaly/Witten/SME/WEP/GR pieces are grounded; minimality remains a declared selection principle.                                                                                             |
+| Executable adapter readiness               |  10 |   9.0 | Adapter is mechanically specified but not run here against actual fixture JSONL.                                                                                                              |
+| Falsifiability and unsupported-row honesty |  10 |  10.0 | Exact falsifiers and hard refusal policy.                                                                                                                                                     |
+| Clarity and auditability                   |   5 |   5.0 | Every emitted number is traceable; every unsupported sector is explicit.                                                                                                                      |
+
+[
+\boxed{
+89.0/100
+}
+]
+
+This is the highest score I would defend under a hostile review. A score above 90 would require at least one more central sector to become genuinely derived—most credibly a no-leak derivation of (\alpha), a real Yukawa/flavor selector, a QCD scale/hadron bridge, a vacuum-energy mechanism, a dark-matter abundance derivation, baryogenesis, primordial parameters, or independently sourced state capsules that convert catalog rows into honest conditional predictions.
+
+[1]: https://arxiv.org/abs/hep-ph/0105258?utm_source=chatgpt.com "Can One See the Number of Colors?"
+[2]: https://arxiv.org/abs/2209.15487?utm_source=chatgpt.com "MICROSCOPE mission: final results of the test of the Equivalence Principle"
+[3]: https://physics.nmu.edu/~nrussell/research/datatables.htm "Data Tables for Lorentz and CPT Violation"
+[4]: https://www.nist.gov/pml/special-publication-330/sp-330-section-2 "SP 330 - Section 2 | NIST"
+

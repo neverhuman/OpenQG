@@ -76,6 +76,13 @@ read_only = false
 write_policy = "auditor_output"
 
 [[zone]]
+path = "target/openqg/hero-judge/"
+command = "rtk jankurai-runner --repo . hero-judge-run --zyal agent/zyal/openqg-hero-judge-evolve.zyal"
+source = "agent/zyal/openqg-hero-judge-evolve.zyal"
+read_only = false
+write_policy = "auditor_output"
+
+[[zone]]
 path = "target/openqg/contracts/benchmark-suite.witness.json"
 command = "just schema-check"
 source = "contracts/generated/schemas/benchmark-suite.schema.json"

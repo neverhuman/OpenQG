@@ -1,0 +1,665 @@
+I unpacked and read the archive: `unified-theory-agent-brief.v2.md`, `tip1.txt` through `tip15.txt`, and ignored only the macOS `._*` sidecars. My final answer is **not** another renamed spectral-geometry candidate. The strongest version is a two-closure theory:
+
+# **TAPOC-1: Terminal Anomaly + Proof-of-Observable Closure**
+
+**Honest final pre-submission dossier score: 89.0/100.**
+**Immediate honest OpenQG coverage: 18.75/100** if `ligogr_*`, `microscope_*`, and coefficient-shaped `sme_*` rows are accepted; **12.5/100** if `sme_*` rows are bound-shaped rather than coefficient-shaped.
+**Truth score as a completed theory of nature: roughly 45–55/100.**
+
+I do **not** claim >90. TAPOC-1 genuinely improves the archive by closing two missing sectors: a formal row-closure theorem and a structural anomaly/color/hypercharge module. But it still does not derive a new hard non-null numerical fixture family such as α, Yukawas, CKM/PMNS values, (\Lambda_{\rm QCD}), vacuum energy, dark matter abundance, or baryogenesis.
+
+---
+
+## What the problem is really asking
+
+The brief is asking for a **proof-carrying prediction artifact**, not a beautiful unified-theory essay.
+
+A valid prediction row must be reconstructible from:
+
+[
+\text{law}+\text{derived constants}+\text{independent state}+\text{estimator/pipeline}+\text{units}
+]
+
+with no path from fixture values, validation rows, source locks, reference predictors, or benchmark feedback into the prediction.
+
+The previous tips mostly converged on the right safety kernel: exact null rows for GR-deviation tests, WEP/Eötvös rows, and Lorentz/CPT coefficient rows. The major shared weakness was score inflation: several drafts treated “there is an equation for this domain” as if it were “the fixture row is predicted.” Those are not the same thing.
+
+---
+
+## What previous agents assumed too quickly
+
+They treated the spectral finite algebra ( \mathbb C\oplus\mathbb H\oplus M_3(\mathbb C) ) as if it derived three colors. It mostly **encodes** three colors after selection. TAPOC-1 instead derives (N_c=3) from anomaly closure plus minimal complex nonabelian color.
+
+They treated RG equations as constants engines. RG flow maps boundary data to low-energy data; without derived boundary values and threshold matching, it does not derive α, (g_1,g_2,g_3), or (\Lambda_{\rm QCD}).
+
+They treated Yukawa slots as flavor predictions. Writing (m_f=y_f v/\sqrt2) does not derive (y_f), (v), CKM, PMNS, or neutrino masses.
+
+They treated cosmological equations as cosmological rows. Friedmann equations do not predict Planck/DESI/BOSS/Pantheon rows without a derived cosmological state and source-pipeline map.
+
+They under-modeled the estimator layer. EHT, SPARC, JPL, ASD, GWOSC, Pantheon, and BAO rows are not just “physics values”; they are source-state plus analysis-pipeline summaries.
+
+They over-broadened SME and bound rows. A theory can predict a coefficient value (0), but it cannot copy an experimental upper bound and call that a prediction. The SME tables are explicitly tables of Lorentz/CPT-violation coefficients and sensitivities, so the row shape matters. ([arXiv][1])
+
+---
+
+# 1. Primitive: closure, not beauty
+
+TAPOC-1 has two primitive closure rules.
+
+## A. Terminal anomaly closure
+
+Start with the minimal local chiral gauge problem:
+
+[
+G_N=SU(N_c)\times SU(2)_L\times U(1)_Y
+]
+
+with one complex confining color factor, one chiral weak (SU(2)), one abelian hypercharge, one Higgs doublet, vectorlike unbroken electromagnetism, gauge-invariant Yukawa slots, and cancellation of all local gauge, mixed gravitational, cubic hypercharge, and Witten (SU(2)) global anomalies.
+
+For one generation of left-handed Weyl fields:
+
+[
+Q:(N_c,2)*{Y_Q},\quad
+u^c:(\bar N_c,1)*{Y_u},\quad
+d^c:(\bar N_c,1)_{Y_d},
+]
+
+[
+L:(1,2)*{Y_L},\quad
+e^c:(1,1)*{Y_e},\quad
+N^c:(1,1)_0.
+]
+
+Yukawa admissibility with Higgs hypercharge (Y_H) gives:
+
+[
+Y_u=-Y_Q-Y_H,\qquad
+Y_d=-Y_Q+Y_H,
+]
+
+[
+Y_e=-Y_L+Y_H,\qquad
+Y_N=-Y_L-Y_H=0.
+]
+
+So:
+
+[
+Y_L=-Y_H.
+]
+
+The (SU(2)^2U(1)) anomaly gives:
+
+[
+N_cY_Q+Y_L=0,
+]
+
+hence:
+
+[
+Y_Q=\frac{Y_H}{N_c}.
+]
+
+Normalize electromagnetism by (Q_{\rm em}=T_3+Y) and (Y_H=1/2). Then:
+
+[
+Y_Q=\frac{1}{2N_c},
+]
+
+[
+Y_u=-\frac{N_c+1}{2N_c},\qquad
+Y_d=\frac{N_c-1}{2N_c},
+]
+
+[
+Y_L=-\frac12,\qquad Y_e=1,\qquad Y_N=0.
+]
+
+The remaining anomalies close:
+
+[
+SU(N_c)^2U(1):\quad 2Y_Q+Y_u+Y_d=0,
+]
+
+[
+{\rm grav}^2U(1):\quad
+2N_cY_Q+N_cY_u+N_cY_d+2Y_L+Y_e+Y_N=0,
+]
+
+[
+U(1)^3:\quad
+2N_cY_Q^3+N_cY_u^3+N_cY_d^3+2Y_L^3+Y_e^3+Y_N^3=0.
+]
+
+The Witten global (SU(2)) anomaly forbids an odd number of left-handed (SU(2)) doublets; arbitrary-color Standard Model analyses likewise show that Witten anomaly cancellation requires (N_c) odd and fixes (N_c)-dependent quark charge assignments. ([Astrophysics Data System][2])
+
+Per generation the number of weak doublets is:
+
+[
+N_c+1.
+]
+
+So:
+
+[
+N_c+1\ {\rm even}\quad\Rightarrow\quad N_c\ {\rm odd}.
+]
+
+A complex color fundamental excludes (SU(2)) color as the terminal complex quark/antiquark color group. Minimal complex nonabelian color therefore gives:
+
+[
+\boxed{N_c=3}.
+]
+
+Substituting:
+
+[
+Y_Q=\frac16,\quad
+Y_u=-\frac23,\quad
+Y_d=\frac13,\quad
+Y_L=-\frac12,\quad
+Y_e=1,\quad
+Y_N=0,
+]
+
+and:
+
+[
+Q_u=\frac23,\qquad Q_d=-\frac13,\qquad Q_e=-1,\qquad Q_\nu=0.
+]
+
+Thus TAPOC-1 genuinely derives a structural sector: **three colors, fractional quark charges, lepton charges, hypercharge quantization, one-family anomaly cancellation, and chiral weak structure**, given the stated minimal chiral electroweak-color premises.
+
+## B. Proof-of-observable closure
+
+For any OpenQG row (r), define:
+
+[
+\widehat y_r
+============
+
+E_r!\left(
+R_r!\left[
+\Phi_{\mathcal L,C}(S_r)
+\right],
+\Pi_r,U_r
+\right),
+]
+
+where:
+
+| Symbol       | Meaning                                 |
+| ------------ | --------------------------------------- |
+| (\mathcal L) | law kernel                              |
+| (C)          | constants, couplings, boundary values   |
+| (S_r)        | source or cosmological state            |
+| (R_r)        | reduction from solution to observable   |
+| (E_r)        | estimator, catalog convention, pipeline |
+| (\Pi_r)      | source-specific protocol metadata       |
+| (U_r)        | unit/metrology map                      |
+
+A row may be marked `predicted` only if:
+
+[
+\frac{\partial \widehat y_r}{\partial C_i}=0
+\quad\text{for every unsupported }C_i,
+]
+
+and either:
+
+[
+\delta_{S_r}\widehat y_r=0
+]
+
+or (S_r) is supplied by an independent non-target state pack, and either:
+
+[
+\delta_{\Pi_r,E_r}\widehat y_r=0
+]
+
+or the estimator/pipeline is independently fixed before prediction.
+
+This gives the central theorem:
+
+[
+\boxed{
+\text{No closed dependency graph, no prediction.}
+}
+]
+
+If two admissible source states or two admissible estimator conventions give different row values, then a law-only theory cannot emit a unique fixture-independent number for that row. Choosing one secretly inserts a state, a prior, a pipeline, or a fixture value.
+
+This is the conceptual compression the archive was circling: **law/state separation is not enough; the row is law + state + estimator + units.**
+
+---
+
+# 2. Equivalent law object
+
+TAPOC-1 is not dependent on spectral geometry, but it can be packaged as an EFT law kernel selected by terminal anomaly closure:
+
+[
+S_{\rm TAPOC}
+=============
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{M_{\rm Pl}^2}{2}R-\Lambda_0
+-\frac14\sum_{a=1}^{3}\frac{1}{g_a^2}{\rm Tr}(F^a_{\mu\nu}F^{a\mu\nu})
++i\bar\psi\gamma^\mu D_\mu\psi
+-|D_\mu H|^2
+-V(H)
+-\mathcal L_Y
+\right]
++S_{\rm gf}+S_{\rm ghost}+S_{\rm higher}.
+]
+
+with:
+
+[
+G_{\rm IR}
+==========
+
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb Z_6}.
+]
+
+The Yukawa sector is present as a slot:
+
+[
+\mathcal L_Y
+============
+
+\bar QY_u\tilde H u^c+
+\bar QY_dH d^c+
+\bar LY_eH e^c+
+\bar LY_\nu \tilde H N^c
++\frac12 N^c M_N N^c
++{\rm h.c.}
+]
+
+but TAPOC-1 does **not** derive (Y_u,Y_d,Y_e,Y_\nu,M_N). They remain unsupported flavor structure.
+
+A spectral-action formulation may be used as a compact packaging of SM-plus-gravity structure, but TAPOC-1 does not use it as a constants engine; the spectral action is known to reproduce a Standard Model action coupled to gravity under its assumptions, while its coupling relations are scale-boundary relations, not by themselves low-energy numerical predictions. ([arXiv][3])
+
+Asymptotic safety is likewise admissible only as a UV-consistency discipline; it is not counted as a derivation of low-energy constants unless a fixed point, relevant directions, thresholds, and extraction maps are supplied. ([arXiv][4])
+
+---
+
+# 3. Derived quantities
+
+## Unconditional structural derivations
+
+[
+\boxed{N_c=3}
+]
+
+under minimal complex nonabelian color, local anomaly cancellation, Witten anomaly cancellation, and Yukawa/electromagnetic closure.
+
+[
+\boxed{
+Y_Q=\frac16,\
+Y_{u^c}=-\frac23,\
+Y_{d^c}=\frac13,\
+Y_L=-\frac12,\
+Y_{e^c}=1,\
+Y_{N^c}=0
+}
+]
+
+[
+\boxed{
+Q_u=\frac23,\quad Q_d=-\frac13,\quad Q_e=-1,\quad Q_\nu=0
+}
+]
+
+[
+\boxed{
+G_{\rm IR}=
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb Z_6}
+}
+]
+
+[
+\boxed{\text{local gauge, mixed gravitational, cubic hypercharge, and Witten anomalies cancel.}}
+]
+
+## Conditional structural derivation
+
+For (N_g) generations, the number of physical CKM-type CP phases is:
+
+[
+N_{\rm CP}=\frac{(N_g-1)(N_g-2)}{2}.
+]
+
+Thus (N_g=1) and (N_g=2) have no irreducible CKM CP phase, while (N_g=3) is the minimal CP-capable chiral generation count. Kobayashi and Maskawa’s original result is precisely that realistic CP violation was unavailable in the four-quark scheme without adding further structure, and standard CKM phase counting gives ((n-1)(n-2)/2) physical phases. ([Astrophysics Data System][5])
+
+So TAPOC-1 may state:
+
+[
+\boxed{
+N_g=3
+}
+]
+
+only as:
+
+> the minimal generation count for an anomaly-clean chiral weak theory with irreducible charged-current CP violation.
+
+It does **not** derive CKM angles, the CKM phase value, PMNS values, Yukawa eigenvalues, or neutrino masses.
+
+## Exact null predictions
+
+For row shapes that are true deviation/coefficient rows:
+
+[
+\boxed{\Delta_{\rm GR}=0}
+]
+
+for IR GR null-test deviation parameters, such as LIGO/Virgo/KAGRA parameterized deviation rows whose GR value is explicitly zero. LIGO GR-test documentation treats ((0,0)) as the GR expected value for certain fractional deviation parameters. 
+
+[
+\boxed{\eta_{AB}=0}
+]
+
+for ordinary neutral-body WEP/Eötvös rows under universal metric coupling. MICROSCOPE is a WEP test reporting Eötvös-ratio constraints; TAPOC-1 predicts the coefficient value zero, not the experimental uncertainty. ([arXiv][6])
+
+[
+\boxed{k_{\rm SME}=0}
+]
+
+for exact Lorentz/CPT coefficient rows, if and only if the row asks for the coefficient value rather than a published upper bound. SME tables compile coefficients and sensitivities, so the adapter must distinguish coefficient rows from bound rows. ([arXiv][1])
+
+---
+
+# 4. Constants ledger
+
+| Target                       | TAPOC-1 status                                                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| (c)                          | Metrology anchor and invariant causal speed; invariant light cone assumed structurally, not scored as numeric unification. |
+| (\hbar)                      | Quantum-action unit normalization; no dimensionless prediction from its SI value.                                          |
+| (k_B)                        | Thermodynamic conversion factor; no unification credit.                                                                    |
+| (G,M_{\rm Pl})               | Low-energy gravitational coupling; not derived numerically.                                                                |
+| spacetime dimension          | (3+1) assumed as the chiral Lorentzian arena; not derived.                                                                 |
+| gauge group                  | (SU(3)\times SU(2)\times U(1)/\mathbb Z_6) derived conditionally from minimal chiral electroweak-color closure.            |
+| colors                       | (N_c=3) derived from Witten anomaly + minimal complex nonabelian color.                                                    |
+| charge quantization          | Derived up to electromagnetic normalization.                                                                               |
+| chiral weak structure        | Derived/assumed in the minimal chiral closure premise; anomaly consistency verified.                                       |
+| generations                  | (N_g=3) only conditionally from minimal CP-capability; not a flavor solution.                                              |
+| α                            | Unsupported. No CODATA copying.                                                                                            |
+| (g_1,g_2,g_3)                | Normalization/representations derived; boundary values and running extraction not derived.                                 |
+| (v,m_H,\lambda,\mu^2)        | Unsupported electroweak/Higgs sector constants.                                                                            |
+| Yukawa matrices              | Unsupported.                                                                                                               |
+| CKM                          | Phase-capable generation count only; angles and phase value unsupported.                                                   |
+| PMNS/neutrino masses         | Unsupported.                                                                                                               |
+| (\Lambda_{\rm QCD})          | RG formula known but boundary condition unsupported; no prediction.                                                        |
+| proton/electron ratio        | Unsupported because (m_p,m_e) not derived.                                                                                 |
+| strong CP                    | Unsupported. TAPOC-1 does not hide (\theta_{\rm QCD}).                                                                     |
+| vacuum energy                | Unsupported; (\Lambda_0) is not derived.                                                                                   |
+| baryon asymmetry             | Unsupported.                                                                                                               |
+| dark matter                  | Unsupported.                                                                                                               |
+| primordial parameters        | Unsupported.                                                                                                               |
+| source-state variables       | Refused unless independent state pack exists.                                                                              |
+| estimator/pipeline variables | Refused unless independently fixed.                                                                                        |
+
+---
+
+# 5. OpenQG family map
+
+| Fixture family                               |                                      Status | Reason                                                                                                        |
+| -------------------------------------------- | ------------------------------------------: | ------------------------------------------------------------------------------------------------------------- |
+| `ligogr_*`                                   | `predicted` only for true GR-deviation rows | Emit zero deviation.                                                                                          |
+| `microscope_*`                               |                                 `predicted` | Emit zero Eötvös parameter under universal metric coupling.                                                   |
+| `sme_*`                                      |                   shape-guarded `predicted` | Emit zero coefficient only if row is coefficient-shaped; refuse bound-copy rows.                              |
+| `codata_*`                                   |                           `not_implemented` | α and dimensionless constants not derived; SI anchors are metrology, not theory predictions.                  |
+| `pdg_*`                                      |                    mostly `not_implemented` | masses, widths, lifetimes unsupported; exact gauge-null rows possible only if row semantics explicitly match. |
+| `hepdata_*`                                  |                           `not_implemented` | electroweak precision values need (g_i,v,Y_f), thresholds, extraction.                                        |
+| `nufit_*`                                    |                           `not_implemented` | PMNS, mass splittings, ordering, phases unsupported.                                                          |
+| `desi_*`, `boss_*`, `planck_*`, `pantheon_*` |                           `not_implemented` | cosmological state, vacuum energy, primordial spectrum, BAO/SN estimators unsupported.                        |
+| `gwosc_*`                                    |                           `not_implemented` | compact-binary catalog rows require source masses, spins, distance, event pipeline.                           |
+| `eht_*`                                      |                           `not_implemented` | angular scale requires black-hole mass, distance, spin, plasma/emission model, imaging estimator.             |
+| `asd_*`                                      |                           `not_implemented` | atomic spectra require α, masses, QED/QCD/nuclear corrections, isotope/state data.                            |
+| `horizons_*`                                 |                           `not_implemented` | ephemerides require initial conditions and JPL integration convention.                                        |
+| `sparc_*`                                    |                           `not_implemented` | galaxy rotation rows require baryonic profile, mass-to-light assumptions, halo/dark-sector state.             |
+
+---
+
+# 6. Exact JSONL rows TAPOC-1 could emit today
+
+For a GR-deviation row:
+
+```json
+{
+  "observable_id": "ligogr_001",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "theory_id": "tapoc-1",
+  "distribution": {"type": "delta", "at": 0.0},
+  "prediction_uncertainty": 0.0,
+  "domain_validity": "IR_GR_null_deviation_parameter_only",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tapoc_law_null_gr_deviation_v1",
+    "rule_version": "1.0",
+    "theory_basis": "Einstein-Hilbert IR limit; deviation parameter defined relative to GR",
+    "source_references": ["ligo-gr-null-tests"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_law_null",
+    "calibration_status": "none",
+    "observable_shape_match": {
+      "prefix": "ligogr_",
+      "required_shape": "dimensionless GR-deviation coefficient",
+      "predicted_quantity": "deviation_from_GR"
+    }
+  }
+}
+```
+
+For a MICROSCOPE Eötvös row:
+
+```json
+{
+  "observable_id": "microscope_001",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "dimensionless",
+  "theory_id": "tapoc-1",
+  "distribution": {"type": "delta", "at": 0.0},
+  "prediction_uncertainty": 0.0,
+  "domain_validity": "ordinary-neutral-test-body universal-metric-coupling regime",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tapoc_wep_eotvos_null_v1",
+    "rule_version": "1.0",
+    "theory_basis": "universal metric coupling implies equality of free-fall acceleration",
+    "source_references": ["microscope-final-wep"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_law_null",
+    "calibration_status": "none",
+    "observable_shape_match": {
+      "prefix": "microscope_",
+      "required_shape": "Eotvos ratio",
+      "predicted_quantity": "eta_AB"
+    }
+  }
+}
+```
+
+For an SME coefficient row:
+
+```json
+{
+  "observable_id": "sme_001",
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "unit": "GeV",
+  "theory_id": "tapoc-1",
+  "distribution": {"type": "delta", "at": 0.0},
+  "prediction_uncertainty": 0.0,
+  "domain_validity": "exact Lorentz/CPT coefficient row only; not experimental bound magnitude",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_id": "tapoc_sme_coefficient_null_v1",
+    "rule_version": "1.0",
+    "theory_basis": "local Lorentz/CPT invariant low-energy law with no SME-breaking operator",
+    "source_references": ["sme-lorentz-cpt"],
+    "no_calibration_data_used": true,
+    "prediction_kind": "exact_symmetry_coefficient_null",
+    "calibration_status": "none",
+    "observable_shape_match": {
+      "prefix": "sme_",
+      "required_shape": "coefficient value, not bound or sensitivity",
+      "predicted_quantity": "Lorentz_CPT_violation_coefficient"
+    }
+  }
+}
+```
+
+For an unsupported constants row:
+
+```json
+{
+  "observable_id": "codata_001",
+  "status": "not_implemented",
+  "theory_id": "tapoc-1",
+  "domain_validity": "in_scope_but_unclosed",
+  "metadata": {
+    "rule_id": "tapoc_refusal_unclosed_constant_v1",
+    "rule_version": "1.0",
+    "missing_dependency": ["fixture-independent alpha/gauge-coupling derivation"],
+    "no_calibration_data_used": true,
+    "calibration_status": "none",
+    "refusal_reason": "dimensionless physical constant not derived"
+  }
+}
+```
+
+---
+
+# 7. Adapter policy
+
+The adapter may read row ID, prefix, domain, unit, observable descriptor, and non-value metadata. It must not read the target value for prediction logic.
+
+It classifies every row into one of:
+
+```text
+law_null
+law_constant
+structural_integer
+state_conditional
+observer_pipeline
+metrology_anchor
+bound_comparison
+unsupported
+```
+
+It emits `predicted` only if the row has a complete proof certificate:
+
+```text
+law proof passes
+constant proof passes
+state proof passes or state-independent
+estimator proof passes or estimator-independent
+unit proof passes
+target-taint graph is empty
+```
+
+Otherwise it emits `not_implemented` or `invalid_domain`.
+
+No unsupported row receives a numeric placeholder. No strict predicted row has nonempty `calibration_data_used`.
+
+---
+
+# 8. Falsifiers
+
+TAPOC-1 fails if a clean WEP experiment establishes a fundamental nonzero (\eta_{AB}) for ordinary neutral matter under the declared universal-metric regime.
+
+It fails if a fundamental Lorentz/CPT-violating SME coefficient is established in a row shape TAPOC-1 predicts as exactly zero.
+
+It fails if a declared GR-null deviation row is robustly nonzero after waveform, source-state, and estimator systematics are excluded.
+
+It fails structurally if the (N_c=3) derivation is beaten by a lower-complexity complex nonabelian color closure satisfying the same local/global anomaly and electromagnetic premises.
+
+It fails conditionally if a fourth chiral Standard Model generation is found, or if the CP-capability premise for the (N_g=3) selector is rejected as inadmissible.
+
+It fails as an OpenQG artifact if its adapter emits α, masses, CKM, PMNS, QCD scale, cosmology, SPARC, EHT, JPL, ASD, GWOSC, or Pantheon values without derived constants and independent state/estimator packs.
+
+---
+
+# 9. Section-by-section grade
+
+| Section               | Status                             | Judgment                                                                               |
+| --------------------- | ---------------------------------- | -------------------------------------------------------------------------------------- |
+| Foundations           | partial-strong                     | Clear law kernel plus proof-of-observable closure.                                     |
+| Low-energy limit      | partial                            | SM structural skeleton and GR null limit; constants not derived.                       |
+| Constants             | partial                            | Structural integers/charges improved; hard dimensionless numbers unresolved.           |
+| Particles             | partial                            | Charges and reps derived; masses, widths, lifetimes refused.                           |
+| Interactions          | partial                            | Gauge structure derived; coupling values and electroweak precision not derived.        |
+| Flavor                | partial/missing                    | (N_g=3) conditional; Yukawas/CKM/PMNS numeric values missing.                          |
+| QCD/nuclear           | missing                            | (SU(3)) color derived; (\Lambda_{\rm QCD}), confinement numerics, hadrons not derived. |
+| Cosmology             | missing                            | No vacuum-energy, dark-matter, baryogenesis, or primordial solver.                     |
+| Gravity               | complete for null rows             | GR-deviation rows only.                                                                |
+| Black holes           | conditional/refused                | Kerr law not enough for EHT without state and estimator.                               |
+| Atomic physics        | missing                            | Needs α, masses, QED/QCD/nuclear corrections, pipeline.                                |
+| Solar system          | conditional/refused                | Equations exist; state and ephemeris conventions missing.                              |
+| Galaxy dynamics       | missing/refused                    | No dark-sector/profile closure.                                                        |
+| Lorentz/CPT           | complete for coefficient-null rows | Shape guard required.                                                                  |
+| Observable extraction | complete as theorem/adapter policy | Strongest part of TAPOC-1.                                                             |
+
+---
+
+# 10. Final scorecard
+
+| Category                               | Max | Score | Reason                                                                                                                                   |
+| -------------------------------------- | --: | ----: | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness   |  25 |  20.0 | Strong law kernel, anomaly/color/hypercharge derivation, null predictions, row theorem; hard sectors still missing.                      |
+| Constants and structural accounting    |  20 |  16.5 | Structural targets improved; α, gauge boundary values, Yukawas, (v), (\Lambda_{\rm QCD}), vacuum energy, dark matter remain unsupported. |
+| Observable extraction maps             |  15 |  15.0 | Full law/state/estimator/unit closure policy and row-level refusal logic.                                                                |
+| Source-backed non-empirical provenance |  15 |  13.5 | Standard anomaly/SM/GR/WEP/SME basis; novel closure calculus is logically clean but not externally established.                          |
+| Executable adapter readiness           |  10 |   9.0 | Adapter is mechanical; no actual repository run shown here.                                                                              |
+| Falsifiability and honesty             |  10 |  10.0 | Clear exact-null falsifiers and automatic leakage failures.                                                                              |
+| Clarity and auditability               |   5 |   5.0 | Every emitted number is traceable; every refusal states missing dependency.                                                              |
+
+[
+20.0+16.5+15.0+13.5+9.0+10.0+5.0
+================================
+
+\boxed{89.0/100}
+]
+
+---
+
+## Final verdict
+
+The best final artifact is:
+
+[
+\boxed{
+\textbf{TAPOC-1: Terminal Anomaly + Proof-of-Observable Closure}
+}
+]
+
+Its real contribution is not “solving all constants.” It is the compression:
+
+[
+\boxed{
+\text{Prediction}=\text{closed law}+\text{closed constants}+\text{closed state}+\text{closed estimator}+\text{closed units}.
+}
+]
+
+It derives a genuine structural sector—(N_c=3), hypercharge ratios, charge quantization, anomaly closure, and conditional minimal (N_g=3)—and it proves why most OpenQG rows must still be refused.
+
+That is a real improvement over the 84.5-style answers, but it is **not** enough for an honest >90 under the user’s standard, because no hard non-null numerical fixture family has been derived.
+
+[1]: https://arxiv.org/abs/0801.0287 "[0801.0287] Data Tables for Lorentz and CPT Violation"
+[2]: https://ui.adsabs.harvard.edu/abs/1982PhLB..117..324W/abstract?utm_source=chatgpt.com "An SU(2) anomaly"
+[3]: https://arxiv.org/abs/hep-th/9606001 "[hep-th/9606001] The Spectral Action Principle"
+[4]: https://arxiv.org/abs/1810.07615 "[1810.07615] An asymptotically safe guide to quantum gravity and matter"
+[5]: https://ui.adsabs.harvard.edu/abs/1973PThPh..49..652K/abstract "CP-Violation in the Renormalizable Theory of Weak Interaction - ADS"
+[6]: https://arxiv.org/abs/2209.15487 "[2209.15487] MICROSCOPE mission: final results of the test of the Equivalence Principle"
+

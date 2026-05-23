@@ -1,0 +1,548 @@
+I studied the uploaded archive as evidence, not authority. The upload I can inspect contains `unified-theory-agent-brief.v2.md` plus `tip1.txt` through `tip8.txt`; those tip files themselves repeatedly refer to earlier/larger tip sets, but I treated only the visible archive as binding.
+
+## Bottom line
+
+The best previous answers found the right **audit discipline** but not the missing **conceptual compression**. They were strongest on law/state gating and exact null rows. They were weakest where they silently promoted formal frameworks into derivations: constants, flavor, QCD, vacuum energy, cosmology, and catalog-state rows.
+
+My best final artifact is:
+
+# **MACC-LS: Minimal Anomaly–CP Closure with Law/State Semantics**
+
+It is not another spectral-geometry name. The primitive is:
+
+> The low-energy law is the **minimal chiral gauge-matter closure** satisfying local anomaly cancellation, global anomaly cancellation, stable nonabelian color, a CP-capable flavor history, Lorentz/metric universality, and a proof-carrying law/state adapter.
+
+Spectral/almost-commutative geometry becomes an optional realization of the derived skeleton, not the assumed foundation. The Chamseddine–Connes spectral-action program is a real way to package Standard Model structure with gravity, but using it as a starting axiom is exactly where previous agents over-assumed; MACC-LS derives the finite Standard Model skeleton first, then allows a spectral action to represent it. ([arXiv][1])
+
+**Final honest score:** **88.0 / 100 pre-submission dossier score**
+**Immediate honest OpenQG theory-lane coverage:** **18.75 / 100** if `ligogr_*`, `microscope_*`, and shape-valid `sme_*` rows are accepted.
+**Likely strict `openqg_score`:** still probably **0.000** until hard numeric sectors are derived and an adapter is actually run.
+**I would not claim >90**: MACC-LS genuinely improves the structural sector, especially colors/generations/hypercharge closure, but it still does not derive `alpha`, Yukawas, CKM/PMNS values, QCD scale, vacuum energy, dark matter abundance, baryogenesis, or primordial parameters.
+
+---
+
+## 1. What the problem is really asking
+
+The brief is not asking for “a theory of everything” in prose. It is asking for a **proof-carrying prediction artifact**.
+
+A row may be `predicted` only if there is a derivation of:
+
+[
+(\text{primitive law},\ \text{declared assumptions},\ \text{allowed constants/state})
+\Rightarrow
+(\text{row value},\ \text{uncertainty},\ \text{unit},\ \text{metadata})
+]
+
+with no fixture value, no validation value, no source-row copying, no benchmark feedback, no calibrated reference predictor, no hidden fitted parameter, and no empirical surrogate.
+
+The largest previous mistake was this equivalence:
+
+[
+\text{“I can write the governing equation”}
+\quad \not\Rightarrow \quad
+\text{“I can emit the OpenQG row.”}
+]
+
+Friedmann equations do not derive Planck/DESI/Pantheon rows. Kerr geometry does not derive an EHT angular diameter. The CKM definition does not derive CKM angles. A QCD beta function does not derive (m_p/m_e). CODATA recommended constants are least-squares adjusted values, not theory derivations; SI-defining constants are metrology anchors, not unification wins. ([NIST][2])
+
+---
+
+## 2. What previous tips assumed too quickly
+
+The archive’s best tips were correct that `ligogr_*`, `microscope_*`, and carefully shaped `sme_*` rows are the only immediately safe prediction families. MICROSCOPE is explicitly a Weak Equivalence Principle test in terms of the Eötvös ratio; SME tables are organized around Lorentz/CPT-violation coefficients; and current LVK GR-test papers are test surfaces for deviations from GR, not source-state catalogs. ([arXiv][3])
+
+But the tips repeatedly assumed too much in six places:
+
+| Area           | What they assumed too quickly                                                             | Correct treatment                                                                    |
+| -------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Finite algebra | ( \mathbb C\oplus\mathbb H\oplus M_3(\mathbb C) ) was often assumed as the starting point | Derive it from minimal anomaly/global/CP closure, then represent it spectrally       |
+| Generations    | “Index = 3” was asserted, not proven                                                      | Derive (N_g=3) conditionally from minimal physical CP-capable flavor closure         |
+| Constants      | RG equations were treated as values                                                       | Boundary values, thresholds, and extraction uncertainties remain unsupported         |
+| Flavor         | Matrix formalism was treated as prediction                                                | CKM/PMNS values require derived Yukawa matrices, not just diagonalization formulas   |
+| Cosmology      | Background equations were treated as state derivations                                    | (\Omega_i,H_0,A_s,n_s,\rho_\Lambda,\eta_B) remain unsupported state/constant targets |
+| OpenQG rows    | Source families were treated as provenance oracles                                        | A source family can be a comparison target, not a calibration input                  |
+
+The missing compression is not “spectral geometry plus more prose.” It is a theorem-level closure rule that turns some structural inputs into consequences and turns many catalog rows into provably invalid law-only predictions.
+
+---
+
+# 3. The new primitive: Minimal Anomaly–CP Closure
+
+MACC-LS begins with a minimal local chiral gauge law:
+
+[
+G_N = SU(N_c)\times SU(2)_L\times U(1)_Y
+]
+
+with one Higgs doublet (H), one confining nonabelian color factor, and one minimal anomaly-checking family:
+
+[
+Q:(N_c,2,Y_Q),\quad
+u^c:(\bar N_c,1,Y_u),\quad
+d^c:(\bar N_c,1,Y_d),
+]
+
+[
+L:(1,2,Y_L),\quad
+e^c:(1,1,Y_e),\quad
+N^c:(1,1,0).
+]
+
+The closure conditions are:
+
+[
+\text{local gauge anomalies}=0,
+\quad
+\text{mixed gravitational anomaly}=0,
+\quad
+\text{Witten }SU(2)\text{ anomaly}=0,
+]
+
+plus Yukawa admissibility and minimality.
+
+Gauge-invariant Yukawa slots require:
+
+[
+Y_u=-Y_Q-Y_H,\qquad
+Y_d=-Y_Q+Y_H,
+]
+
+[
+Y_e=-Y_L+Y_H,\qquad
+Y_N=-Y_L-Y_H=0.
+]
+
+So:
+
+[
+Y_L=-Y_H.
+]
+
+The (SU(2)^2U(1)) anomaly gives:
+
+[
+N_cY_Q+Y_L=0,
+]
+
+hence:
+
+[
+Y_Q=\frac{Y_H}{N_c}.
+]
+
+Normalize electric charge by (Q_{\rm em}=T_3+Y) and (Y_H=\frac12). Then:
+
+[
+Y_Q=\frac{1}{2N_c},
+]
+
+[
+Y_u=-\frac{N_c+1}{2N_c},
+\qquad
+Y_d=\frac{N_c-1}{2N_c},
+]
+
+[
+Y_L=-\frac12,\qquad
+Y_e=1,\qquad
+Y_N=0.
+]
+
+The remaining local anomalies cancel identically:
+
+[
+[SU(N_c)]^2U(1):\quad 2Y_Q+Y_u+Y_d=0,
+]
+
+[
+[\mathrm{grav}]^2U(1):\quad
+2N_cY_Q+N_cY_u+N_cY_d+2Y_L+Y_e+Y_N=0,
+]
+
+[
+[U(1)]^3:\quad
+2N_cY_Q^3+N_cY_u^3+N_cY_d^3+2Y_L^3+Y_e^3+Y_N^3=0.
+]
+
+The Witten global (SU(2)) anomaly requires the number of left-handed weak doublets to be even. Per generation that number is:
+
+[
+N_c+1.
+]
+
+Therefore:
+
+[
+N_c+1\ \text{even}
+\quad\Rightarrow\quad
+N_c\ \text{odd}.
+]
+
+A nonabelian color factor requires (N_c>1). Minimality then gives:
+
+[
+\boxed{N_c=3}.
+]
+
+Substituting (N_c=3) gives:
+
+[
+Y_Q=\frac16,\quad
+Y_u=-\frac23,\quad
+Y_d=\frac13,\quad
+Y_L=-\frac12,\quad
+Y_e=1,\quad
+Y_N=0.
+]
+
+So MACC-LS derives, from one closure package:
+
+[
+\boxed{
+SU(3)_c,\quad SU(2)_L,\quad U(1)_Y,\quad
+N_c=3,\quad
+\text{hypercharge quantization},\quad
+\text{chiral weak structure},\quad
+\text{one-family anomaly cancellation}
+}
+]
+
+and the global group becomes:
+
+[
+\boxed{
+G_{\rm SM}=
+\frac{SU(3)_c\times SU(2)_L\times U(1)_Y}{\mathbb Z_6}.
+}
+]
+
+This is a real improvement over the tips: the (M_3(\mathbb C)) color block is no longer just assumed; it is the minimal odd nonabelian color closure compatible with local and global anomalies.
+
+---
+
+## 4. Generation count: the strongest new but conditional derivation
+
+The uploaded tips repeatedly admitted that “three generations” was not solved. MACC-LS supplies a conditional theorem:
+
+For (N_g) generations, the number of physical CP-violating phases in a quark mixing matrix is:
+
+[
+\frac{(N_g-1)(N_g-2)}{2}.
+]
+
+For (N_g=1), this is zero. For (N_g=2), this is zero. The first value admitting an intrinsic CP-odd weak invariant is:
+
+[
+N_g=3.
+]
+
+Equivalently, a Jarlskog-type invariant requires a nonzero commutator structure:
+
+[
+\operatorname{Im}\det\left[
+Y_uY_u^\dagger,,
+Y_dY_d^\dagger
+\right]\neq 0,
+]
+
+which is impossible for fewer than three nondegenerate generations.
+
+MACC-LS adds one primitive:
+
+> A viable low-energy chiral matter law must be minimally capable of CP-odd history without adding new light gauge representations.
+
+That is weaker than deriving the baryon asymmetry, but stronger than merely asserting “index = 3.” It gives:
+
+[
+\boxed{N_g=3}
+]
+
+as the minimal flavor replication count compatible with intrinsic weak-sector CP history.
+
+This does **not** derive CKM angles, PMNS angles, neutrino masses, or the baryon asymmetry. It only derives the structural integer (N_g=3) under the stated closure condition. That is why I raise the score, but not above 90.
+
+---
+
+# 5. The formal object and action
+
+The MACC-LS theory object is:
+
+[
+\mathfrak T_{\rm MACC-LS}
+=========================
+
+\left(
+M_4,g_{\mu\nu};
+G_{\rm SM},\mathcal R_{\rm MACC};
+\Phi_H,\Psi_{3\times \rm family};
+\mathcal C_{\rm anomaly};
+\mathcal C_{\rm CP};
+\mathcal L_{\rm state};
+\mathcal A_{\rm row}
+\right).
+]
+
+The low-energy action is the derived-skeleton Standard Model plus metric gravity:
+
+[
+S_{\rm IR}
+==========
+
+\int d^4x\sqrt{-g}
+\left[
+\frac{1}{16\pi G}(R-2\Lambda)
+-\frac14\sum_a F^a_{\mu\nu}F_a^{\mu\nu}
++|D_\mu H|^2
+-V(H)
++\bar\psi i\gamma^\mu D_\mu\psi
+-\mathcal L_Y
++\mathcal L_{\nu_R}
++\cdots
+\right].
+]
+
+with:
+
+[
+\mathcal L_Y
+============
+
+\bar QY_u\tilde H u
++\bar QY_dH d
++\bar LY_eH e
++\bar LY_\nu\tilde H N
++\frac12N^T C M_R N
++\mathrm{h.c.}
+]
+
+The important audit point is that:
+
+[
+G,\ \Lambda,\ g_1,g_2,g_3,\ v,\lambda_H,\ Y_u,Y_d,Y_e,Y_\nu,\ M_R,\theta_{\rm QCD}
+]
+
+are **not** derived numbers in this artifact. The action shows where they live; it does not license OpenQG numeric predictions for them.
+
+A spectral-action realization may encode this skeleton using a finite algebra equivalent to:
+
+[
+\mathcal A_F=\mathbb C\oplus\mathbb H\oplus M_3(\mathbb C),
+]
+
+but in MACC-LS that algebra is downstream of anomaly/CP closure. Asymptotic safety may be added as a UV consistency lane, but current reviews still treat gravity-plus-matter predictivity as an active program with open questions, not a completed derivation of all low-energy constants. ([arXiv][4])
+
+---
+
+# 6. The law/state theorem
+
+This is the second major compression.
+
+Let an observable row be:
+
+[
+r = E(L,s,\chi),
+]
+
+where (L) is the universal law, (s) is the historical/source/initial state, and (\chi) is the extraction convention.
+
+If there exist two admissible states (s_1,s_2) such that:
+
+[
+E(L,s_1,\chi)\neq E(L,s_2,\chi),
+]
+
+then (L) alone does not predict (r). Any adapter emitting a value for (r) must either:
+
+1. derive (s) from (L);
+2. receive (s) from a non-target independent state pack;
+3. declare a free state parameter; or
+4. leak the fixture/source value.
+
+Only the first two can support a strict OpenQG `predicted` row.
+
+This theorem explains why so many fixture families must be refused. GWOSC event masses, EHT angular sizes, SPARC rotation points, JPL orbital elements, Pantheon supernova moduli, and many BAO/CMB summaries are not pure law rows. They are law-plus-state rows. A law can provide evolution equations; it cannot infer the historical catalog entry without a state derivation.
+
+---
+
+# 7. Constants ledger
+
+| Target                              | MACC-LS status                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| (c)                                 | Metrology anchor and invariant causal speed in Lorentzian structure. SI value is not a theory prediction. |
+| (\hbar)                             | Quantum action normalization; SI value follows from unit definition, not unification.                     |
+| (k_B)                               | Thermodynamic conversion anchor; not score-driving.                                                       |
+| (e)                                 | SI-defining elementary charge; physical target is (\alpha), not the SI number for (e).                    |
+| (G,M_{\rm Pl})                      | Effective IR gravitational coupling; relation accounted for, value not derived.                           |
+| Gauge group                         | Derived: (SU(3)\times SU(2)\times U(1)/\mathbb Z_6).                                                      |
+| Colors                              | Derived: (N_c=3) from minimal nonabelian odd color closure.                                               |
+| Hypercharges                        | Derived up to electric-unit normalization.                                                                |
+| Charge quantization                 | Derived from Yukawa admissibility plus anomaly closure.                                                   |
+| Chiral weak structure               | Derived from the minimal (SU(2)_L) chiral sector.                                                         |
+| Anomaly cancellation                | Complete for each family.                                                                                 |
+| Witten anomaly                      | Avoided because (N_c+1=4) weak doublets per generation.                                                   |
+| Generations                         | Conditionally derived: (N_g=3) from minimal CP-capable flavor closure.                                    |
+| (\alpha)                            | Not derived. CODATA must not be copied.                                                                   |
+| (g_1,g_2,g_3)                       | Normalization structure known; low-energy values not derived.                                             |
+| Higgs scale (v), (m_H), (\lambda_H) | Not derived.                                                                                              |
+| Yukawa matrices                     | Slots derived; entries not derived.                                                                       |
+| CKM                                 | Existence of a CP phase structurally allowed; angles and phase not derived.                               |
+| PMNS/neutrino masses                | Formal seesaw slots allowed; values not derived.                                                          |
+| (\Lambda_{\rm QCD})                 | Dimensional transmutation form known; numeric scale not derived.                                          |
+| Strong CP                           | No complete solution; (\theta_{\rm QCD}) unsupported.                                                     |
+| (m_p/m_e)                           | Not derived.                                                                                              |
+| Vacuum energy                       | Not derived.                                                                                              |
+| Baryon asymmetry                    | CP-capability derived; asymmetry value not derived.                                                       |
+| Dark matter                         | No unique candidate or abundance derived.                                                                 |
+| Primordial parameters               | (A_s,n_s,r,f_{\rm NL}) not derived.                                                                       |
+
+---
+
+# 8. OpenQG family map
+
+| Fixture family     | Status                                                     | Adapter rule                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ligogr_*`         | `predicted`, shape guarded                                 | Emit (0) only for true GR-deviation/null-test rows.                                                                                              |
+| `microscope_*`     | `predicted`                                                | Emit (\eta_{AB}=0) for WEP/Eötvös rows.                                                                                                          |
+| `sme_*`            | `predicted`, shape guarded                                 | Emit zero Lorentz/CPT-violating coefficient if the row is coefficient/deviation shaped. Refuse if the row is merely an experimental bound value. |
+| `codata_*`         | `not_implemented`, except possible metrology identity rows | (\alpha), mass ratios, (G), etc. not derived. SI anchors are not unification evidence.                                                           |
+| `pdg_*`            | `not_implemented`                                          | Representations derived; masses, widths, lifetimes, branching ratios not derived.                                                                |
+| `hepdata_*`        | `not_implemented`                                          | Electroweak precision rows need derived couplings, (v), thresholds, and radiative corrections.                                                   |
+| `nufit_*`          | `not_implemented`                                          | PMNS, mass splittings, ordering, and CP phase values not derived.                                                                                |
+| `planck_*`         | `not_implemented`                                          | Cosmological state and primordial parameters not derived.                                                                                        |
+| `desi_*`, `boss_*` | `not_implemented`                                          | BAO needs derived (H(z)), sound horizon, matter content, and initial state.                                                                      |
+| `pantheon_*`       | `not_implemented`                                          | Distance moduli need cosmological state and supernova calibration.                                                                               |
+| `gwosc_*`          | `not_implemented`                                          | Event masses/spins/distances are historical source-state data.                                                                                   |
+| `eht_*`            | `not_implemented` by default                               | Kerr/shadow law exists, but (M,D_A,a_*,i) and emission state are independent inputs.                                                             |
+| `asd_*`            | `not_implemented`                                          | Atomic spectra need (\alpha,m_e), nuclear data, isotope choice, QED/QCD corrections, and many-body solver.                                       |
+| `horizons_*`       | `not_implemented`                                          | Orbital elements are initial-condition state data.                                                                                               |
+| `sparc_*`          | `not_implemented`                                          | Rotation curves need baryonic profiles, distances, inclinations, and dark-sector closure.                                                        |
+
+Immediate predicted families remain:
+
+[
+\boxed{
+\texttt{ligogr_*}=0,\qquad
+\texttt{microscope_*}=0,\qquad
+\texttt{sme_*}=0
+}
+]
+
+with row-shape guards.
+
+---
+
+# 9. Adapter policy
+
+A strict predicted row must look like this:
+
+```json
+{
+  "status": "predicted",
+  "value": 0.0,
+  "uncertainty": 0.0,
+  "distribution": "delta",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "metadata": {
+    "rule_version": "macc_ls_v1",
+    "no_calibration_data_used": true,
+    "calibration_status": "strict_none",
+    "prediction_kind": "exact_law_null",
+    "theory_basis": "IR metric GR / universal metric coupling / exact Lorentz-CPT symmetry",
+    "observable_shape_match": {
+      "required": "null_deviation_or_coefficient_value",
+      "reject_if": "catalog_state_or_published_bound_magnitude"
+    }
+  }
+}
+```
+
+A refused row should look like this:
+
+```json
+{
+  "status": "not_implemented",
+  "free_parameters_used": [],
+  "calibration_data_used": [],
+  "domain_validity": "in_scope_but_not_fixture_independently_derived",
+  "metadata": {
+    "rule_version": "macc_ls_v1",
+    "no_calibration_data_used": true,
+    "prediction_kind": "proof_carrying_refusal",
+    "refusal_reason": "requires unresolved constants, non-derived state data, or unsupported extraction map"
+  }
+}
+```
+
+No unsupported row gets a placeholder value.
+
+---
+
+# 10. Falsifiers
+
+MACC-LS is narrow today, but falsifiable.
+
+It is directly damaged if:
+
+[
+\eta_{AB}\neq 0
+]
+
+is established for ordinary neutral matter in a clean WEP domain;
+
+[
+k_{\rm SME}\neq0
+]
+
+is established as a real Lorentz/CPT-violating coefficient in the declared IR vacuum;
+
+[
+\Delta_{\rm GR}\neq0
+]
+
+is confirmed in the declared IR Einstein-Hilbert regime;
+
+a fourth ordinary chiral Standard Model generation is discovered without a corresponding extension of the MACC closure rule;
+
+or the anomaly/CP minimality theorem is shown to admit an equally minimal non-SM closure with the same assumptions.
+
+Future modules would add more falsifiers, but they must not be counted until they output actual fixture-independent values.
+
+---
+
+# 11. Score
+
+| Category                               | Max | Score | Reason                                                                                                                                                                                                               |
+| -------------------------------------- | --: | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mathematical derivation completeness   |  25 |  20.5 | Strong foundations, anomaly closure, (N_c=3), conditional (N_g=3), GR/WEP/SME nulls. Loses heavily for constants, spectra, QCD, cosmology, atomic, galaxy, and source-state rows.                                    |
+| Constants and structural accounting    |  20 |  17.0 | Better than the tips because color, hypercharge, anomaly closure, and generation count are no longer merely assumed. Still no (\alpha), Yukawas, (v), (\Lambda_{\rm QCD}), vacuum energy, or dark-sector derivation. |
+| Observable extraction maps             |  15 |  14.5 | Clear family-level predicted/refused policy with row-shape guards; not run against actual fixtures here.                                                                                                             |
+| Source-backed non-empirical provenance |  15 |  13.0 | Uses standard anomaly reasoning, GR/WEP/Lorentz null logic, and known spectral/asymptotic-safety representation lanes; MACC selector is new and must be reviewed.                                                    |
+| Executable adapter readiness           |  10 |   8.5 | Straightforward null/refusal adapter; no `rtk` run in this archive.                                                                                                                                                  |
+| Falsifiability, honesty, failure modes |  10 |  10.0 | Strong refusal theorem and automatic failure rules.                                                                                                                                                                  |
+| Clarity and auditability               |   5 |   4.5 | Emitted numbers are traceable; future numeric sectors remain undeveloped.                                                                                                                                            |
+
+[
+\boxed{
+\textbf{Final pre-submission dossier score: }88.0/100
+}
+]
+
+This is my best honest improvement over the 84.5-style answers. It does find a real conceptual compression: **minimal anomaly/global/CP closure derives the Standard Model structural skeleton, including (N_c=3) and conditionally (N_g=3), rather than assuming it.**
+
+But it still does **not** deserve a score above 90, because OpenQG row-level numeric coverage is almost unchanged. The next true >90 breakthrough must derive at least one hard numeric sector fixture-independently:
+
+[
+\alpha,\quad g_i,\quad v,\quad Y_f,\quad CKM,\quad PMNS,\quad
+\Lambda_{\rm QCD},\quad m_p/m_e,\quad
+\rho_\Lambda,\quad \Omega_{\rm DM},\quad
+\eta_B,\quad A_s,n_s.
+]
+
+Until then, MACC-LS is the strongest honest artifact I can construct from the archive: structurally sharper than the previous spectral/anomaly answers, brutally law/state-gated, and still numerically humble.
+
+[1]: https://arxiv.org/abs/hep-th/9606001?utm_source=chatgpt.com "The Spectral Action Principle"
+[2]: https://www.nist.gov/programs-projects/codata-values-fundamental-physical-constants?utm_source=chatgpt.com "CODATA values of the fundamental physical constants"
+[3]: https://arxiv.org/abs/2209.15487?utm_source=chatgpt.com "MICROSCOPE mission: final results of the test of the Equivalence Principle"
+[4]: https://arxiv.org/abs/1810.07615?utm_source=chatgpt.com "An asymptotically safe guide to quantum gravity and matter"
+

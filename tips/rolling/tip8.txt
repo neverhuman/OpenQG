@@ -1,0 +1,712 @@
+Your instinct is right: **phase 0 should not try to “beat public physics data.”** That is too easy to game, too dependent on extraction pipelines, and too likely to reward fitted numerology over real conceptual compression. The better phase 0 is a **dual-evolution research forge**: one population creates increasingly ambitious theory artifacts; another population evolves increasingly adversarial, calibrated rubrics that decide which artifacts are worth the expensive next step of formal derivation and data-level testing.
+
+Your uploaded note already identifies the problem well: the previous NCG-style candidate could be a strong structural theory, but it still fails to derive the hard constants and source-state rows; you then propose a two-prompt system where a “hero” creates ambitious unified theories and a “judge” studies the hero population to harden the rubric.  The important move is to stop calling the phase-0 score a physics score. It should be a **theory-prospect score**: “Is this idea worth formalization and later OpenQG testing?”
+
+# Core design: OpenQG Research Forge
+
+I would build this as a **co-evolving, proof-carrying research system**, not just a multi-agent chat loop.
+
+OpenQG is already the right substrate because the repo describes itself as an “evidence-gated benchmark and control plane for interpretable unified-physics theories,” with typed manifests, reproducible smoke data, explicit scores, and auditable release receipts. ([GitHub][1]) It also already has the important separation of surfaces: typed manifests and scoring primitives in `openqg-core`, data registry and fixture verification in `openqg-data`, CLI orchestration in `openqg-bench`, editable contract specs, generated schemas, benchmark suites, theory manifests, and runnable research/maintenance loops under `agent/zyal`. ([GitHub][1])
+
+The system I would add is:
+
+[
+\textbf{Hero population} \leftrightarrow \textbf{Judge population} \leftrightarrow \textbf{Meta-judge / governance layer}
+]
+
+The hero side tries to invent, compress, formalize, and defend candidate theories. The judge side tries to expose hidden assumptions, fixture leakage, circular derivations, missing constants, fake novelty, unfalsifiable claims, and unearned score inflation. The meta-judge evaluates whether the judge is actually becoming more predictive and less gameable.
+
+The OpenQG repo’s current scoring is intentionally simple—coverage, missing predictions, invalid prediction count, and parameter-count penalty—and its methodology mentions log likelihood, AIC, BIC, MDL, coverage, parameter penalty, exact named parameters, reproducible fixtures, explicit invalid-domain handling, and penalties for anonymous latent knobs. ([GitHub][2]) ([GitHub][3]) That is excellent for later phases, but phase 0 needs a different layer above it: a **pre-data research-rigor benchmark**.
+
+# The key philosophical shift
+
+Do **not** ask phase 0:
+
+> Which theory matches public data best?
+
+Ask:
+
+> Which theory artifact most deserves expensive derivation, formal proof, and blind-data testing?
+
+That distinction prevents a classic failure mode: agents reverse-engineer constants, dress the result up as derivation, and score highly because they matched fixtures. Your uploaded NCG analysis already demonstrates why this matters: a theory can have strong structural content while leaving (\alpha), gauge couplings, Yukawas, CKM, PMNS, (\Lambda_{\rm QCD}), vacuum energy, dark matter, baryogenesis, primordial cosmology, and source-state packs unresolved.  A good judge must reward honest structural progress but refuse to call it a solved theory.
+
+So phase 0 should rank artifacts by **derivation promise**, not empirical fit.
+
+# What to borrow from AutoResearch, Co-Scientist, HyperAgents, FunSearch, and AlphaProof
+
+The best design is a hybrid of five ideas.
+
+**1. AutoResearch pattern: immutable evaluator, mutable target, human-editable instructions.** Karpathy’s `autoresearch` repo is deliberately small: `prepare.py` is fixed and not modified, `train.py` is the single mutable file the agent edits, and `program.md` is the human-authored instruction file; runs use a fixed 5-minute budget and a metric, validation bits per byte, so changes can be compared fairly. ([GitHub][4]) In OpenQG terms, this becomes: immutable benchmark contracts, immutable anti-leak rules, mutable hero prompts, mutable theory artifacts, and mutable judge rubrics—but judge mutations must pass a separate judge benchmark before promotion.
+
+**2. Co-Scientist pattern: generate, debate, evolve, meta-review.** Google DeepMind’s Co-Scientist uses specialized agents for generation, proximity/diversity mapping, reflection/peer review, ranking/tournament debates, evolution, and meta-review. ([Google DeepMind][5]) Its Nature abstract describes continuously generating, critiquing, refining, and tournament-evolving hypotheses, with most computation spent on verification against literature and data. ([Nature][6]) For OpenQG, replace biomedical validation with literature-grounded physics review, symbolic consistency checks, proof obligations, and later blinded data adapters.
+
+**3. HyperAgents / DGM pattern: evolve the search process, not only the solutions.** Hyperagents integrate a task agent and a meta-agent into one editable program; the meta-level modification procedure itself can be edited, enabling metacognitive self-modification. ([arXiv][7]) The Darwin Gödel Machine grows an archive of self-modified agents and empirically validates changes against benchmarks; it reports improvements on coding benchmarks while using sandboxing and human oversight. ([arXiv][8]) For OpenQG, the hero agent can evolve theory-building strategies, and the judge agent can evolve rubric/falsification strategies, but all self-modifications must be patches reviewed through tests, not silent prompt drift.
+
+**4. FunSearch pattern: creative generator plus hard evaluator.** FunSearch pairs a pretrained LLM with a systematic evaluator, guarding against hallucinated but plausible ideas; it searches over programs and keeps correct, high-scoring candidates in a population database. ([Nature][9]) This is directly relevant to novel math: when a subproblem has a crisp evaluator—finite algebra classification, anomaly cancellation, counterexample search, short proof search, graph invariant discovery—use FunSearch-like evolution over programs, not prose.
+
+**5. AlphaProof pattern: formal environments for real rigor.** AlphaProof casts Lean theorem proving as an RL environment where states are Lean tactic states, actions are tactics, and success is a Lean-verified proof; the Nature paper also notes that extending beyond competition math toward research mathematics requires moving from problem solving to theory building and expanding the concept library. ([Nature][10]) That is exactly the OpenQG challenge: not just prove known lemmas, but invent useful definitions and bridge lemmas that connect candidate primitives to physics.
+
+One caution: an arXiv paper called AutoResearch-RL exists, but arXiv marks the submission as withdrawn by arXiv Admin due to policy violation, so I would not treat it as an authoritative foundation. ([arXiv][11]) The underlying pattern—fixed evaluator, mutable candidate, repeated experiments—is better grounded in Karpathy’s public repo and in peer-reviewed systems like Co-Scientist, FunSearch, and AlphaProof.
+
+# The artifact-first rule
+
+The biggest design decision: **heroes cannot submit essays.**
+
+Every hero must submit a structured, inspectable artifact. A good phase-0 hero artifact should contain:
+
+```yaml
+hero_artifact:
+  id: string
+  lineage:
+    parents: []
+    prompt_hash: string
+    model_or_agent_hash: string
+  primitive:
+    one_sentence_core: string
+    formal_objects: []
+    forbidden_inputs: []
+  axioms:
+    - id: A1
+      statement: string
+      motivation: string
+      prior_art_refs: []
+      status: assumed | derived | conjectured
+  derivation_graph:
+    nodes: []
+    edges: []
+    missing_edges: []
+  constants_ledger:
+    derived: []
+    constrained: []
+    free: []
+    refused: []
+  claims:
+    - id: C1
+      type: structural | numeric | null | no_go | extraction_map
+      statement: string
+      dependencies: []
+      proof_status: informal | checked | counterexample_found | open
+      calibration_data_used: false
+  formal_tasks:
+    - id: T1
+      theorem_statement: string
+      target_system: Lean | Coq | Isabelle | SMT | Sage | Python
+      status: unsolved | proved | refuted | partial
+  prior_art_map:
+    nearest_neighbors: []
+    novelty_claims: []
+    overlap_risks: []
+  falsifier_cards:
+    - condition: string
+      would_refute: string
+  adapter_plan:
+    phase0: string
+    phase1_smoke: string
+    later_data_rows: []
+  self_attack:
+    strongest_objection: string
+    response: string
+  honesty:
+    unsupported_rows: []
+    hidden_parameter_audit: []
+```
+
+This is how you avoid “beautiful bullshit.” The artifact has to expose every dependency, every unproven bridge, every free parameter, and every place where the hero is merely gesturing.
+
+OpenQG already wants candidate theories to have stable IDs, citations, observables, named parameters, and executable adapter commands; every parameter must include name, symbol, unit, physical meaning, prior or fixed value, and why it is fixed or free. ([GitHub][12]) Phase 0 simply extends that idea upward into research artifacts before data adapters exist.
+
+# Hero population design
+
+The hero population should not be one agent. It should be a set of **islands**, because unified physics is too broad and a single population will converge prematurely.
+
+I would run at least these hero islands:
+
+| Hero island                      | Job                                                                                                                                                            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Primitive inventors**          | Propose new core mathematical objects or consistency principles.                                                                                               |
+| **Human-theory miners**          | Extract reusable invariants from NCG, GUTs, string theory, asymptotic safety, LQG, causal sets, amplitudes, category theory, holography, information geometry. |
+| **No-go theorem builders**       | Prove that certain tempting paths cannot derive required targets.                                                                                              |
+| **Finite-structure enumerators** | Search finite algebras, gauge groups, representations, anomaly-free spectra, and index constraints.                                                            |
+| **Formalizer agents**            | Translate claims into Lean/Coq/SMT/Sage tasks.                                                                                                                 |
+| **Extraction-map agents**        | Ask what would be needed to turn a structural theory into actual OpenQG rows.                                                                                  |
+| **Falsifier agents**             | Construct the strongest possible refutation conditions.                                                                                                        |
+| **Minimality agents**            | Compress theories: fewer primitives, fewer assumptions, fewer free constants.                                                                                  |
+| **Prior-art agents**             | Search literature and identify whether the “novel” idea already exists.                                                                                        |
+
+Each hero generation should include mutation, recombination, and ablation. Mutation changes the primitive, assumptions, or derivation strategy. Recombination merges two high-potential artifacts. Ablation removes one axiom or parameter and checks whether the theory collapses. A theory that needs every assumption is more credible than one with decorative complexity.
+
+# Judge population design
+
+The judge population should also be plural. A single judge will become a taste function and will be gamed.
+
+I would create specialized judges:
+
+| Judge                    | What it catches                                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Leakage judge**        | Hidden use of observed constants, public fixture values, or tuned thresholds.                                                     |
+| **Parameter judge**      | Anonymous knobs, dimensionful numerology, “constants” smuggled into definitions.                                                  |
+| **Derivation judge**     | Missing logical steps, circular claims, unstated assumptions.                                                                     |
+| **Prior-art judge**      | Existing human theory repackaged as novel.                                                                                        |
+| **Formalization judge**  | Claims that sound mathematical but cannot be stated precisely.                                                                    |
+| **Physics-domain judge** | Violations of known constraints: anomaly cancellation, Lorentz invariance, unitarity, covariance, EFT decoupling, thermodynamics. |
+| **Extraction judge**     | Whether a claim could ever become an executable OpenQG prediction.                                                                |
+| **Falsifiability judge** | Whether the theory risks being unfalsifiable.                                                                                     |
+| **No-go judge**          | Whether the theory conflicts with known no-go theorems or reconstructs a known failure mode.                                      |
+| **Rubric-gaming judge**  | Attempts to maximize rubric score without increasing truth-tracking value.                                                        |
+
+The judge’s job is not to be “mean.” It is to be **calibrated**. A harsh judge that rejects everything is useless. A permissive judge that gives every elegant artifact 90 is worse.
+
+# The meta-judge: how judges evolve without becoming arbitrary
+
+This is the most important part.
+
+The judge cannot be rewarded merely for lowering hero scores. The judge must be rewarded for **predictive discrimination**. A good judge should:
+
+1. Rank known strong structural theories high but not too high.
+2. Penalize known fitted/numerological theories.
+3. Catch seeded fake derivations.
+4. Catch hidden constants.
+5. Identify which artifacts are most likely to produce formal lemmas later.
+6. Identify which artifacts are most likely to survive blind smoke testing later.
+7. Give feedback that helps heroes improve without revealing hidden tests.
+
+Use a **judge benchmark suite** with positive controls, negative controls, and adversarial decoys.
+
+Positive controls might include historical theory moves that were genuinely compressive before full empirical confirmation: Maxwellian unification, general covariance, gauge principle, Dirac equation structure, anomaly cancellation, electroweak symmetry, renormalization group, and index-theoretic constraints.
+
+Negative controls should include: dimensionful numerology, post hoc constant fitting, ambiguous predictions, missing unit discipline, theories with hidden fitted thresholds, theories that claim to derive source-state data from universal law, and artifacts that quote Standard Model constants as if derived.
+
+The NCG artifact from your note is an especially useful calibration case: the judge should say “strong structural unification, but not a completed constants/data theory; roughly low-80s, not 90+.” Your uploaded analysis says exactly that: the NCG Spectral Standard Model is strong because it derives Standard Model + gravity structure from a compact object, but it should not clear 85 or 90 because central sectors remain unclosed. 
+
+# Co-evolution loop
+
+Here is the actual loop I would run.
+
+```python
+for generation in range(G):
+
+    # 1. Freeze current judge suite
+    active_judges = select_judges(judge_archive, by="calibration + robustness")
+    frozen_rubric = compile_rubric(active_judges)
+
+    # 2. Sample diverse hero parents
+    hero_parents = sample_archive(
+        hero_archive,
+        strategy=["top_score", "high_novelty", "high_evolvability", "neglected_islands"]
+    )
+
+    # 3. Generate hero artifacts
+    hero_candidates = []
+    for parent in hero_parents:
+        hero_candidates += mutate_recombine_expand(parent)
+
+    # 4. Force artifact structure
+    hero_artifacts = [normalize_to_schema(h) for h in hero_candidates]
+
+    # 5. Run automatic attacks
+    attacked_artifacts = []
+    for h in hero_artifacts:
+        attacks = red_team(h)
+        h.self_attack = attacks
+        attacked_artifacts.append(h)
+
+    # 6. Score heroes
+    hero_scores = frozen_rubric.score(attacked_artifacts)
+
+    # 7. Formal/symbolic checks for top and weird candidates
+    selected = select_for_verification(hero_scores, include_weird=True)
+    verification_results = run_formalizers(selected)
+
+    # 8. Archive hero results
+    hero_archive.add(attacked_artifacts, hero_scores, verification_results)
+
+    # 9. Generate judge patches from observed failures
+    judge_bug_reports = mine_rubric_failures(hero_scores, attacks, verification_results)
+    judge_candidates = mutate_judges(judge_archive, judge_bug_reports)
+
+    # 10. Evaluate judges on judge-benchmark suite, not the same heroes they patched against
+    judge_scores = judge_benchmark(judge_candidates, hidden_decoys=True)
+
+    # 11. Promote only judges that improve calibration and anti-gaming
+    judge_archive.add(select_promotable(judge_candidates, judge_scores))
+```
+
+This is not one prompt. It is a **research ecosystem with versioned prompts, artifacts, rubrics, tests, and archives**.
+
+# Phase-0 scoring rubric for heroes
+
+I would create a `phase0_theory_prospect_score`, separate from the later `openqg_score`.
+
+A good v0 rubric:
+
+| Category                 | Weight | What earns points                                                     |
+| ------------------------ | -----: | --------------------------------------------------------------------- |
+| Problem reconstruction   |      5 | Correctly states what must be derived and what cannot be assumed.     |
+| Primitive compression    |     15 | Few primitives that explain many structures without hidden constants. |
+| Derivation graph         |     20 | Clear chain from primitive to structures, with missing links exposed. |
+| Constants ledger honesty |     15 | Every derived, free, constrained, and refused parameter is named.     |
+| Formalizability          |     15 | Claims can be converted into theorem/proof/counterexample tasks.      |
+| Prior-art novelty        |     10 | Differentiates from known frameworks without fake novelty.            |
+| Extraction readiness     |     10 | Shows how claims could become OpenQG rows or why they cannot.         |
+| Falsifiability           |     10 | Has concrete failure modes and no universal escape hatches.           |
+
+Hard gates:
+
+```text
+FAIL if it uses public measured constants as derived outputs.
+FAIL if it hides tunable values inside definitions.
+FAIL if it claims source-state predictions without source-state derivation.
+FAIL if it has no named free-parameter ledger.
+FAIL if it cannot produce at least one formalizable theorem, counterexample search, or no-go task.
+FAIL if prior-art overlap is not acknowledged.
+```
+
+This score should not produce many 90s. In phase 0, a 90 should mean:
+
+> This artifact contains a genuinely promising primitive, a nontrivial derivation graph, clear formal tasks, strong novelty, and a realistic path to smoke testing.
+
+It should **not** mean:
+
+> This theory is true.
+
+# Phase-0 scoring rubric for judges
+
+Judges need their own score.
+
+| Category               | Weight | What earns points                                                      |
+| ---------------------- | -----: | ---------------------------------------------------------------------- |
+| Seeded-flaw detection  |     25 | Catches fake constants, circular proofs, leakage, missing uncertainty. |
+| Calibration            |     20 | Ranks historical positives/negatives and NCG-like controls sensibly.   |
+| Interjudge consistency |     10 | Agrees with other high-performing judges on obvious cases.             |
+| Disagreement value     |     10 | Finds unique issues other judges miss.                                 |
+| Predictive value       |     15 | Its top picks later produce formal lemmas or cleaner adapters.         |
+| Robustness to gaming   |     10 | Resists prompt hacks and “rubric theater.”                             |
+| Actionability          |      5 | Gives specific repairs, not vague criticism.                           |
+| Simplicity             |      5 | Does not become an opaque, overfit monster rubric.                     |
+
+A judge that says “everything is bad” gets low calibration. A judge that says “this sounds deep, 95” gets destroyed by seeded decoys.
+
+# The “judge hardening” pipeline
+
+Every generation should produce **rubric bug reports**:
+
+```yaml
+rubric_bug:
+  id: RB-00042
+  discovered_by: judge_patch_agent_7
+  hero_artifact: H-0183
+  loophole: "Artifact received high primitive-compression score while deriving no constants and hiding three scale choices."
+  proposed_patch:
+    gate: "Any primitive-compression score above 12/15 requires explicit count of independent dimensionless inputs."
+  regression_tests:
+    should_fail: [decoy_numerology_3, fitted_scale_theory_2]
+    should_pass: [ncg_structural_control, maxwell_control]
+```
+
+Judges evolve by adding such tests. The meta-judge decides whether the new rubric patch improves discrimination on a **hidden judge evaluation set**.
+
+This is crucial: a judge is not allowed to change the rules because it dislikes the current hero winner. Rule changes must be versioned, tested, and justified.
+
+# How to chase novel mathematics specifically
+
+The system should not ask LLMs to “invent deep math” in prose. It should produce **mathematical search targets**.
+
+The hero should output claims like:
+
+```yaml
+formal_task:
+  id: FT-017
+  type: uniqueness_theorem
+  statement: >
+    Under constraints C1-C7, the only finite real even spectral triple
+    with anomaly-free chiral representation and nontrivial color factor
+    has algebra isomorphic to ...
+  proof_strategy:
+    - classify finite-dimensional real C*-algebras
+    - enumerate admissible bimodules
+    - impose orientability / Poincare duality / anomaly constraints
+    - eliminate counterexamples
+  verification:
+    lean: partial
+    finite_model_search: pending
+    counterexample_search: active
+```
+
+The system then launches different solver agents:
+
+| Solver                     | Method                                                              |
+| -------------------------- | ------------------------------------------------------------------- |
+| **Lean formalizer**        | Attempts precise theorem statements and small proofs.               |
+| **Counterexample finder**  | Searches finite structures that violate the claimed uniqueness.     |
+| **SAT/SMT reducer**        | Encodes finite constraints.                                         |
+| **Sage/Python enumerator** | Enumerates groups, algebras, reps, anomaly-free charge assignments. |
+| **Literature miner**       | Finds if theorem already exists.                                    |
+| **Proof sketch critic**    | Finds gaps before formalization.                                    |
+| **No-go prover**           | Tries to prove the proposed class cannot reach the desired target.  |
+
+This matches the lessons from FunSearch and AlphaProof. FunSearch works when there is a crisp evaluator and a population of candidate programs. ([Nature][9]) AlphaProof shows the value of a formal verifier, but also warns that research mathematics requires building new concepts, not only solving fixed contest problems. ([Nature][10])
+
+For physics unification, the most valuable phase-0 mathematical outputs may be **no-go theorems**. A no-go theorem that eliminates a whole class of attractive but doomed theories is a major discovery. The judge should reward it.
+
+# Quality-diversity, not just winner-take-all
+
+A single leaderboard will converge to safe, familiar frameworks. Use **MAP-Elites / island archives**.
+
+Archive heroes by descriptors:
+
+```text
+primitive_family:
+  spectral_geometry
+  gauge_anomaly
+  categorical_tqft
+  asymptotic_safety
+  holographic
+  causal_order
+  information_geometry
+  number_theoretic
+  amplitudes
+  emergent_spacetime
+  no_go
+
+claim_type:
+  structural
+  uniqueness
+  constants
+  extraction_map
+  no_go
+  formal_tooling
+
+proof_status:
+  prose
+  theorem_statement
+  counterexample_search
+  partial_formal
+  checked_formal
+```
+
+Then preserve the best artifact in each cell, not only the global best. This matters because a weird low-scoring primitive may contain a bridge lemma that later unlocks a stronger theory.
+
+DGM-style archives are useful here: the Darwin Gödel Machine grows a tree of diverse agents and samples from the archive rather than greedily following one best path. ([OpenReview][13]) Apply that to theory artifacts and judge rubrics.
+
+# OpenQG repo changes I would make
+
+I would add a phase-0 research layer without disturbing the later benchmark layer.
+
+```text
+agent/
+  hero/
+    HERO_PROMPT.v0.md
+    hero-mutation-policy.yml
+    hero-output.schema.yml
+  judge/
+    JUDGE_PROMPT.v0.md
+    judge-rubric.schema.yml
+    judge-benchmark.yml
+    seeded-decoys/
+  meta/
+    META_JUDGE_PROMPT.v0.md
+    promotion-policy.yml
+
+contracts/specs/
+  hero_artifact.yml
+  judge_rubric.yml
+  formal_task.yml
+  rubric_bug.yml
+
+research/
+  inbox/
+    hero-artifacts/
+    judge-rubrics/
+  knowledge/
+    prior_art_graph.yml
+    no_go_index.yml
+    constants_ledger_taxonomy.yml
+    historical_controls.yml
+
+benchmarks/suites/
+  phase0-theory-prospect.yml
+  phase0-judge-calibration.yml
+  phase0-formal-task-smoke.yml
+
+theories/
+  candidates/
+    only when phase0 artifacts graduate
+
+target/openqg/research/
+  run_receipts/
+  red_team_reports/
+  formalizer_logs/
+```
+
+This respects the repo’s ownership/boundary philosophy: generated zones and review-only zones should not be edited by hand, and research artifacts are already split between reviewable candidate cards under `research/inbox/`, curated synthesis under `research/knowledge/`, and runtime ledgers under `target/openqg/research/`. ([GitHub][14])
+
+# The hero prompt should be narrow, brutal, and artifact-driven
+
+A v0 hero prompt should not say “invent a unified theory.” It should say:
+
+```text
+You are HERO-N.
+
+Your job is to produce one candidate theory artifact that maximizes
+phase0_theory_prospect_score, not openqg_score.
+
+You may propose bold new mathematics, but every claim must be typed:
+structural, numeric, null, no-go, extraction-map, or speculative.
+
+You must not use measured constants as derived values.
+You must not hide fitted parameters inside definitions.
+You must distinguish law, constants, state data, and extraction maps.
+You must produce a constants ledger.
+You must produce at least three formal tasks:
+  one theorem to prove,
+  one counterexample search,
+  one no-go or limitation test.
+You must include prior-art neighbors and explain the real difference.
+You must include the strongest self-attack.
+
+Return only valid YAML matching hero_artifact.schema.yml.
+```
+
+That last line matters. Essays invite hallucination. Schemas invite auditing.
+
+# The judge prompt should be more like a hostile grant panel than a philosopher
+
+A v0 judge prompt:
+
+```text
+You are JUDGE-N.
+
+You evaluate hero_artifacts for phase0_theory_prospect_score.
+You are not scoring truth, beauty, or empirical fit.
+You are scoring whether this artifact deserves costly formalization
+and later OpenQG benchmark work.
+
+Apply hard gates first:
+  - fixture leakage
+  - hidden parameters
+  - dimensionful numerology
+  - circular derivation
+  - unsupported source-state claims
+  - fake novelty
+  - unfalsifiability
+
+Then score the artifact across the official phase0 rubric.
+For every score above 80, identify what would make the score collapse.
+For every score below 70, identify the most promising salvageable idea.
+Return structured JSON with:
+  hard_gate_results
+  category_scores
+  uncertainty
+  strongest_objections
+  required_repairs
+  formal_tasks_to_prioritize
+  judge_self_confidence
+```
+
+Judges should not merely grade. They should produce **repair paths** and **formalization priorities**.
+
+# The meta-judge prompt
+
+```text
+You are META-JUDGE.
+
+You evaluate judge rubrics, not hero theories.
+
+A judge is good if it is calibrated, hard to game, actionable,
+and predictive of later formal or benchmark success.
+
+Test each judge on:
+  - historical positive controls
+  - historical negative controls
+  - seeded fake derivations
+  - hidden-parameter decoys
+  - NCG structural-control artifact
+  - deliberately overconfident hero artifacts
+  - understated but promising no-go artifacts
+
+Promote a judge only if it improves calibration or catches new failure modes
+without increasing false rejection of known-good controls.
+```
+
+This is how the rubric improves without becoming arbitrary.
+
+# How to prevent Goodharting
+
+This system will absolutely be attacked by its own heroes. That is good. You want heroes to reveal rubric loopholes early.
+
+Protection mechanisms:
+
+1. **Frozen evaluation windows.** A hero generation is scored by a frozen judge version. No mid-generation rule changes.
+2. **Hidden judge tests.** Judge candidates are evaluated on decoys they did not see during mutation.
+3. **Cross-play.** Old judges score new heroes; new judges score old heroes; meta-judge looks for instability.
+4. **Rubric diffs.** Every judge mutation must explain what changed and which failure mode it fixes.
+5. **Seeded adversarial theories.** Include fake theories designed to exploit known rubric weaknesses.
+6. **No self-scoring.** A hero’s own judge cannot be the final judge for its lineage.
+7. **Uncertainty in scores.** Judges output confidence intervals, not just point scores.
+8. **Costly promotion.** High hero scores trigger more attacks, not automatic graduation.
+9. **Human review only at thresholds.** Humans should review fewer, better artifacts, not every run.
+10. **Blind later testing.** Phase 0 winners eventually face smoke tests and then withheld data.
+
+# Graduation ladder
+
+I would define five levels.
+
+## Level 0 — Raw idea
+
+Prose, maybe interesting, not trusted.
+
+## Level 1 — Structured artifact
+
+Has primitive, derivation graph, constants ledger, prior-art map, formal tasks, falsifier cards.
+
+## Level 2 — Adversarially reviewed artifact
+
+Survives multiple judges and red-team attacks. No hidden constants found.
+
+## Level 3 — Formal-task artifact
+
+At least one nontrivial theorem, counterexample search, or no-go lemma has machine-checkable support.
+
+## Level 4 — OpenQG smoke candidate
+
+Has an executable adapter for a tiny smoke suite, likely mostly structural/null/refusal rows.
+
+## Level 5 — Data-level candidate
+
+Only here does it face public/held-out physics fixtures.
+
+The previous NCG artifact would be around Level 2, maybe Level 4 for guarded null rows, but not Level 5 as a complete theory. That is exactly the kind of disciplined classification your system needs.
+
+# The most important metric: derived-structure delta
+
+For unified physics, “score” should not just be subjective novelty. Track a metric like:
+
+[
+\Delta C = \text{free inputs removed} - \text{new assumptions added}
+]
+
+But not all inputs are equal. Removing a dimensionless Standard Model constant is worth much more than rephrasing a unit convention. Removing a source-state variable is usually invalid unless the source state is actually derived.
+
+A better metric:
+
+```text
+compression_value =
+  5 * hard_dimensionless_constants_derived
++ 3 * structural_sectors_unified
++ 3 * formal_theorems_checked
++ 2 * no_go_classes_eliminated
++ 1 * extraction_maps_clarified
+- 5 * hidden_or_fitted_parameters
+- 4 * circular_derivations
+- 3 * unformalizable_core_claims
+- 3 * source_state_overclaims
+```
+
+This should not replace the judge, but it gives the judge a quantitative spine.
+
+# What phase 0 should actually optimize
+
+Not “true theory.” Not “matches data.” Not “sounds profound.”
+
+Optimize for:
+
+1. **Conceptual compression.**
+2. **Explicit assumptions.**
+3. **Formalizability.**
+4. **Non-circular derivation paths.**
+5. **Prior-art clarity.**
+6. **Parameter honesty.**
+7. **Falsifiability.**
+8. **Downstream testability.**
+9. **Robustness under hostile review.**
+10. **Ability to generate new formal tasks.**
+
+That last one is subtle. A great early theory artifact may not yet derive (\alpha), but it might generate five precise theorem statements that could change the field if proved. That is worth preserving.
+
+# First 30-day build plan
+
+## Week 1: Schema and controls
+
+Create schemas for `hero_artifact`, `judge_rubric`, `formal_task`, and `rubric_bug`. Add 20 historical controls and 50 adversarial decoys. Include the NCG artifact as a “strong structural but incomplete” calibration control.
+
+## Week 2: Hero/judge loop
+
+Run small populations: 16 heroes, 6 judges, 2 meta-judges. No real data. Require every hero to submit a constants ledger and three formal tasks.
+
+## Week 3: Red-team and judge benchmark
+
+Add seeded attacks: hidden constants, fake derivations, copied prior art, impossible source-state claims, dimensionful numerology, and “all rows predicted by definition” hacks. Promote only judge rubrics that catch more attacks without rejecting all positive controls.
+
+## Week 4: Formal-task smoke
+
+Take the top 5 hero artifacts and run formalizers/counterexample finders on their smallest claims. Do not care whether they solve physics yet. Care whether they produce machine-checkable mathematical progress.
+
+At the end of 30 days, the deliverable is not “a theory of everything.” It is:
+
+```text
+- top 10 hero artifacts
+- top 3 judge rubrics
+- judge calibration report
+- list of generated formal theorem tasks
+- list of no-go/counterexample tasks
+- phase0 leaderboard with uncertainty
+- recommended artifacts for phase1 OpenQG smoke adapters
+```
+
+# What would make this world-class
+
+The frontier version has three compounding archives:
+
+## 1. Theory archive
+
+Every candidate, its lineage, its claims, its failures, its descendants.
+
+## 2. Rubric archive
+
+Every judge version, the loopholes it closed, the cases it mis-scored, the calibration history.
+
+## 3. Math-task archive
+
+Every formal theorem, failed proof, counterexample, no-go result, and useful lemma.
+
+That third archive is where novel mathematics emerges. The theory archive says, “I need this bridge lemma.” The judge says, “This bridge lemma is the make-or-break point.” The formalizer/counterexample agents then work the lemma. If proved, it feeds back into the theory archive. If refuted, the hero lineage is pruned or redirected.
+
+This is how the system becomes more than “agents writing papers.” It becomes a **self-improving map of what must be proven**.
+
+# My strongest recommendation
+
+Build the system around this rule:
+
+> **No artifact can advance by sounding unified. It advances only by reducing ambiguity.**
+
+A hero that invents a beautiful primitive but exposes 12 missing lemmas is valuable. A hero that claims to derive all constants but hides the measured values is worthless. A judge that says “this fails, but here is the exact theorem that would rescue it” is valuable. A judge that says “not rigorous” without an actionable failure mode is mediocre.
+
+So yes: your dual-evolution idea is the right phase-0 pivot. The winning architecture is not hero versus judge as a debate game. It is:
+
+[
+\boxed{
+\text{Heroes create proof-carrying theory artifacts;}
+\quad
+\text{judges evolve calibrated adversarial rubrics;}
+\quad
+\text{formal tools convert the best disputes into mathematics.}
+}
+]
+
+That is the path most likely to find something genuinely great before spending huge effort on full public-data OpenQG testing.
+
+[1]: https://raw.githubusercontent.com/neverhuman/openQG/main/README.md "raw.githubusercontent.com"
+[2]: https://raw.githubusercontent.com/neverhuman/openQG/main/docs/scoring.md "raw.githubusercontent.com"
+[3]: https://raw.githubusercontent.com/neverhuman/openQG/main/docs/benchmark-methodology.md "raw.githubusercontent.com"
+[4]: https://github.com/karpathy/autoresearch "GitHub - karpathy/autoresearch: AI agents running research on single-GPU nanochat training automatically · GitHub"
+[5]: https://deepmind.google/blog/co-scientist-a-multi-agent-ai-partner-to-accelerate-research/ "Co-Scientist: A multi-agent AI partner to accelerate research — Google DeepMind"
+[6]: https://www.nature.com/articles/s41586-026-10644-y "Accelerating scientific discovery with Co-Scientist | Nature"
+[7]: https://arxiv.org/abs/2603.19461 "[2603.19461] Hyperagents"
+[8]: https://arxiv.org/html/2505.22954v3 "Darwin Gödel Machine: Open-Ended Evolution of Self-Improving Agents"
+[9]: https://www.nature.com/articles/s41586-023-06924-6 "Mathematical discoveries from program search with large language models | Nature"
+[10]: https://www.nature.com/articles/s41586-025-09833-y "Olympiad-level formal mathematical reasoning with reinforcement learning | Nature"
+[11]: https://arxiv.org/abs/2603.07300 "[2603.07300] AutoResearch-RL: Perpetual Self-Evaluating Reinforcement Learning Agents for Autonomous Neural Architecture Discovery"
+[12]: https://raw.githubusercontent.com/neverhuman/openQG/main/docs/theory-admission.md "raw.githubusercontent.com"
+[13]: https://openreview.net/forum?id=pUpzQZTvGY "Darwin Gödel Machine: Open-Ended Evolution of Self-Improving Agents | OpenReview"
+[14]: https://raw.githubusercontent.com/neverhuman/openQG/main/docs/boundaries.md "raw.githubusercontent.com"
+

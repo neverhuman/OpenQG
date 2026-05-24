@@ -3,6 +3,7 @@ name: jankurai
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,7 +14,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -32,7 +33,6 @@ jobs:
             ${{ runner.os }}-cargo-
       - run: cargo fetch --locked
       - run: cargo install --locked cargo-nextest
-      - run: cargo install --git https://github.com/neverhuman/jankurai --tag v1.5.1 --locked jankurai
       - run: cargo install --locked just
       - run: bash ops/ci/jankurai.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -40,6 +40,8 @@ jobs:
         with:
           name: jankurai-evidence
           path: |
+            target/jankurai/current-audit.json
+            target/jankurai/current-audit.md
             target/openqg/contracts/*.json
             target/openqg/zyal/jekko-preview.jsonl
             target/openqg/bench-smoke/scorecard.json

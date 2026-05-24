@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -21,6 +21,5 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
-      - run: cargo install --git https://github.com/neverhuman/jankurai --tag v1.5.1 --locked jankurai
       - run: cargo install --locked just
       - run: bash ops/ci/security.sh

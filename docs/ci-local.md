@@ -10,6 +10,8 @@ wrappers in `ops/ci/`.
 - `bash scripts/ci-local.sh security`
 - `bash scripts/ci-local.sh jankurai`
 - `bash scripts/ci-local.sh doctor`
+- `just ci-pr` creates a clean merge-result worktree against `origin/main`
+  and runs the local bundle there.
 
 ## Pre-push hook
 
@@ -21,4 +23,3 @@ The local hook at `ops/git-hooks/pre-push` delegates to
 - keep lane logic in `ops/ci/*.sh`
 - keep GitHub workflows as thin wrappers over those scripts
 - use `bash scripts/ci-doctor.sh` to confirm the local toolchain before a lane
-

@@ -99,5 +99,8 @@ release-check:
 	just score
 	just release-pack
 
+ci-pr:
+	bash ops/ci/pr-preflight.sh
+
 release-pack:
 	cargo run -p openqg-bench -- release pack --scorecard target/openqg/bench-smoke/scorecard.json --output reports/releases/draft

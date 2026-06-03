@@ -3,7 +3,6 @@ mod commands;
 pub mod data;
 mod dispatch;
 pub mod release;
-pub mod research;
 pub mod schema;
 pub mod score;
 pub mod security;

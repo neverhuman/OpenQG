@@ -1,0 +1,32 @@
+<<<ZYAL v1:daemon id=openqg-hypothesis-tournament>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+job:
+  name: openqg-hypothesis-tournament
+  objective: Run disjoint implementation lanes for theory candidates and reduce by verified score.
+
+loop:
+  policy: forever
+  sleep: 30m
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-hypothesis-tournament || (test -s target/openqg/hypothesis/latest/evidence.json && test -f target/openqg/hypothesis/latest/complete.ok)"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+checkpoint:
+  when: after_verified_change
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG hypothesis tournament
+<<<END_ZYAL id=openqg-hypothesis-tournament>>>
+ZYAL_ARM RUN_FOREVER id=openqg-hypothesis-tournament

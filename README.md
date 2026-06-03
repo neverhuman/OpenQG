@@ -1,53 +1,72 @@
 # OpenQG
 
 <!-- jankurai-badge:start -->
-[![Jankurai score: 88/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)
+[![Jankurai score: 90/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)
 <!-- jankurai-badge:end -->
 
-OpenQG exists to evolve harder questions and harder answers through one live
-25-run hero/judge loop, with Jekko driving the ZYAL daemon.
+OpenQG is an evidence-gated benchmark and control plane for interpretable
+unified-physics theories.
 
-Support code and data stay here only because they help that loop run, score,
-and explain itself. The loop is the point.
+It keeps candidate quantum-gravity work close to typed manifests, reproducible
+smoke data, explicit scores, and auditable release receipts. The first release
+is intentionally conservative: baseline physics stays anchored to
+`SM + GR + LambdaCDM + massive neutrinos`, public data is tracked through
+manifests instead of raw dumps, and candidate theories must expose named
+physical parameters.
 
-## Live Loop
+## Quick Start
 
-The live path is:
-
-```mermaid
-flowchart LR
-  J[Jekko] --> Z[ZYAL daemon<br/>openqg-hero-judge-evolve.zyal]
-  Z --> R[25-run hero/judge loop]
-  R --> Q[Harder questions]
-  R --> J2[Better judges]
-  R --> H[Better heroes]
-  Q --> N[Next run]
-  J2 --> N
-  H --> N
-  N --> R
+```bash
+just setup
+just fast
+just check
+just security
+just release-check
+jankurai audit . \
+  --json target/jankurai/current-audit.json \
+  --md target/jankurai/current-audit.md \
+  --no-score-history
 ```
 
-The single daemon entrypoint is
-[agent/zyal/openqg-hero-judge-evolve.zyal](agent/zyal/openqg-hero-judge-evolve.zyal).
+## Surface Map
 
-## Example
+- `crates/openqg-core`: typed manifests, validation helpers, and scoring primitives
+- `crates/openqg-data`: registry loading, data locks, and fixture verification
+- `crates/openqg-bench`: CLI orchestration for schema, data, benchmark, score,
+  release, and ZYAL lanes
+- `contracts/specs`: editable YAML contract specs
+- `contracts/generated/schemas`: generated JSON schemas from `just schema-sync`
+- `contracts/registry.yml`: source-of-truth registry for contract generation
+- `data/registry`: public dataset source manifests
+- `benchmarks/suites`: benchmark suite manifests
+- `theories`: baseline and candidate theory manifests
+- `agent/zyal`: runnable research and maintenance loops
+- `reports/releases/draft`: generated draft release pack from `just release-pack`
 
-The 25-run report and the daemon file are the two places to start:
+## Release
 
-> Report: [reports/hero-judge-progress/2026-05-23.md](reports/hero-judge-progress/2026-05-23.md)
->
-> Daemon: [agent/zyal/openqg-hero-judge-evolve.zyal](agent/zyal/openqg-hero-judge-evolve.zyal)
->
-> Trial 008: promoted, overall quality `0.905`
->
-> Trial 017: promoted, overall quality `0.862`
->
-> Trial 023: rejected, overall quality `0.495`
+`v0.0.1` is the first release candidate for the OpenQG control plane. It ships
+the Rust benchmark workspace, contract registry, smoke benchmark lane, Jankurai
+audit evidence, ZYAL runbooks, release-pack generation, and the initial
+documentation surface.
 
-## What Lives Here
+Publication follows the evidence gate in [docs/release.md](docs/release.md).
+The draft release manifest remains `approved: false` until review records the
+approval outside the generated release pack.
 
-- `agent/zyal/openqg-hero-judge-evolve.zyal`: the single live daemon runbook.
-- `reports/hero-judge-progress/2026-05-23.md`: the 25-run live report with examples and summary metrics.
-- `crates/openqg-core`, `crates/openqg-data`, `crates/openqg-bench`: support code for validation, scoring, and data loading.
-- `contracts/`, `benchmarks/`, `data/`, `theories/`: manifests and data surfaces that feed the loop.
-- `docs/`: boundary, testing, release, and ZYAL notes that keep the loop auditable.
+## Key Links
+
+- [Moonshot](docs/MOONSHOT.md)
+- [Architecture](docs/architecture.md)
+- [Boundaries](docs/boundaries.md)
+- [Testing](docs/testing.md)
+- [Scoring](docs/scoring.md)
+- [Benchmark methodology](docs/benchmark-methodology.md)
+- [Theory admission](docs/theory-admission.md)
+- [Release process](docs/release.md)
+
+## Policy
+
+- Do not commit raw upstream data, secrets, or derived lockfiles.
+- Do not broaden generated zones without updating `agent/generated-zones.toml`.
+- Keep candidate theories readable: every parameter needs unit, meaning, and provenance.

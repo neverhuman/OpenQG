@@ -21,7 +21,7 @@ mod tests {
             theory_id: Some("sm-gr-lcdm-mnu".into()),
         }];
         let scorecard = scorecard_from_predictions(
-            "benchmark-v0.1.2".into(),
+            "benchmark-v0.1.0".into(),
             "smoke".into(),
             "sm-gr-lcdm-mnu".into(),
             "sm-gr-lcdm-mnu".into(),
@@ -40,7 +40,7 @@ mod tests {
     fn validate_release_manifest_requires_candidates() {
         let manifest = ReleaseManifest {
             version: "v1".into(),
-            benchmark_version: "benchmark-v0.1.2".into(),
+            benchmark_version: "benchmark-v0.1.0".into(),
             scorecard_hash: "abc".into(),
             data_lock_hash: "def".into(),
             candidate_hashes: BTreeMap::new(),

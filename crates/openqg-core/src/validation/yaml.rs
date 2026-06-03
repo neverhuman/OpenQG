@@ -44,7 +44,6 @@ pub(super) const TOP_LEVEL_KEYS: &[&str] = &[
     "repo_intelligence",
     "fleet",
     "research",
-    "hero_judge",
     "taint",
     "interaction",
     "interop",

@@ -11,9 +11,6 @@ entries:
   - name: observable
     source: contracts/specs/observable.yml
     output: contracts/generated/schemas/observable.schema.json
-  - name: paper-question-record
-    source: contracts/specs/paper-question-record.yml
-    output: contracts/generated/schemas/paper-question-record.schema.json
   - name: prediction
     source: contracts/specs/prediction.yml
     output: contracts/generated/schemas/prediction.schema.json

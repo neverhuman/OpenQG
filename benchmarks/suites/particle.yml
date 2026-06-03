@@ -1,7 +1,7 @@
 id: particle
 title: Particle suite
 description: Particle spectrum and precision-fit sanity checks.
-benchmark_version: benchmark-v0.1.2
+benchmark_version: benchmark-v0.1.0
 fixture_observables: data/fixtures/smoke/observables.jsonl
 fixture_predictions: data/fixtures/smoke/predictions.jsonl
 baseline_theory: sm-gr-lcdm-mnu
@@ -12,3 +12,4 @@ observables:
   - h0
 weights:
   h0: 1.0
+

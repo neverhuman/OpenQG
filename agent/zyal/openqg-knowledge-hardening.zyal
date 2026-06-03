@@ -1,0 +1,126 @@
+<<<ZYAL v1:daemon id=openqg-knowledge-hardening>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+job:
+  name: openqg-knowledge-hardening
+  objective: |
+    Read reviewed candidate cards from research/inbox, distill them into a
+    durable literature map, and write research/knowledge/openqg-literature-map.md.
+    Archive generated receipts under target/openqg/research/knowledge-hardening/latest.
+  risk:
+    - Candidate cards may contain unresolved claims.
+    - Distillation can amplify bad citations if review receipts are missing.
+
+loop:
+  policy: forever
+  sleep: 30m
+  circuit_breaker:
+    max_consecutive_errors: 2
+    on_trip: pause
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-knowledge-hardening || (test -s research/knowledge/openqg-literature-map.md && test -f target/openqg/research/knowledge-hardening/latest/complete.ok)"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+permissions:
+  read: allow
+  list: allow
+  glob: allow
+  grep: allow
+  shell: allow
+  edit: allow
+  research: allow
+  websearch: allow
+  webfetch: allow
+  git_commit: deny
+  git_push: deny
+
+research:
+  version: v1
+  mode: mixed
+  autonomy: require_plan
+  max_parallel: 2
+  timeout_seconds: 45
+  provider_policy:
+    prefer: [official_api, primary_source, privacy_first]
+    allow: [openalex, crossref, arxiv, pubmed, semantic_scholar, unpaywall, gdelt, exa, brave, tavily, searxng, firecrawl, jina, github]
+    missing_provider: skip_with_receipt
+  extraction:
+    enabled: true
+    max_pages: 6
+    allowed_extractors: [built_in, jina, firecrawl]
+  evidence:
+    require_citations: true
+    claim_level: true
+    store: sqlite
+  safety:
+    redact_secrets: true
+    block_internal_urls: true
+    prompt_injection: quarantine
+    taint_label: web_content
+  budgets:
+    max_queries: 8
+    max_pages: 8
+    max_cost_usd: 0.75
+
+memory:
+  stores:
+    accepted_claims:
+      scope: repo
+      retention: permanent
+      write_policy: upsert
+      read_policy: search
+      searchable: true
+    rejected_claims:
+      scope: repo
+      retention: permanent
+      write_policy: upsert
+      read_policy: search
+      searchable: true
+  provenance:
+    track_source: true
+    hash_chain: true
+
+experiments:
+  strategy: parallel_distill_refine
+  lanes:
+    - id: inbox-scan
+      hypothesis: reviewed cards identify durable claims worth retaining
+      agent: plan
+      isolation: same_session
+    - id: claim-refine
+      hypothesis: evidence-backed cards can be distilled into a reusable map
+      agent: build
+      isolation: same_session
+    - id: claim-reject
+      hypothesis: weak or unsupported cards should be tracked as rejected claims
+      agent: critic
+      isolation: same_session
+  max_parallel: 2
+  reduce:
+    strategy: synthesize_best
+    require_final_verification: true
+  on_partial_failure: pause
+  preserve_failed_lanes_as_negative_memory: true
+
+evidence:
+  require_before_promote:
+    - type: citation
+      must_exist: true
+    - type: provider_receipt
+      must_exist: true
+  bundle_format: json
+  sign: sha256
+  archive: true
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG knowledge hardening
+<<<END_ZYAL id=openqg-knowledge-hardening>>>
+ZYAL_ARM RUN_FOREVER id=openqg-knowledge-hardening

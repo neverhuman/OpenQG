@@ -2,7 +2,6 @@ pub mod bench;
 pub mod cli;
 pub mod data;
 pub mod release;
-pub mod research;
 pub mod schema;
 pub mod score;
 pub mod security;

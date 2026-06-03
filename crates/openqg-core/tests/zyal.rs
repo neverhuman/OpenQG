@@ -113,50 +113,6 @@ ui:
 }
 
 #[test]
-fn validator_accepts_hero_judge_block() {
-    let value: Value = serde_yaml::from_str(
-        r#"
-version: v1
-intent: daemon
-confirm: RUN_FOREVER
-job:
-  name: hero-judge
-  objective: evolve prompts
-stop:
-  all:
-    - git_clean: {}
-hero_judge:
-  generations: 1
-  population:
-    hero_lanes: 2
-    judge_lanes: 1
-    verifier_lanes: 1
-    literature_lanes: 1
-    red_team_lanes: 1
-    max_parallel: 2
-  budgets:
-    model_calls: 12
-    search_queries: 1
-    search_pages: 2
-  research:
-    enabled: true
-    missing_provider: skip_with_receipt
-  evidence:
-    - id: loops
-      role: workflow_doc
-      path: docs/zyal-research-loops.md
-  promotion:
-    min_score: 0.75
-    canary_replay: true
-    anti_leak: true
-"#,
-    )
-    .expect("yaml should parse");
-
-    validate_zyal_value(&value).expect("hero_judge block should validate");
-}
-
-#[test]
 fn validator_rejects_after_new_card_checkpoint() {
     let value: Value = serde_yaml::from_str(
         r#"

@@ -18,7 +18,6 @@ OpenQG uses explicit lanes instead of ad hoc checks.
 - `just score`
 - `just security`
 - `just release-check`
-- `just zyal-jekko-preview` reads `JEKKO_PREVIEW_ROOT` when set, falls back to the local OpenQG/Jekko checkout path, and writes a short skipped JSONL receipt instead of failing when the external checkout or `bun` is unavailable.
 
 ## Recommended Order
 
@@ -46,7 +45,9 @@ OpenQG uses explicit lanes instead of ad hoc checks.
 - contract witnesses: `target/openqg/contracts/*.witness.json`
 - ZYAL preview: `target/openqg/zyal/preview.json`
 - Jekko ZYAL preview: `target/openqg/zyal/jekko-preview.jsonl`
-- preview checkout root: `JEKKO_PREVIEW_ROOT` (defaults to `/Users/bentaylor/code/opencode/packages/jekko` when present locally)
+- literature radar receipts: `target/openqg/research/literature-radar/latest/*`
+- knowledge hardening receipts: `target/openqg/research/knowledge-hardening/latest/*`
+- knowledge map: `research/knowledge/openqg-literature-map.md`
 - draft release bundle: `reports/releases/draft/release-manifest.json`
 - draft release summary: `reports/releases/draft/release-manifest.md`
 - human review receipts: `target/jankurai/review/*`
@@ -73,7 +74,6 @@ OpenQG uses explicit lanes instead of ad hoc checks.
 - `just bench-smoke` fails: fix the benchmark manifest or fixtures and rerun once
 - `just zyal-validate` fails: fix the runbook and rerun once
 - `just zyal-jekko-preview` fails: fix the runbook envelope or Jekko compatibility issue and rerun once
-- `just zyal-jekko-preview` skips: the external preview checkout or `bun` was unavailable, so the lane wrote a short JSONL skip receipt instead of a preview trace
 - `just security` fails or reports a missing required tool: record the lane log and stop
 - `just release-check` fails: fix the underlying lane, rerun once, then stop if it still fails
 

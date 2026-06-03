@@ -1,11 +1,11 @@
 use anyhow::Result;
 
 use crate::{
-    bench as bench_ops, data as data_ops, release as release_ops, research as research_ops,
-    schema as schema_ops, score as score_ops, security as security_ops, zyal as zyal_ops,
+    bench as bench_ops, data as data_ops, release as release_ops, schema as schema_ops,
+    score as score_ops, security as security_ops, zyal as zyal_ops,
 };
 
-use super::{bench, commands::Commands, data, release, research, schema, score, security, zyal};
+use super::{bench, commands::Commands, data, release, schema, score, security, zyal};
 
 pub fn run(command: Commands) -> Result<()> {
     match command {
@@ -49,13 +49,6 @@ pub fn run(command: Commands) -> Result<()> {
             release::ReleaseCommand::Pack { scorecard, output } => {
                 release_ops::pack(&scorecard, &output)
             }
-        },
-        Commands::Research { command } => match command {
-            research::ResearchCommand::Validate { root, output } => {
-                research_ops::validate(&root, &output)
-            }
-            research::ResearchCommand::DedupeCheck { root } => research_ops::dedupe_check(&root),
-            research::ResearchCommand::SmokeFixture { root } => research_ops::smoke_fixture(&root),
         },
         Commands::Zyal { command } => match command {
             zyal::ZyalCommand::Validate { root, output } => zyal_ops::validate(&root, &output),

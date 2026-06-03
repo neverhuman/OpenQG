@@ -3,7 +3,6 @@ name: jankurai
 on:
   push:
   pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,14 +13,11 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
       - uses: actions/cache@36f1e144e1c8edb0a652766b484448563d8baf46
         with:
           path: |
@@ -32,17 +28,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
       - run: cargo fetch --locked
-      - run: cargo install --locked cargo-nextest
-      - run: cargo install --locked just
-      - run: bash ops/ci/jankurai.sh
+      - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo nextest run -p openqg-core --locked --frozen
+      - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo test -p openqg-core --locked --frozen --doc
+      - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo nextest run -p openqg-bench --locked --frozen
+      - run: CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo test -p openqg-bench --locked --frozen --doc
+      - run: cargo run -p openqg-bench -- schema check
+      - run: cargo run -p openqg-bench -- zyal validate
+      - run: just zyal-jekko-preview
+      - run: jankurai security run . --strict --profile ci --out target/jankurai/security/evidence.json
+      - run: cargo run -p openqg-bench -- bench run --suite benchmarks/suites/smoke.yml --theory theories/sm-gr-lcdm-mnu/manifest.yml --output target/openqg/bench-smoke/scorecard.json
+      - run: cargo run -p openqg-bench -- score compare --scorecard target/openqg/bench-smoke/scorecard.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+      - run: jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md
+      - run: jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+      - run: cargo run -p openqg-bench -- release pack --scorecard target/openqg/bench-smoke/scorecard.json --output reports/releases/draft
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: jankurai-evidence
           path: |
-            target/jankurai/current-audit.json
-            target/jankurai/current-audit.md
             target/openqg/contracts/*.json
+            target/openqg/zyal/jekko-preview.jsonl
             target/openqg/zyal/jekko-preview.jsonl
             target/openqg/bench-smoke/scorecard.json
             target/openqg/data/locks/data-lock.json

@@ -1,0 +1,32 @@
+<<<ZYAL v1:daemon id=openqg-jankurai-master>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+job:
+  name: openqg-jankurai-master
+  objective: Keep the repository healthy by running audits and repairing high-priority findings.
+
+loop:
+  policy: forever
+  sleep: 5m
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-jankurai-master || just release-check"
+        timeout: 30m
+        assert:
+          exit_code: 0
+
+checkpoint:
+  when: after_verified_change
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG jankurai master
+<<<END_ZYAL id=openqg-jankurai-master>>>
+ZYAL_ARM RUN_FOREVER id=openqg-jankurai-master

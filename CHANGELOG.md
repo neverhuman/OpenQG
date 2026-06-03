@@ -4,16 +4,6 @@
 
 - No unreleased changes.
 
-## v0.1.2 - 2026-05-23
-
-- bumped the workspace, benchmark, and release tags to `v0.1.2`
-
-## v0.1.1 - 2026-05-23
-
-- bumped the workspace, benchmark, and release tags to `v0.1.1`
-- regenerated the draft release pack, repo score, and Jankurai badge evidence
-- kept the release gate and validation surface unchanged
-
 ## v0.0.1 - 2026-05-11
 
 - Shipped the initial OpenQG benchmark and control-plane scaffold
@@ -27,4 +17,5 @@
   `approved: false` pending review
 - recorded current release metrics: Jankurai audit score `90` and repo
   benchmark score `99`
-- added the README landing page and the ZYAL loop notes
+- added the README landing page and [docs/MOONSHOT.md](docs/MOONSHOT.md)
+  vision note

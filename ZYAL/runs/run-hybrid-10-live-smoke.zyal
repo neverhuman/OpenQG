@@ -1,0 +1,81 @@
+<<<ZYAL v1:daemon id=zyal-genome-hybrid-10-live-smoke>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+imports:
+  - run-hybrid.zyal
+
+job:
+  name: zyal-genome-hybrid-10-live-smoke
+  objective: Exercise the hybrid 1000-run artifact shape on 10 generations with selective live-call receipts and resume verification.
+  risk: medium
+
+context:
+  repository_root: .
+  stage_root: ZYAL/stages
+  run_root: target/openqg/zyal-genome
+  research_cache: ZYAL/research-cache
+
+evaluation:
+  run_id: hybrid-10-live-smoke
+  output_root: target/openqg/zyal-genome/hybrid
+  max_generations_default: 10
+  checkpoint_every: 1
+  live_selective: true
+  research_cache: ZYAL/research-cache
+  live:
+    enabled: true
+    timeout_seconds: 20
+    retry_count: 0
+    hard_stage_every: 10
+    promotion_every: 10
+    champion_audit_every: 10
+    research_synthesis: true
+    hard_stage_repair: true
+    promotion_judging: true
+  evolution:
+    population_size: 6
+    islands: 3
+    island_names:
+      - foundations
+      - observables
+      - failure-repair
+    new_info_refresh: 4
+    novelty_weight: 0.13
+    diversity_targets:
+      concept_entropy_min: 1.4
+      island_balance_min: 0.70
+      source_diversity_min: 0.25
+      stage_concept_churn_min: 0.20
+    fallback_penalties:
+      degraded_router_penalty: 0.08
+    promotion_gates:
+      - final_score
+      - novelty_score
+      - interface_score
+      - failure_understanding
+
+budgets:
+  max_generations: 10
+  max_runtime_minutes: 120
+
+checkpoint:
+  when: after_verified_change
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-zyal-genome-hybrid-10-live-smoke || test -s target/openqg/zyal-genome/hybrid/latest/run-summary.json"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG ZYAL genome hybrid live smoke
+<<<END_ZYAL id=zyal-genome-hybrid-10-live-smoke>>>
+ZYAL_ARM RUN_FOREVER id=zyal-genome-hybrid-10-live-smoke

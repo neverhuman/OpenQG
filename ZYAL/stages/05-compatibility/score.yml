@@ -1,0 +1,11 @@
+schema_version: zyal-stage-score.v1
+stage_id: 05-compatibility
+rubric:
+  interface_integrity: handoff fields and contracts are complete
+  artifact_validity: compatibility evidence is present
+  benchmark_safety: protected paths remain read-only
+  stage_reusability: compatibility guard can run independently
+penalties:
+  - missing handoff field
+  - direct theory or benchmark edit
+  - non-replayable compatibility claim

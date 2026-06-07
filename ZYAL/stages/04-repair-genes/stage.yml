@@ -1,0 +1,38 @@
+schema_version: zyal-stage.v1
+stage_id: 04-repair-genes
+name: Repair genes
+family: hard
+track: synthesis
+purpose: Repair broken candidate genes before compatibility testing.
+inputs:
+  - candidate_genes
+  - failure_modes
+outputs:
+  - repaired_genes
+required_evidence:
+  - run-events.jsonl
+  - stage-ledger.jsonl
+  - stages/04-repair-genes/evaluation-events.jsonl
+validation_checks:
+  - repair proposals mention the failure class
+  - the stage emits a mutation op
+  - route tier stays on the hard track
+handoff_contract:
+  upstream:
+    - candidate_genes
+  downstream:
+    - repaired_genes
+    - mutation_op
+routing:
+  preferred_backend: jnoccio
+  route_tier: top20_pct_only
+  route_policy: hard_only
+scoring:
+  local: 0.30
+  interface: 0.20
+  macro: 0.30
+  innovation: 0.15
+  failure_penalty: 0.05
+mutation_op: repair_gene
+notes:
+  - This stage should prefer hard-route provenance when available.

@@ -1,0 +1,134 @@
+<<<ZYAL v1:daemon id=zyal-genome-hybrid-1000-v2>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+imports:
+  - run-hybrid.zyal
+
+job:
+  name: zyal-genome-hybrid-1000-v2
+  objective: Execute the hardened V2 hybrid ZYAL run path with strict hard-backend preflight, staged gates, and selective live reasoning.
+  risk: high
+
+context:
+  repository_root: .
+  stage_root: ZYAL/stages
+  run_root: target/openqg/zyal-genome
+  research_cache: ZYAL/research-cache
+
+evaluation:
+  run_id: hybrid-v2-1000
+  output_root: target/openqg/zyal-genome/hybrid
+  max_generations_default: 1000
+  checkpoint_every: 1
+  live_selective: true
+  research_cache: ZYAL/research-cache
+  live:
+    enabled: true
+    timeout_seconds: 75
+    retry_count: 1
+    hard_stage_every: 25
+    promotion_every: 25
+    champion_audit_every: 50
+    research_synthesis: true
+    hard_stage_repair: true
+    promotion_judging: true
+    timeouts:
+      hard_stage_repair: 120
+      promotion_judging: 75
+      champion_audit: 120
+      research_synthesis: 75
+  routing:
+    standard_backend: jnoccio
+    hard_backend: jailgun
+    hard_route_tier: top20_pct_only
+    standard_route_tier: standard
+    router_state: nominal
+    fallback_backend: jnoccio
+    require_hard_backend: true
+    degraded_router_penalty: 0.18
+  evolution:
+    population_size: 24
+    islands: 6
+    island_names:
+      - foundations
+      - coefficients
+      - observables
+      - failure-repair
+      - interface-contracts
+      - wildcards
+    new_info_refresh: 4
+    novelty_weight: 0.18
+    diversity_targets:
+      concept_entropy_min: 2.2
+      island_balance_min: 0.70
+      source_diversity_min: 0.35
+      stage_concept_churn_min: 0.20
+      champion_island_coverage_min: 4
+      novelty_champion_rate_min: 0.05
+      max_island_champion_share: 0.60
+    fallback_penalties:
+      degraded_router_penalty: 0.18
+    promotion_policy:
+      enforce_candidate_mix_on_survival: true
+      rolling_window: 100
+      champion_island_coverage_min: 4
+      novelty_champion_rate_min: 0.05
+      max_island_champion_share: 0.60
+    promotion_gates:
+      - final_score
+      - novelty_score
+      - interface_score
+      - failure_understanding
+      - route_nominal
+    candidate_mix:
+      exploitation: 12
+      novelty: 8
+      wildcard: 4
+  quality_gates:
+    require_hard_backend: true
+    live_timeout_rate_max:
+      smoke: 0.10
+      qualification: 0.01
+      full: 0.01
+    failed_live_calls_max: 0
+    degraded_route_count_max: 0
+    regression_rate_max: 0.25
+    decoy_failures_max: 0
+    champion_perfect_rate_max:
+      qualification: 0.20
+      full: 0.30
+    stage_rollup_median_min:
+      qualification: 0.75
+    rolling_5_median_min:
+      full: 0.76
+    champion_island_coverage_min:
+      qualification: 4
+    novelty_champion_rate_min:
+      qualification: 0.05
+    max_island_champion_share: 0.60
+
+budgets:
+  max_generations: 1000
+  max_runtime_minutes: 2880
+
+checkpoint:
+  when: after_verified_change
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-zyal-genome-hybrid-1000-v2 || test -s target/openqg/zyal-genome/hybrid/latest/run-summary.json"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG ZYAL genome hybrid 1000 V2
+<<<END_ZYAL id=zyal-genome-hybrid-1000-v2>>>
+ZYAL_ARM RUN_FOREVER id=zyal-genome-hybrid-1000-v2

@@ -1,0 +1,102 @@
+<<<ZYAL v1:daemon id=zyal-genome-pure-jnoccio>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+imports:
+  - run-template.zyal
+
+job:
+  name: zyal-genome-pure-jnoccio
+  objective: Execute the pure-jnoccio routing track for the theory-gene loop.
+  risk: medium
+
+loop:
+  policy: forever
+  sleep: 30m
+
+context:
+  repository_root: .
+  stage_root: ZYAL/stages
+  run_root: target/openqg/zyal-genome
+
+workflow:
+  stage_sequence:
+    - 00-atlas
+    - 01-decompose-known
+    - 02-decompose-failed
+    - 03-generate-genes
+    - 04-repair-genes
+    - 05-compatibility
+    - 06-assemble-modules
+    - 07-macro-test
+    - 08-failure-slicing
+    - 09-selection-mutation
+    - 10-promotion
+
+evaluation:
+  schema_version: zyal-gene-eval.v1
+  variant: pure-jnoccio
+  output_root: target/openqg/zyal-genome/pure-jnoccio
+  max_generations_default: 1
+  score_blend:
+    local_score: 0.30
+    interface_score: 0.20
+    macro_score: 0.30
+    innovation_score: 0.15
+    failure_penalty: 0.05
+  routing:
+    standard_backend: jnoccio
+    hard_backend: jnoccio
+    hard_route_tier: top20_pct_only
+    standard_route_tier: standard
+    router_state: nominal
+    fallback_backend: jnoccio
+  judge:
+    family: jnoccio
+    provenance: scripted-route-policy
+    route_tier: top20_pct
+    token_budget:
+      prompt: 4096
+      completion: 2048
+  evidence:
+    run_events: run-events.jsonl
+    stage_ledger: stage-ledger.jsonl
+    run_summary: run-summary.json
+    offline_eval: offline-eval.json
+    comparison: comparison.json
+
+budgets:
+  max_generations: 1000
+  max_runtime_minutes: 240
+
+models:
+  primary: jnoccio
+  fallback: jnoccio
+
+experiments:
+  route_policy: top20_pct_only
+  hard_stage_families:
+    - hard
+  soft_stage_families:
+    - standard
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-zyal-genome-pure-jnoccio || test -s target/openqg/zyal-genome/pure-jnoccio/latest/run-summary.json"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+checkpoint:
+  when: after_verified_change
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG ZYAL genome pure jnoccio
+<<<END_ZYAL id=zyal-genome-pure-jnoccio>>>
+ZYAL_ARM RUN_FOREVER id=zyal-genome-pure-jnoccio

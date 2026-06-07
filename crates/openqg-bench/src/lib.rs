@@ -7,6 +7,7 @@ pub mod score;
 pub mod security;
 pub mod util;
 pub mod zyal;
+pub mod zyal_genome;
 
 pub fn run() -> anyhow::Result<()> {
     cli::run()

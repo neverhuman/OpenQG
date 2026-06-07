@@ -1,0 +1,9 @@
+schema_version: zyal-stage-memory.v1
+stage_id: 07-macro-test
+summary: Preserve whole-run test outcomes, regressions, and aggregate evidence paths.
+memory_refs:
+  - prior_champions
+  - failures
+  - stage_variants
+  - novelty_archive
+rejected_ideas: []

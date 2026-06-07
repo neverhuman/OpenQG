@@ -1,0 +1,891 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openqg.local/schemas/zyal-gene-eval.schema.json",
+  "title": "ZYAL Gene Evaluation Artifact",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/runEvent" },
+    { "$ref": "#/$defs/stageLedger" },
+    { "$ref": "#/$defs/stageSummary" },
+    { "$ref": "#/$defs/runSummary" },
+    { "$ref": "#/$defs/offlineEval" },
+    { "$ref": "#/$defs/comparison" },
+    { "$ref": "#/$defs/conceptGene" },
+    { "$ref": "#/$defs/stageConcept" },
+    { "$ref": "#/$defs/populationSnapshot" },
+    { "$ref": "#/$defs/noveltyArchive" },
+    { "$ref": "#/$defs/lineageEdge" },
+    { "$ref": "#/$defs/informationCard" },
+    { "$ref": "#/$defs/stageVariant" },
+    { "$ref": "#/$defs/liveCall" },
+    { "$ref": "#/$defs/researchCard" },
+    { "$ref": "#/$defs/memoryCard" },
+    { "$ref": "#/$defs/promotionDecision" },
+    { "$ref": "#/$defs/metricsPoint" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["schema_version", "record_kind"],
+      "properties": {
+        "schema_version": { "const": "zyal-gene-eval.v1" },
+        "record_kind": {
+          "type": "string",
+          "enum": [
+            "run_event",
+            "stage_ledger",
+            "stage_summary",
+            "run_summary",
+            "offline_eval",
+            "comparison",
+            "concept_gene",
+            "stage_concept",
+            "population_snapshot",
+            "novelty_archive",
+            "lineage_edge",
+            "information_card",
+            "stage_variant",
+            "live_call",
+            "research_card",
+            "memory_card",
+            "promotion_decision",
+            "metrics_point"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "scoreBlock": {
+      "type": "object",
+      "required": [
+        "local_score",
+        "interface_score",
+        "macro_score",
+        "innovation_score",
+        "failure_penalty",
+        "final_score"
+      ],
+      "properties": {
+        "local_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "interface_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "macro_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "innovation_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "novelty_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "failure_penalty": { "type": "number", "minimum": 0, "maximum": 1 },
+        "final_score": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "judge": {
+      "type": "object",
+      "required": ["family", "provenance", "route_tier", "token_usage"],
+      "properties": {
+        "family": { "type": "string" },
+        "provenance": { "type": "string" },
+        "route_tier": { "type": "string" },
+        "token_usage": {
+          "type": "object",
+          "required": ["prompt", "completion", "total"],
+          "properties": {
+            "prompt": { "type": "integer", "minimum": 0 },
+            "completion": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "artifactPaths": {
+      "type": "object",
+      "required": ["run_dir", "stage_dir", "inputs", "outputs"],
+      "properties": {
+        "run_dir": { "type": "string" },
+        "stage_dir": { "type": "string" },
+        "inputs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "outputs": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "runEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "event_type",
+            "run_id",
+            "variant",
+            "generation_id",
+            "stage_id",
+            "candidate_id",
+            "artifact_paths",
+            "judge"
+          ],
+          "properties": {
+            "event_type": {
+              "type": "string",
+              "enum": [
+                "run_start",
+                "generation_start",
+                "stage_start",
+                "router_decision",
+                "candidate_evaluated",
+                "stage_end",
+                "generation_end",
+                "run_end"
+              ]
+            },
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "candidate_id": { "type": "string" },
+            "parent_generation_id": { "type": ["string", "null"] },
+            "mutation_op": { "type": ["string", "null"] },
+            "stage_family": { "type": ["string", "null"] },
+            "route_backend": { "type": "string" },
+            "route_tier": { "type": "string" },
+            "router_state": { "type": "string" },
+            "artifact_paths": {
+              "$ref": "#/$defs/artifactPaths"
+            },
+            "judge": { "$ref": "#/$defs/judge" }
+          }
+        },
+        { "$ref": "#/$defs/scoreBlock" }
+      ]
+    },
+    "stageLedger": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "variant",
+            "generation_id",
+            "stage_id",
+            "candidate_id",
+            "stage_name",
+            "route_backend",
+            "route_tier",
+            "router_state",
+            "mutation_op",
+            "parent_generation_id",
+            "delta_score",
+            "pass_rate",
+            "time_seconds",
+            "failure_modes",
+            "artifact_paths"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "candidate_id": { "type": "string" },
+            "stage_name": { "type": "string" },
+            "route_backend": { "type": "string" },
+            "route_tier": { "type": "string" },
+            "router_state": { "type": "string" },
+            "mutation_op": { "type": ["string", "null"] },
+            "parent_generation_id": { "type": ["string", "null"] },
+            "delta_score": { "type": "number" },
+            "pass_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "time_seconds": { "type": "number", "minimum": 0 },
+            "failure_modes": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "artifact_paths": { "$ref": "#/$defs/artifactPaths" }
+          }
+        },
+        { "$ref": "#/$defs/scoreBlock" }
+      ]
+    },
+    "runSummary": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "variant",
+            "generation_count",
+            "stage_count",
+            "candidate_count",
+            "best_score_seen",
+            "rolling_5_median",
+            "best_nonregressive_delta",
+            "unique_contributions",
+            "decoy_failures",
+            "regression_rate",
+            "throughput",
+            "fail_stop_rate",
+            "score_blend",
+            "router_state",
+            "degraded_router",
+            "lineage",
+            "pareto_snapshot"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "generation_count": { "type": "integer", "minimum": 1 },
+            "stage_count": { "type": "integer", "minimum": 1 },
+            "candidate_count": { "type": "integer", "minimum": 1 },
+            "best_score_seen": { "type": "number" },
+            "rolling_5_median": { "type": "number" },
+            "best_nonregressive_delta": { "type": "number" },
+            "unique_contributions": { "type": "integer", "minimum": 0 },
+            "decoy_failures": { "type": "integer", "minimum": 0 },
+            "regression_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "throughput": { "type": "number", "minimum": 0 },
+            "fail_stop_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "score_blend": {
+              "type": "object",
+              "required": [
+                "local_score",
+                "interface_score",
+                "macro_score",
+                "innovation_score",
+                "failure_penalty"
+              ],
+              "properties": {
+                "local_score": { "type": "number" },
+                "interface_score": { "type": "number" },
+                "macro_score": { "type": "number" },
+                "innovation_score": { "type": "number" },
+                "novelty_score": { "type": "number" },
+                "failure_penalty": { "type": "number" }
+              },
+              "additionalProperties": true
+            },
+            "router_state": { "type": "string" },
+            "degraded_router": { "type": "boolean" },
+            "lineage": {
+              "type": "object",
+              "required": ["acyclic", "missing_parent_ids"],
+              "properties": {
+                "acyclic": { "type": "boolean" },
+                "missing_parent_ids": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": true
+            },
+            "pareto_snapshot": {
+              "type": "object",
+              "required": ["frontier_size", "points"],
+              "properties": {
+                "frontier_size": { "type": "integer", "minimum": 0 },
+                "points": {
+                  "type": "array",
+                  "items": { "type": "object" }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "stageSummary": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "variant",
+            "stage_id",
+            "stage_name",
+            "generations",
+            "mean_final_score",
+            "best_final_score",
+            "pass_rate",
+            "route_backends",
+            "failure_modes",
+            "mutation_ops"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "stage_name": { "type": "string" },
+            "generations": { "type": "integer", "minimum": 0 },
+            "mean_final_score": { "type": "number" },
+            "best_final_score": { "type": "number" },
+            "pass_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "route_backends": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "failure_modes": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "mutation_ops": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "offlineEval": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "variant",
+            "scorecard",
+            "stage_rankings",
+            "warnings"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "scorecard": { "$ref": "#/$defs/runSummary" },
+            "stage_rankings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["stage_id", "final_score"],
+                "properties": {
+                  "stage_id": { "type": "string" },
+                  "final_score": { "type": "number" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "warnings": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "comparison": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["root", "variants", "ranking"],
+          "properties": {
+            "root": { "type": "string" },
+            "variants": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["variant", "scorecard"],
+                "properties": {
+                  "variant": { "type": "string" },
+                  "scorecard": { "$ref": "#/$defs/runSummary" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "ranking": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["variant", "final_score"],
+                "properties": {
+                  "variant": { "type": "string" },
+                  "final_score": { "type": "number" }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "conceptGene": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "gene_id",
+            "concept_id",
+            "family",
+            "domain",
+            "claim",
+            "method",
+            "constraint",
+            "failure_risk",
+            "stage_concept_hint",
+            "source_card_ids",
+            "source_path",
+            "provenance_hash",
+            "novelty_terms"
+          ],
+          "properties": {
+            "gene_id": { "type": "string" },
+            "concept_id": { "type": "string" },
+            "family": { "type": "string" },
+            "domain": { "type": "string" },
+            "claim": { "type": "string" },
+            "method": { "type": "string" },
+            "constraint": { "type": "string" },
+            "failure_risk": { "type": "string" },
+            "stage_concept_hint": { "type": "string" },
+            "source_card_ids": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "source_path": { "type": "string" },
+            "provenance_hash": { "type": "string", "minLength": 8 },
+            "novelty_terms": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "stageConcept": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "generation_id",
+            "stage_id",
+            "candidate_id",
+            "concept_id",
+            "family",
+            "source_card_ids",
+            "mutation_op"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "candidate_id": { "type": "string" },
+            "concept_id": { "type": "string" },
+            "family": { "type": "string" },
+            "source_card_ids": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "mutation_op": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "populationSnapshot": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "generation_id",
+            "population_size",
+            "islands",
+            "mode_counts",
+            "candidate_ids",
+            "promoted_candidate_ids",
+            "champion_candidate_id",
+            "best_final_score",
+            "diversity_metrics",
+            "candidates"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "population_size": { "type": "integer", "minimum": 1 },
+            "islands": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "mode_counts": { "type": "object" },
+            "candidate_ids": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "promoted_candidate_ids": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "champion_candidate_id": { "type": "string" },
+            "best_final_score": { "type": "number" },
+            "diversity_metrics": { "type": "object" },
+            "candidates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "candidate_id",
+                  "generation_id",
+                  "island",
+                  "mode",
+                  "parent_candidate_ids",
+                  "mutation_ops",
+                  "source_card_ids",
+                  "stage_concepts",
+                  "route_policy",
+                  "expected_failure_modes",
+                  "scoring_weights",
+                  "scores"
+                ],
+                "properties": {
+                  "candidate_id": { "type": "string" },
+                  "generation_id": { "type": "string" },
+                  "island": { "type": "string" },
+                  "mode": { "type": "string" },
+                  "parent_candidate_ids": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "mutation_ops": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "source_card_ids": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "stage_concepts": { "type": "object" },
+                  "route_policy": { "type": "object" },
+                  "expected_failure_modes": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "scoring_weights": { "type": "object" },
+                  "scores": { "type": "object" }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "noveltyArchive": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["run_id", "entry_count", "information_card_count", "entries"],
+          "properties": {
+            "run_id": { "type": "string" },
+            "entry_count": { "type": "integer", "minimum": 0 },
+            "information_card_count": { "type": "integer", "minimum": 0 },
+            "entries": {
+              "type": "array",
+              "items": { "type": "object" }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "lineageEdge": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "generation_id",
+            "parent_candidate_id",
+            "child_candidate_id",
+            "mutation_op",
+            "island"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "parent_candidate_id": { "type": ["string", "null"] },
+            "child_candidate_id": { "type": "string" },
+            "mutation_op": { "type": "string" },
+            "island": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "informationCard": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "information_card_id",
+            "source_path",
+            "domain",
+            "claim",
+            "method",
+            "constraint",
+            "failure_risk",
+            "stage_concept_hint",
+            "provenance_hash",
+            "novelty_terms"
+          ],
+          "properties": {
+            "information_card_id": { "type": "string" },
+            "source_path": { "type": "string" },
+            "domain": { "type": "string" },
+            "claim": { "type": "string" },
+            "method": { "type": "string" },
+            "constraint": { "type": "string" },
+            "failure_risk": { "type": "string" },
+            "stage_concept_hint": { "type": "string" },
+            "provenance_hash": { "type": "string", "minLength": 8 },
+            "novelty_terms": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "stageVariant": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "variant",
+            "generation_id",
+            "stage_id",
+            "candidate_id",
+            "stage_variant_id",
+            "parent_stage_variant_ids",
+            "algorithm_summary",
+            "prompt_hash",
+            "memory_refs",
+            "research_refs",
+            "evidence_bundle_path",
+            "score_breakdown"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "candidate_id": { "type": "string" },
+            "stage_variant_id": { "type": "string" },
+            "parent_stage_variant_ids": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "algorithm_summary": { "type": "string" },
+            "prompt_hash": { "type": "string", "minLength": 8 },
+            "memory_refs": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "research_refs": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "evidence_bundle_path": { "type": "string" },
+            "score_breakdown": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "liveCall": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "generation_id",
+            "stage_id",
+            "candidate_id",
+            "call_id",
+            "purpose",
+            "status",
+            "prompt_path",
+            "retrieval_packet_path",
+            "raw_output_path",
+            "parsed_summary_path",
+            "receipt_path",
+            "timeout_seconds",
+            "command",
+            "token_usage"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "candidate_id": { "type": "string" },
+            "call_id": { "type": "string" },
+            "purpose": { "type": "string" },
+            "status": { "type": "string", "enum": ["ok", "failed", "timeout"] },
+            "prompt_path": { "type": "string" },
+            "retrieval_packet_path": { "type": "string" },
+            "raw_output_path": { "type": "string" },
+            "parsed_summary_path": { "type": "string" },
+            "receipt_path": { "type": "string" },
+            "timeout_seconds": { "type": "integer", "minimum": 0 },
+            "command": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "token_usage": {
+              "type": "object",
+              "required": ["prompt", "completion", "total"],
+              "properties": {
+                "prompt": { "type": "integer", "minimum": 0 },
+                "completion": { "type": "integer", "minimum": 0 },
+                "total": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "researchCard": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "research_card_id",
+            "source_type",
+            "url",
+            "title",
+            "date",
+            "source_hash",
+            "citation",
+            "accepted"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "research_card_id": { "type": "string" },
+            "source_type": { "type": "string" },
+            "url": { "type": "string" },
+            "title": { "type": "string" },
+            "date": { "type": "string" },
+            "source_hash": { "type": "string", "minLength": 8 },
+            "citation": { "type": "string" },
+            "accepted": { "type": "boolean" },
+            "rejection_reason": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "memoryCard": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "memory_card_id",
+            "stage_id",
+            "memory_refs",
+            "content_hash",
+            "summary"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "memory_card_id": { "type": "string" },
+            "stage_id": { "type": "string" },
+            "memory_refs": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "content_hash": { "type": "string", "minLength": 8 },
+            "summary": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "promotionDecision": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "generation_id",
+            "candidate_id",
+            "promoted_candidate_ids",
+            "champion_candidate_id",
+            "decision_basis",
+            "score_breakdown",
+            "evidence_bundle_path"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "candidate_id": { "type": "string" },
+            "promoted_candidate_ids": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "champion_candidate_id": { "type": "string" },
+            "decision_basis": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "score_breakdown": { "type": "object" },
+            "evidence_bundle_path": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "metricsPoint": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "variant",
+            "generation_id",
+            "metric_name",
+            "metric_value",
+            "series"
+          ],
+          "properties": {
+            "run_id": { "type": "string" },
+            "variant": { "type": "string" },
+            "generation_id": { "type": "string" },
+            "stage_id": { "type": ["string", "null"] },
+            "candidate_id": { "type": ["string", "null"] },
+            "metric_name": { "type": "string" },
+            "metric_value": { "type": "number" },
+            "series": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    }
+  }
+}

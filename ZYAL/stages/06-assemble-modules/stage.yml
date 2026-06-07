@@ -1,0 +1,37 @@
+schema_version: zyal-stage.v1
+stage_id: 06-assemble-modules
+name: Assemble modules
+family: standard
+track: composition
+purpose: Assemble the surviving genes into a runnable module bundle.
+inputs:
+  - compatibility_report
+  - repaired_genes
+outputs:
+  - module_bundle
+required_evidence:
+  - run-events.jsonl
+  - stage-ledger.jsonl
+  - stages/06-assemble-modules/evaluation-events.jsonl
+validation_checks:
+  - assembled modules preserve the candidate lineage
+  - module bundle is typed and non-empty
+  - stage output paths are recorded
+handoff_contract:
+  upstream:
+    - compatibility_report
+  downstream:
+    - module_bundle
+routing:
+  preferred_backend: jnoccio
+  route_tier: standard
+  route_policy: standard_pool
+scoring:
+  local: 0.30
+  interface: 0.20
+  macro: 0.30
+  innovation: 0.15
+  failure_penalty: 0.05
+mutation_op: assemble_modules
+notes:
+  - Prefer small module bundles that are easy to compare across generations.

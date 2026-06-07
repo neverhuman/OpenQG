@@ -1,0 +1,84 @@
+<<<ZYAL v1:daemon id=zyal-genome-hybrid-1000>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+imports:
+  - run-hybrid.zyal
+
+job:
+  name: zyal-genome-hybrid-1000
+  objective: Execute a resumable 1000-generation hybrid ZYAL evolution run with selective live reasoning, cached research, and plot-ready ledgers.
+  risk: high
+
+context:
+  repository_root: .
+  stage_root: ZYAL/stages
+  run_root: target/openqg/zyal-genome
+  research_cache: ZYAL/research-cache
+
+evaluation:
+  run_id: hybrid-1000
+  output_root: target/openqg/zyal-genome/hybrid
+  max_generations_default: 1000
+  checkpoint_every: 1
+  live_selective: true
+  research_cache: ZYAL/research-cache
+  live:
+    enabled: true
+    timeout_seconds: 45
+    retry_count: 0
+    hard_stage_every: 25
+    promotion_every: 25
+    champion_audit_every: 50
+    research_synthesis: true
+    hard_stage_repair: true
+    promotion_judging: true
+  evolution:
+    population_size: 24
+    islands: 6
+    island_names:
+      - foundations
+      - coefficients
+      - observables
+      - failure-repair
+      - interface-contracts
+      - wildcards
+    new_info_refresh: 4
+    novelty_weight: 0.13
+    diversity_targets:
+      concept_entropy_min: 2.2
+      island_balance_min: 0.70
+      source_diversity_min: 0.35
+      stage_concept_churn_min: 0.20
+    fallback_penalties:
+      degraded_router_penalty: 0.08
+    promotion_gates:
+      - final_score
+      - novelty_score
+      - interface_score
+      - failure_understanding
+
+budgets:
+  max_generations: 1000
+  max_runtime_minutes: 2880
+
+checkpoint:
+  when: after_verified_change
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-zyal-genome-hybrid-1000 || test -s target/openqg/zyal-genome/hybrid/latest/run-summary.json"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG ZYAL genome hybrid 1000
+<<<END_ZYAL id=zyal-genome-hybrid-1000>>>
+ZYAL_ARM RUN_FOREVER id=zyal-genome-hybrid-1000

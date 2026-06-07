@@ -1,0 +1,9 @@
+schema_version: zyal-stage-memory.v1
+stage_id: 02-decompose-failed
+summary: Track failed genes, failure modes, and repair candidates for hard-stage routing.
+memory_refs:
+  - failures
+  - rejected_ideas
+  - repair_candidates
+  - stage_variants
+rejected_ideas: []

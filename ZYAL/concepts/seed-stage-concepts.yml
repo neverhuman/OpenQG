@@ -1,0 +1,115 @@
+schema_version: zyal-stage-concepts.v1
+
+concept_families:
+  - concept_id: derivation-first
+    family: foundations
+    domain: foundations
+    claim: Prefer explicit derivation chains before score claims or numeric assertions.
+    method: proof_trace_before_metric
+    constraint: Every promoted result must preserve a local provenance chain.
+    failure_risk: A plausible-looking derivation can still hide an unsupported assumption.
+    stage_concept_hint: derivation-first
+    novelty_terms:
+      - derivation
+      - provenance
+      - assumption-ledger
+
+  - concept_id: null-limit
+    family: foundations
+    domain: observables
+    claim: Test candidate changes against known null limits before rewarding novelty.
+    method: limiting_case_probe
+    constraint: Null behavior must be explicit and fixture-independent.
+    failure_risk: A candidate can pass a narrow null check while failing interface scope.
+    stage_concept_hint: null-limit
+    novelty_terms:
+      - null-limit
+      - limiting-case
+      - redline
+
+  - concept_id: coefficient-mining
+    family: coefficients
+    domain: coefficients
+    claim: Search for source-backed structural coefficients rather than fitted constants.
+    method: structural_coefficient_scan
+    constraint: Reject hidden free parameters and empirical fitting.
+    failure_risk: Coefficient language can accidentally copy benchmark targets.
+    stage_concept_hint: coefficient-mining
+    novelty_terms:
+      - coefficient
+      - structural-constant
+      - exact-source
+
+  - concept_id: failure-slicing
+    family: failure-repair
+    domain: failure-repair
+    claim: Slice failures into repairable mechanisms with a named pressure signal.
+    method: failure_surface_partition
+    constraint: Degraded routing must be visible as a penalty, not a silent fallback.
+    failure_risk: Over-slicing can create repair work that does not improve final behavior.
+    stage_concept_hint: failure-slicing
+    novelty_terms:
+      - failure-slice
+      - pressure-signal
+      - degraded-router
+
+  - concept_id: bridge-domain
+    family: wildcards
+    domain: bridge-domain
+    claim: Try narrow bridges between concept domains while preserving interface contracts.
+    method: cross_domain_graft
+    constraint: Bridges must identify both source and target stage contracts.
+    failure_risk: Bridge candidates are prone to concept drift.
+    stage_concept_hint: bridge-domain
+    novelty_terms:
+      - domain-bridge
+      - cross-stage
+      - graft
+
+  - concept_id: adversarial-audit
+    family: interface-contracts
+    domain: interface-contracts
+    claim: Treat suspicious improvements as audit targets before promotion.
+    method: adversarial_review
+    constraint: Reject fixture leakage, copied benchmark values, unsupported numeric predictions, and hidden free parameters.
+    failure_risk: Audit pressure can suppress useful wildcards if weighted too heavily.
+    stage_concept_hint: adversarial-audit
+    novelty_terms:
+      - adversarial-audit
+      - leakage-check
+      - promotion-gate
+
+stage_bindings:
+  00-atlas:
+    - derivation-first
+    - adversarial-audit
+  01-decompose-known:
+    - derivation-first
+    - coefficient-mining
+  02-decompose-failed:
+    - failure-slicing
+    - adversarial-audit
+  03-generate-genes:
+    - coefficient-mining
+    - bridge-domain
+  04-repair-genes:
+    - failure-slicing
+    - null-limit
+  05-compatibility:
+    - adversarial-audit
+    - derivation-first
+  06-assemble-modules:
+    - bridge-domain
+    - derivation-first
+  07-macro-test:
+    - null-limit
+    - coefficient-mining
+  08-failure-slicing:
+    - failure-slicing
+    - adversarial-audit
+  09-selection-mutation:
+    - bridge-domain
+    - failure-slicing
+  10-promotion:
+    - adversarial-audit
+    - derivation-first

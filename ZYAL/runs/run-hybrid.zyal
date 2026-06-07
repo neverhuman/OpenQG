@@ -1,0 +1,142 @@
+<<<ZYAL v1:daemon id=zyal-genome-hybrid>>>
+version: v1
+intent: daemon
+confirm: RUN_FOREVER
+
+imports:
+  - run-template.zyal
+
+job:
+  name: zyal-genome-hybrid
+  objective: Execute the hybrid Jnoccio/Jailgun routing track for the theory-gene loop.
+  risk: medium
+
+loop:
+  policy: forever
+  sleep: 30m
+
+context:
+  repository_root: .
+  stage_root: ZYAL/stages
+  run_root: target/openqg/zyal-genome
+
+workflow:
+  stage_sequence:
+    - 00-atlas
+    - 01-decompose-known
+    - 02-decompose-failed
+    - 03-generate-genes
+    - 04-repair-genes
+    - 05-compatibility
+    - 06-assemble-modules
+    - 07-macro-test
+    - 08-failure-slicing
+    - 09-selection-mutation
+    - 10-promotion
+
+evaluation:
+  schema_version: zyal-gene-eval.v1
+  variant: hybrid
+  output_root: target/openqg/zyal-genome/hybrid
+  max_generations_default: 128
+  score_blend:
+    local_score: 0.24
+    interface_score: 0.16
+    macro_score: 0.24
+    innovation_score: 0.18
+    novelty_score: 0.13
+    failure_penalty: 0.05
+  routing:
+    standard_backend: jnoccio
+    hard_backend: jailgun
+    hard_route_tier: top20_pct_only
+    standard_route_tier: standard
+    router_state: nominal
+    fallback_backend: jnoccio
+    degraded_router_penalty: 0.08
+  judge:
+    family: mixed
+    provenance: backend-wrapper
+    route_tier: top20_pct
+    token_budget:
+      prompt: 5120
+      completion: 2560
+  evidence:
+    run_events: run-events.jsonl
+    stage_ledger: stage-ledger.jsonl
+    run_summary: run-summary.json
+    offline_eval: offline-eval.json
+    comparison: comparison.json
+
+  evolution:
+    population_size: 24
+    islands: 6
+    island_names:
+      - foundations
+      - coefficients
+      - observables
+      - failure-repair
+      - interface-contracts
+      - wildcards
+    new_info_refresh: 4
+    novelty_weight: 0.13
+    diversity_targets:
+      concept_entropy_min: 2.2
+      island_balance_min: 0.70
+      source_diversity_min: 0.35
+      stage_concept_churn_min: 0.20
+    fallback_penalties:
+      degraded_router_penalty: 0.08
+    promotion_gates:
+      - final_score
+      - novelty_score
+      - interface_score
+      - failure_understanding
+    candidate_mix:
+      exploitation: 12
+      novelty: 8
+      wildcard: 4
+    mutation_ops:
+      - cross_stage_recombine
+      - source_card_graft
+      - failure_mode_invert
+      - domain_bridge
+      - contract_tighten
+      - novelty_jump
+      - router_reassign
+      - score_blend_jitter
+
+budgets:
+  max_generations: 128
+  max_runtime_minutes: 300
+
+models:
+  primary: jnoccio
+  fallback: jailgun
+
+experiments:
+  route_policy: stage_level_router
+  hard_stage_families:
+    - hard
+  soft_stage_families:
+    - standard
+
+stop:
+  all:
+    - shell:
+        command: "test -f .halt-zyal-genome-hybrid || test -s target/openqg/zyal-genome/hybrid/latest/run-summary.json"
+        timeout: 10s
+        assert:
+          exit_code: 0
+
+checkpoint:
+  when: after_verified_change
+
+permissions:
+  git_push: deny
+
+ui:
+  theme: jekko-gold
+  banner: OpenQG ZYAL genome hybrid
+<<<END_ZYAL id=zyal-genome-hybrid>>>
+ZYAL_ARM RUN_FOREVER id=zyal-genome-hybrid

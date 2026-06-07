@@ -1,0 +1,38 @@
+schema_version: zyal-stage.v1
+stage_id: 02-decompose-failed
+name: Decompose failed genes
+family: hard
+track: routing
+purpose: Slice failure cases into actionable repair genes.
+inputs:
+  - failed_gene_slices
+  - prior_generation_summary
+outputs:
+  - repair_gene_slices
+required_evidence:
+  - run-events.jsonl
+  - stage-ledger.jsonl
+  - stages/02-decompose-failed/evaluation-events.jsonl
+validation_checks:
+  - failure slices include root-cause labels
+  - route tier is top20_pct_only on hard tasks
+  - mutation lineage is preserved
+handoff_contract:
+  upstream:
+    - failed_gene_slices
+  downstream:
+    - repair_gene_slices
+    - failure_modes
+routing:
+  preferred_backend: jnoccio
+  route_tier: top20_pct_only
+  route_policy: hard_only
+scoring:
+  local: 0.30
+  interface: 0.20
+  macro: 0.30
+  innovation: 0.15
+  failure_penalty: 0.05
+mutation_op: decompose_failed
+notes:
+  - This stage is a hard-task routing checkpoint.

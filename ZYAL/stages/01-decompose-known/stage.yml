@@ -1,0 +1,38 @@
+schema_version: zyal-stage.v1
+stage_id: 01-decompose-known
+name: Decompose known genes
+family: standard
+track: routing
+purpose: Split the known-good theory traces into reusable genes.
+inputs:
+  - atlas_manifest
+  - prior_generation_summary
+outputs:
+  - known_gene_slices
+required_evidence:
+  - run-events.jsonl
+  - stage-ledger.jsonl
+  - stages/01-decompose-known/evaluation-events.jsonl
+validation_checks:
+  - all inputs are typed JSON artifacts
+  - emitted slices preserve provenance
+  - lineages remain acyclic
+handoff_contract:
+  upstream:
+    - atlas_manifest
+  downstream:
+    - known_gene_slices
+    - parent_generation_id
+routing:
+  preferred_backend: jnoccio
+  route_tier: standard
+  route_policy: standard_pool
+scoring:
+  local: 0.30
+  interface: 0.20
+  macro: 0.30
+  innovation: 0.15
+  failure_penalty: 0.05
+mutation_op: decompose_known
+notes:
+  - Preserve the evidence chain from the prior generation.

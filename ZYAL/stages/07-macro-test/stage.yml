@@ -1,0 +1,37 @@
+schema_version: zyal-stage.v1
+stage_id: 07-macro-test
+name: Macro test
+family: standard
+track: evaluation
+purpose: Test the assembled module bundle at the whole-run level.
+inputs:
+  - module_bundle
+  - prior_generation_summary
+outputs:
+  - macro_test_report
+required_evidence:
+  - run-events.jsonl
+  - stage-ledger.jsonl
+  - stages/07-macro-test/evaluation-events.jsonl
+validation_checks:
+  - macro score is reported explicitly
+  - test outcomes are deterministic for the same seed
+  - failure penalty is bounded
+handoff_contract:
+  upstream:
+    - module_bundle
+  downstream:
+    - macro_test_report
+routing:
+  preferred_backend: jnoccio
+  route_tier: standard
+  route_policy: standard_pool
+scoring:
+  local: 0.30
+  interface: 0.20
+  macro: 0.30
+  innovation: 0.15
+  failure_penalty: 0.05
+mutation_op: macro_test
+notes:
+  - The macro stage defines the run-level score trend.

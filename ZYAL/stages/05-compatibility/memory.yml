@@ -1,0 +1,9 @@
+schema_version: zyal-stage-memory.v1
+stage_id: 05-compatibility
+summary: Track interface failures, successful handoffs, and compatibility guards.
+memory_refs:
+  - interface_contracts
+  - failures
+  - stage_variants
+  - rejected_ideas
+rejected_ideas: []

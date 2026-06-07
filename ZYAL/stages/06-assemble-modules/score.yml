@@ -1,0 +1,11 @@
+schema_version: zyal-stage-score.v1
+stage_id: 06-assemble-modules
+rubric:
+  artifact_validity: assembled bundle is recorded
+  stage_reusability: module bundle can replay independently
+  interface_integrity: module inputs and outputs match contracts
+  source_grounding: component genes cite source cards
+penalties:
+  - orphan component
+  - missing module output
+  - hidden free parameter

@@ -1,0 +1,11 @@
+schema_version: zyal-stage-score.v1
+stage_id: 01-decompose-known
+rubric:
+  artifact_validity: decomposed genes have evidence paths
+  source_grounding: each claim maps to a source card or local document
+  stage_reusability: genes expose stable handoff fields
+  interface_integrity: downstream fields are explicit
+penalties:
+  - hidden free parameters
+  - unsupported numeric prediction
+  - missing handoff contract

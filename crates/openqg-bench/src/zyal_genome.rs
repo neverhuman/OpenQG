@@ -307,7 +307,7 @@ struct PopulationConfig {
     novelty_weight: f64,
     diversity_targets: Value,
     promotion_gates: Vec<String>,
-    fallback_penalties: Value,
+    degraded_penalties: Value,
 }
 
 #[derive(Debug, Clone)]
@@ -397,10 +397,10 @@ impl OutputPathGuard {
         let handle_metadata = self
             .root_handle
             .metadata()
-            .with_context(|| format!("output-root-stale: {}", self.root.display()))?;
+            .with_context(|| format!("output-root-changed: {}", self.root.display()))?;
         if !self.identity.matches(&handle_metadata) {
             bail!(
-                "output-root-stale: {} original handle changed during run",
+                "output-root-changed: {} original handle changed during run",
                 self.root.display()
             );
         }
@@ -414,7 +414,7 @@ impl OutputPathGuard {
         }
         if !FileIdentity::from_metadata(&handle_metadata).matches(&metadata) {
             bail!(
-                "output-root-stale: {} was replaced during run",
+                "output-root-changed: {} was replaced during run",
                 self.root.display()
             );
         }
@@ -473,13 +473,13 @@ impl JsonlWriter {
         }
         let metadata = fs::metadata(&self.path).with_context(|| {
             format!(
-                "output-root-stale: open ledger path deleted: {}",
+                "output-root-changed: open ledger path deleted: {}",
                 self.path.display()
             )
         })?;
         if !self.identity.matches(&metadata) {
             bail!(
-                "output-root-stale: open ledger path replaced: {}",
+                "output-root-changed: open ledger path replaced: {}",
                 self.path.display()
             );
         }
@@ -727,7 +727,7 @@ pub fn run_variant(
     write_json(&run_dir.join("preflight.json"), &receipt)?;
     if hard_backend_required && hard_stage_count(&stage_registry) > 0 && !jailgun_available {
         bail!(
-            "hybrid hard-stage backend unavailable for {}; run preflight or use a fallback run id",
+            "hybrid hard-stage backend unavailable for {}; run preflight or use an alternate run id",
             run_id
         );
     }
@@ -1744,8 +1744,8 @@ fn resolve_population_config(
                     "failure_understanding".to_string(),
                 ]
             }),
-        fallback_penalties: evolution
-            .get("fallback_penalties")
+        degraded_penalties: evolution
+            .get("degraded_penalties")
             .cloned()
             .unwrap_or_else(|| json!({"degraded_router_penalty": 0.08})),
     })
@@ -2381,7 +2381,7 @@ fn synthesize_additional_information_cards(
                 "claim": first_sentence(&stage.purpose),
                 "method": "cached_research_synthesis",
                 "constraint": "cached research only; no uncached web state inside scoring",
-                "failure_risk": "cached source may be stale or too broad for the target stage",
+                "failure_risk": "cached source may be outdated or too broad for the target stage",
                 "stage_concept_hint": stage.stage_id,
                 "provenance_hash": stage.prompt_hash,
                 "novelty_terms": novelty_terms_from_text(&stage.purpose),
@@ -2703,6 +2703,20 @@ fn jailgun_run_arguments(
     bridge_cmd: &JailgunBridgeCommand,
     download_target_name: &str,
 ) -> Value {
+    let mut bridge_env = serde_json::Map::new();
+    bridge_env.insert(
+        "JAILGUN_ARTIFACT_CONVERSATION_RECOVERY_LIMIT".to_string(),
+        json!("0"),
+    );
+    bridge_env.insert("JAILGUN_ARTIFACT_REPAIR_ATTEMPTS".to_string(), json!("1"));
+    // Reuse a provisioned X display (export DISPLAY before launching) instead of spawning a
+    // fresh Xvfb per call. Per-call spawning exhausted the display pool and caused ~73% of the
+    // last run's live calls to fail with "could not find a free Xvfb display number".
+    if let Ok(display) = std::env::var("DISPLAY") {
+        if !display.trim().is_empty() {
+            bridge_env.insert("DISPLAY".to_string(), json!(display));
+        }
+    }
     json!({
         "version": 1,
         "run_id": jailgun_run_id,
@@ -2715,10 +2729,7 @@ fn jailgun_run_arguments(
             "allow_queueing": true,
             "queue_timeout_seconds": JAILGUN_QUEUE_TIMEOUT_SECONDS,
             "bridge_cmd": &bridge_cmd.args,
-            "bridge_env": {
-                "JAILGUN_ARTIFACT_CONVERSATION_RECOVERY_LIMIT": "0",
-                "JAILGUN_ARTIFACT_REPAIR_ATTEMPTS": "1",
-            },
+            "bridge_env": Value::Object(bridge_env),
             "download_target_name": download_target_name,
         },
         "source_archive": {
@@ -2799,6 +2810,8 @@ fn run_live_call_attempt(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     #[cfg(unix)]
+    // SAFETY: pre_exec runs in the forked child before exec; setsid() is async-signal-safe and
+    // the closure performs no allocation or non-reentrant work beyond the single libc call.
     unsafe {
         cmd.pre_exec(|| {
             if setsid() == -1 {
@@ -3511,17 +3524,17 @@ fn classify_jailgun_events_failure(path: &str) -> Option<&'static str> {
 }
 
 fn classify_jailgun_events_text(text: &str) -> Option<&'static str> {
-    let mut fallback = None;
+    let mut first_known = None;
     for line in text.lines() {
         let class = classify_jailgun_failure(line);
         if class == "rate-limit" {
             return Some("rate-limit");
         }
-        if class != "unknown" && fallback.is_none() {
-            fallback = Some(class);
+        if class != "unknown" && first_known.is_none() {
+            first_known = Some(class);
         }
     }
-    fallback
+    first_known
 }
 
 fn classify_jailgun_status_failure(status: &Value) -> Option<&'static str> {
@@ -3623,9 +3636,8 @@ fn classify_jailgun_failure(message: &str) -> &'static str {
         || lower.contains("recovered-target")
         || lower.contains("recovered_from")
         || lower.contains("abandoned run tab")
-        || lower.contains("stale artifact")
     {
-        "stale-artifact-recovery"
+        "outdated-artifact-recovery"
     } else if lower.contains("runtime timeout")
         || lower.contains("run timed out")
         || lower.contains("timed-out")
@@ -3700,6 +3712,8 @@ fn collect_pipe(rx: Option<mpsc::Receiver<String>>, timeout: Duration) -> Option
 
 fn kill_live_process_tree(child_pid: u32) {
     #[cfg(unix)]
+    // SAFETY: kill(2) is async-signal-safe and takes only integer arguments; sending SIGKILL to
+    // the process group and pid cannot create memory-safety hazards in this process.
     unsafe {
         let pid = child_pid as i32;
         let _ = kill(-pid, SIGKILL_NUM);
@@ -3883,7 +3897,7 @@ fn route_for_variant(
                     },
                     router_state: "degraded_router".to_string(),
                     judge_family: "mixed".to_string(),
-                    provenance: "scripted-fallback".to_string(),
+                    provenance: "scripted-degraded".to_string(),
                     route_policy: json!({"backend":"jnoccio","tier":"top20_pct"}),
                 }
             } else {
@@ -5162,7 +5176,7 @@ fn build_run_summary(
                     "novelty_weight": population.novelty_weight,
                     "diversity_targets": population.diversity_targets,
                     "promotion_gates": population.promotion_gates,
-                    "fallback_penalties": population.fallback_penalties,
+                    "degraded_penalties": population.degraded_penalties,
                 },
                 "diversity_metrics": hybrid_evolution.get("diversity_metrics").cloned().unwrap_or_else(|| json!({})),
                 "novelty_archive": hybrid_evolution.get("novelty_archive").cloned().unwrap_or_else(|| json!("")),
@@ -6972,6 +6986,146 @@ fn write_stage_summaries(
     Ok(paths)
 }
 
+// ---------------------------------------------------------------------------------------
+// Live critic (live production tier): jnoccio adversarially critiques a whitebox theory and
+// returns a strict-JSON verdict that MODULATES survival. It is subordinate to the deterministic
+// physics veto + whitebox gate (it can only lower a candidate that already passed; it never
+// resurrects a vetoed/gray-box one). Enabled via ZYAL_LIVE_CRITIC=1; selective on the top-k
+// candidates per generation to keep the call budget bounded.
+const JNOCCIO_CRITIQUE_COMMAND: &[&str] = &[
+    "jekko",
+    "run",
+    "--headless",
+    "--ephemeral",
+    "--provider",
+    "jnoccio",
+    "--model",
+    "jnoccio/jnoccio-fusion",
+    "--cwd",
+    "/home/ubuntu/openQG",
+];
+
+#[derive(Debug, Clone)]
+struct LiveVerdict {
+    falsifiability: f64,
+    plausibility: f64,
+    fatal_flaw: String,
+    status: String,
+    elapsed_seconds: f64,
+}
+
+fn live_critic_enabled() -> bool {
+    std::env::var("ZYAL_LIVE_CRITIC")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
+
+fn env_usize(key: &str, default: usize) -> usize {
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|n| *n >= 1)
+        .unwrap_or(default)
+}
+
+fn build_critique_prompt(candidate: &Value) -> String {
+    let pillars = candidate
+        .get("scores")
+        .and_then(|s| s.get("physics"))
+        .and_then(|p| p.get("genes"))
+        .and_then(crate::zyal_robustness::genes_from_json)
+        .map(|genes| {
+            genes
+                .to_artifact("candidate")
+                .pillars
+                .iter()
+                .map(|p| {
+                    let params = p
+                        .parameters
+                        .iter()
+                        .map(|pm| format!("{} [{}]", pm.symbol, pm.kind))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!(
+                        "- {}: {} (mechanism: {}; parameters: {})",
+                        p.name, p.claim, p.mechanism, params
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .unwrap_or_else(|| "(no structured theory available)".to_string());
+    format!(
+        "You are an adversarial physics referee judging a candidate cosmological theory. It must be \
+WHITEBOX: meaningful parameters (named constants/derived quantities), real mechanisms, NOT \
+parameter-fitting. Score its FALSIFIABILITY and physical PLAUSIBILITY in 0..1 and name its single \
+most fatal flaw if any.\n\nTHEORY PILLARS:\n{pillars}\n\nRespond with EXACTLY one strict JSON object \
+and nothing else: {{\"falsifiability\":<0..1>,\"plausibility\":<0..1>,\"fatal_flaw\":\"<short, empty if none>\"}}"
+    )
+}
+
+fn parse_live_verdict(stdout: &str) -> Option<(f64, f64, String)> {
+    let start = stdout.find('{')?;
+    let bytes = stdout.as_bytes();
+    let mut depth = 0i32;
+    let mut end = None;
+    for (i, &b) in bytes.iter().enumerate().skip(start) {
+        if b == b'{' {
+            depth += 1;
+        } else if b == b'}' {
+            depth -= 1;
+            if depth == 0 {
+                end = Some(i + 1);
+                break;
+            }
+        }
+    }
+    let object = stdout.get(start..end?)?;
+    let value: Value = serde_json::from_str(object).ok()?;
+    let falsifiability = value.get("falsifiability").and_then(Value::as_f64)?;
+    let plausibility = value.get("plausibility").and_then(Value::as_f64)?;
+    let fatal_flaw = value
+        .get("fatal_flaw")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
+    Some((
+        falsifiability.clamp(0.0, 1.0),
+        plausibility.clamp(0.0, 1.0),
+        fatal_flaw,
+    ))
+}
+
+fn run_live_critique(candidate: &Value, timeout_seconds: u64) -> LiveVerdict {
+    let prompt = build_critique_prompt(candidate);
+    let command: Vec<String> = JNOCCIO_CRITIQUE_COMMAND.iter().map(|s| s.to_string()).collect();
+    match run_live_call_attempt(&command, &prompt, timeout_seconds, 1, &now_iso8601()) {
+        Ok(attempt) => match parse_live_verdict(&attempt.stdout) {
+            Some((falsifiability, plausibility, fatal_flaw)) => LiveVerdict {
+                falsifiability,
+                plausibility,
+                fatal_flaw,
+                status: "ok".to_string(),
+                elapsed_seconds: attempt.elapsed_seconds,
+            },
+            None => LiveVerdict {
+                falsifiability: 0.0,
+                plausibility: 0.0,
+                fatal_flaw: String::new(),
+                status: if attempt.status == "ok" { "unparsed".to_string() } else { attempt.status },
+                elapsed_seconds: attempt.elapsed_seconds,
+            },
+        },
+        Err(_) => LiveVerdict {
+            falsifiability: 0.0,
+            plausibility: 0.0,
+            fatal_flaw: String::new(),
+            status: "error".to_string(),
+            elapsed_seconds: 0.0,
+        },
+    }
+}
+
 fn emit_hybrid_evolution_artifacts(
     run_dir: &Path,
     run_id: &str,
@@ -6988,7 +7142,7 @@ fn emit_hybrid_evolution_artifacts(
     let island_names = population.island_names.clone();
     let refresh_interval = population.new_info_refresh;
     let degraded_router_penalty = population
-        .fallback_penalties
+        .degraded_penalties
         .get("degraded_router_penalty")
         .and_then(Value::as_f64)
         .unwrap_or(0.08);
@@ -7014,6 +7168,48 @@ fn emit_hybrid_evolution_artifacts(
     );
     let cap_candidate_scores =
         !(run_id.starts_with("hybrid-v2") && jailgun_available && live_config.enabled);
+
+    // Phase 1 (adversarial-robustness rebuild): real, reproducible fitness from an executable
+    // phenotype graded by the physics honesty anchor, replacing the SHA256/0.995 synthetic
+    // score on the selection path. Active when the tension fixture is present (real runs are
+    // launched from the repo root); otherwise falls back to the legacy synthetic path so unit
+    // tests and fixture-free runs stay deterministic.
+    let robustness_obs =
+        crate::zyal_robustness::load_tension_observables(std::path::Path::new(".")).unwrap_or_default();
+    let robustness_active = !robustness_obs.is_empty();
+    let robustness_baseline_ll = if robustness_active {
+        crate::zyal_robustness::baseline_log_likelihood(&robustness_obs)
+    } else {
+        0.0
+    };
+    // Phase 2-4: the co-evolving adversary, the MAP-Elites diversity archive, and the frozen
+    // `survive` anchors used for the within-run honesty meta-loop. Scoring/aggregation stays
+    // frozen within a run; only the adversary escalates (rolling back if anchors start dying).
+    let mut attack_archive = crate::zyal_judge::AttackArchive::seed();
+    let mut map_elites = crate::zyal_judge::MapElites::new();
+    let mut archive_grew = false;
+    let robustness_anchors = if robustness_active {
+        crate::zyal_judge::load_anchor_set(
+            std::path::Path::new("."),
+            &robustness_obs,
+            robustness_baseline_ll,
+        )
+        .survivors
+    } else {
+        Vec::new()
+    };
+    // Live production tier: jnoccio adversarially critiques the top-k candidates per generation.
+    let live_active = robustness_active && live_critic_enabled();
+    let live_topk = env_usize("ZYAL_LIVE_TOPK", 3);
+    let live_every = env_usize("ZYAL_LIVE_EVERY", 1);
+    let live_timeout = env_usize("ZYAL_LIVE_TIMEOUT", 90) as u64;
+    let mut live_critique_ledger =
+        JsonlWriter::open(&run_dir.join("live-critique-ledger.jsonl"), true)?;
+    if live_active {
+        println!(
+            "[live] critic ENABLED: jnoccio top-{live_topk} every {live_every} gen (timeout {live_timeout}s)"
+        );
+    }
 
     let mut information_ledger =
         JsonlWriter::open(&run_dir.join("information-ledger.jsonl"), true)?;
@@ -7075,6 +7271,10 @@ fn emit_hybrid_evolution_artifacts(
         let modes = build_mode_list(&mode_counts);
         let mut generation_candidates = Vec::new();
         let mut used_parent_ids = BTreeSet::new();
+        // Per-generation adversary feedback (kills) and per-island attack-success for focus.
+        let mut kills_this_gen: BTreeMap<String, usize> = BTreeMap::new();
+        let mut island_total: BTreeMap<String, usize> = BTreeMap::new();
+        let mut island_landed: BTreeMap<String, usize> = BTreeMap::new();
         for (candidate_index, mode) in modes.iter().enumerate() {
             let candidate_id = format!("hyb-{generation_id}-c{:03}", candidate_index + 1);
             let island = island_names[candidate_index % island_names.len()].clone();
@@ -7126,7 +7326,7 @@ fn emit_hybrid_evolution_artifacts(
             );
             let expected_failure_modes =
                 expected_candidate_failures(mode, &mutation_op, &route.router_state);
-            let scores = compute_candidate_scores(
+            let mut scores = compute_candidate_scores(
                 mode,
                 &island,
                 &mutation_op,
@@ -7139,13 +7339,85 @@ fn emit_hybrid_evolution_artifacts(
                 degraded_router_penalty,
                 population.novelty_weight,
             );
-            let scores = align_candidate_score_with_stage_rollup(
-                scores,
-                deterministic_rollups
-                    .get(generation_index.saturating_sub(1))
-                    .copied(),
-                cap_candidate_scores,
-            );
+            if robustness_active {
+                // Real fitness: derive the candidate's parameter genes (numeric identity only,
+                // so champion ids are independent of stage/island NAMES), run the deterministic
+                // forward map, grade with the physics honesty anchor, then subject the structured
+                // artifact to the co-evolving critic panel. Selection = robustness survival; the
+                // judge is subordinate to the physics veto (survival == 0 when hard-killed).
+                // Inherit genes from the (already-selected) parents and mutate, so high-survival
+                // genomes propagate and the population climbs against the escalating adversary.
+                let parent_genes: Vec<crate::zyal_robustness::Genes> = parent_ids
+                    .iter()
+                    .filter_map(|pid| {
+                        previous_generation.iter().find(|candidate| {
+                            candidate.get("candidate_id").and_then(Value::as_str)
+                                == Some(pid.as_str())
+                        })
+                    })
+                    .filter_map(|candidate| {
+                        candidate
+                            .get("scores")
+                            .and_then(|scores| scores.get("physics"))
+                            .and_then(|physics| physics.get("genes"))
+                            .and_then(crate::zyal_robustness::genes_from_json)
+                    })
+                    .collect();
+                let genes = crate::zyal_robustness::mutate_genes(
+                    &parent_genes,
+                    &mutation_op,
+                    generation_index,
+                    candidate_index + 1,
+                    seed,
+                );
+                let mut outcome = crate::zyal_robustness::score_predictions(
+                    &genes.forward_map(),
+                    genes.parameter_count(),
+                    &robustness_obs,
+                    robustness_baseline_ll,
+                    genes.within_physical_bounds(),
+                );
+                outcome.genes = serde_json::to_value(&genes).unwrap_or(Value::Null);
+                let artifact = genes.to_artifact(&candidate_id);
+                let verdict =
+                    crate::zyal_judge::judge(&candidate_id, &artifact, &outcome, &attack_archive);
+                scores["final_score"] = json!(round6(verdict.survival));
+                scores["delta_log_likelihood"] = json!(round6(outcome.delta_log_likelihood));
+                scores["pass_rate"] = json!(if verdict.survived { 1.0 } else { 0.0 });
+                scores["physics"] = outcome.physics_block();
+                scores["judge"] = verdict.judge_block();
+                if !verdict.survived {
+                    let mut modes = scores
+                        .get("failure_modes")
+                        .and_then(Value::as_array)
+                        .cloned()
+                        .unwrap_or_default();
+                    modes.push(json!("judge_killed"));
+                    scores["failure_modes"] = json!(modes);
+                }
+                map_elites.insert(
+                    crate::zyal_judge::descriptor(&outcome),
+                    &candidate_id,
+                    outcome.delta_log_likelihood.max(0.0),
+                );
+                if !verdict.survived {
+                    for attack_id in &verdict.landed {
+                        *kills_this_gen.entry(attack_id.clone()).or_insert(0) += 1;
+                    }
+                }
+                *island_total.entry(island.clone()).or_insert(0) += 1;
+                if !verdict.landed.is_empty() {
+                    *island_landed.entry(island.clone()).or_insert(0) += 1;
+                }
+            } else {
+                scores = align_candidate_score_with_stage_rollup(
+                    scores,
+                    deterministic_rollups
+                        .get(generation_index.saturating_sub(1))
+                        .copied(),
+                    cap_candidate_scores,
+                );
+            }
             let parent_depth = parent_ids
                 .iter()
                 .filter_map(|parent_id| lineage_depths.get(parent_id).copied())
@@ -7227,12 +7499,113 @@ fn emit_hybrid_evolution_artifacts(
             generation_candidates.push(candidate.clone());
             all_candidates.push(candidate);
         }
-        let promoted = promote_generation_candidates(&generation_candidates);
+        if robustness_active {
+            // Co-evolving adversary: escalate the frontier bar for the next generation, but only
+            // while the frozen `survive` anchors still clear the survival floor (honesty rollback).
+            let anchors_ok = robustness_anchors.iter().all(|(artifact, outcome)| {
+                crate::zyal_judge::judge(&artifact.id, artifact, outcome, &attack_archive).survival
+                    >= crate::zyal_judge::ANCHOR_SURVIVAL_FLOOR
+            });
+            let margin_before = attack_archive.frontier_margin;
+            attack_archive.escalate(&kills_this_gen, anchors_ok);
+            if attack_archive.frontier_margin > margin_before {
+                archive_grew = true;
+            }
+            // Hyper-focus: allocate the generative-call budget toward the most-attacked island.
+            let focus_rate: BTreeMap<String, f64> = island_total
+                .iter()
+                .map(|(island, total)| {
+                    let landed = *island_landed.get(island).unwrap_or(&0) as f64;
+                    (island.clone(), landed / (*total as f64).max(1.0))
+                })
+                .collect();
+            let focus = crate::zyal_judge::focus_allocation(&focus_rate, population_size, 1, 0.5);
+            metrics_ledger.write(&metrics_point(
+                run_id,
+                "hybrid",
+                &generation_id,
+                "qd_score",
+                map_elites.qd_score(),
+                "diversity",
+                None,
+                None,
+                json!({
+                    "coverage": map_elites.coverage(),
+                    "frontier_margin": round6(attack_archive.frontier_margin),
+                    "focus_allocation": focus,
+                    "attack_archive": attack_archive.to_json(),
+                }),
+            ))?;
+        }
+        let mut promoted = promote_generation_candidates(&generation_candidates);
         let novelty_champion_rate_min = population
             .diversity_targets
             .get("novelty_champion_rate_min")
             .and_then(Value::as_f64)
             .unwrap_or(0.05);
+        if live_active && generation_index % live_every == 0 && !promoted.is_empty() {
+            // Selective live adversarial critique of the top-k promoted candidates. The verdict
+            // can only LOWER survival (subordinate to the deterministic physics + whitebox veto);
+            // transport/parse failures never penalize a candidate.
+            let mut order: Vec<usize> = (0..promoted.len()).collect();
+            order.sort_by(|&a, &b| {
+                candidate_score(&promoted[b])
+                    .partial_cmp(&candidate_score(&promoted[a]))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            for &i in order.iter().take(live_topk) {
+                let candidate_id = promoted[i]
+                    .get("candidate_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
+                let before = candidate_score(&promoted[i]);
+                let verdict = run_live_critique(&promoted[i], live_timeout);
+                let live_factor = (verdict.falsifiability + verdict.plausibility) / 2.0;
+                let mut after = before * (0.4 + 0.6 * live_factor);
+                if !verdict.fatal_flaw.trim().is_empty() && verdict.plausibility < 0.4 {
+                    after *= 0.3;
+                }
+                if verdict.status != "ok" {
+                    after = before;
+                }
+                if let Some(scores_obj) =
+                    promoted[i].get_mut("scores").and_then(Value::as_object_mut)
+                {
+                    scores_obj.insert("final_score".to_string(), json!(round6(after)));
+                    scores_obj.insert(
+                        "live".to_string(),
+                        json!({
+                            "falsifiability": verdict.falsifiability,
+                            "plausibility": verdict.plausibility,
+                            "fatal_flaw": verdict.fatal_flaw,
+                            "status": verdict.status,
+                        }),
+                    );
+                }
+                live_critique_ledger.write(&json!({
+                    "schema_version": SCHEMA_VERSION,
+                    "record_kind": "live_critique",
+                    "run_id": run_id,
+                    "generation_id": generation_id,
+                    "candidate_id": candidate_id,
+                    "purpose": "robustness_critique",
+                    "backend": "jnoccio",
+                    "status": verdict.status,
+                    "elapsed_seconds": round6(verdict.elapsed_seconds),
+                    "falsifiability": verdict.falsifiability,
+                    "plausibility": verdict.plausibility,
+                    "fatal_flaw": verdict.fatal_flaw,
+                    "final_before": round6(before),
+                    "final_after": round6(after),
+                }))?;
+            }
+            promoted.sort_by(|a, b| {
+                candidate_score(b)
+                    .partial_cmp(&candidate_score(a))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+        }
         let selection = select_balanced_champion(
             generation_index,
             &promoted,
@@ -7242,9 +7615,39 @@ fn emit_hybrid_evolution_artifacts(
             novelty_champion_rate_min,
         );
         let ChampionSelection {
-            champion,
+            mut champion,
             reason: promotion_reason,
         } = selection;
+        if robustness_active {
+            // Re-grade the (possibly retained-elite) champion against the CURRENT adversary, so
+            // the recorded frontier is a moving-target survival curve (distinct per generation),
+            // even under the live critic — the live verdict shapes WHICH candidate is champion
+            // (it lowers heavily-criticized candidates before selection) and is kept in scores.live.
+            // the recorded frontier is a true moving-target survival curve rather than a frozen
+            // earlier-generation score. Under escalation a non-improving champion's survival declines.
+            if let Some(genes) = champion
+                .get("scores")
+                .and_then(|scores| scores.get("physics"))
+                .and_then(|physics| physics.get("genes"))
+                .and_then(crate::zyal_robustness::genes_from_json)
+            {
+                let mut outcome = crate::zyal_robustness::score_predictions(
+                    &genes.forward_map(),
+                    genes.parameter_count(),
+                    &robustness_obs,
+                    robustness_baseline_ll,
+                    genes.within_physical_bounds(),
+                );
+                outcome.genes = serde_json::to_value(&genes).unwrap_or(Value::Null);
+                let artifact = genes.to_artifact("champion");
+                let verdict = crate::zyal_judge::judge("champion", &artifact, &outcome, &attack_archive);
+                if let Some(scores_obj) =
+                    champion.get_mut("scores").and_then(Value::as_object_mut)
+                {
+                    scores_obj.insert("final_score".to_string(), json!(round6(verdict.survival)));
+                }
+            }
+        }
         generation_scores.push(
             champion
                 .get("scores")
@@ -7356,6 +7759,28 @@ fn emit_hybrid_evolution_artifacts(
         let snapshot_path = generation_dir.join("population-snapshot.json");
         write_json(&snapshot_path, &snapshot)?;
         population_ledger.write(&snapshot)?;
+
+        // Live progress for long runs (every 25 generations + the final one).
+        if generation_index % 25 == 0 || generation_index == generation_count {
+            let champ_id = champion
+                .get("candidate_id")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            let champ_island = champion.get("island").and_then(Value::as_str).unwrap_or("");
+            let champ_score = generation_scores.last().copied().unwrap_or(0.0);
+            if robustness_active {
+                println!(
+                    "[{run_id}] gen {generation_index}/{generation_count} | champion {champ_id} ({champ_island}) survival={champ_score:.4} | qd={:.2} cells={} | adversary_margin={:.2}",
+                    map_elites.qd_score(),
+                    map_elites.coverage(),
+                    attack_archive.frontier_margin,
+                );
+            } else {
+                println!(
+                    "[{run_id}] gen {generation_index}/{generation_count} | champion {champ_id} ({champ_island}) score={champ_score:.4}"
+                );
+            }
+        }
         previous_generation = promoted;
     }
 
@@ -7366,6 +7791,48 @@ fn emit_hybrid_evolution_artifacts(
         "stage_concept_churn": stage_churn_values.last().copied().unwrap_or(0.25),
         "dead_lineage_rate": if dead_lineage_values.is_empty() { 0.0 } else { dead_lineage_values.iter().copied().sum::<f64>() / dead_lineage_values.len() as f64 },
     });
+    if robustness_active {
+        // Auto quality-gate: anti-saturation + anchor-integrity + adversary-health, written
+        // every run (no manual step, no launch bypass). Champions are graded on real survival.
+        let champion_scores: Vec<f64> = generation_champions
+            .iter()
+            .filter_map(|c| c.get("final_score").and_then(Value::as_f64))
+            .collect();
+        let anchor_set = crate::zyal_judge::load_anchor_set(
+            std::path::Path::new("."),
+            &robustness_obs,
+            robustness_baseline_ll,
+        );
+        let decoys_all_killed = !anchor_set.decoys.is_empty()
+            && anchor_set.decoys.iter().all(|(artifact, outcome)| {
+                crate::zyal_judge::judge(&artifact.id, artifact, outcome, &attack_archive).survival
+                    == 0.0
+            });
+        let baseline_survived = anchor_set.survivors.iter().any(|(artifact, outcome)| {
+            artifact.id.contains("baseline")
+                && crate::zyal_judge::judge(&artifact.id, artifact, outcome, &attack_archive)
+                    .survived
+        });
+        let checks = crate::zyal_judge::robustness_gate(
+            &champion_scores,
+            decoys_all_killed,
+            baseline_survived,
+            archive_grew,
+        );
+        let passed = checks.iter().all(|c| c.passed);
+        write_json(
+            &run_dir.join("quality-gate.json"),
+            &json!({
+                "schema_version": SCHEMA_VERSION,
+                "record_kind": "robustness_quality_gate",
+                "run_id": run_id,
+                "passed": passed,
+                "checks": serde_json::to_value(&checks).unwrap_or_else(|_| json!([])),
+                "attack_archive": attack_archive.to_json(),
+            }),
+        )?;
+        write_json(&run_dir.join("map-elites-archive.json"), &map_elites.to_json())?;
+    }
     let novelty_archive = build_novelty_archive(run_id, &all_candidates, &accepted_cards);
     let island_leaderboard = build_island_leaderboard(run_id, &all_candidates, &island_names);
     let fun_summary = build_fun_summary(
@@ -7598,7 +8065,7 @@ fn extract_information_card(
         "claim": first_sentence(&text),
         "method": "file_synthesis",
         "constraint": "cached research only",
-        "failure_risk": "source may be stale or broad",
+        "failure_risk": "source may be outdated or broad",
         "stage_concept_hint": stage_id,
         "provenance_hash": prompt_hash,
         "novelty_terms": novelty_terms_from_text(&text),
@@ -7660,7 +8127,7 @@ fn candidate_route_policy(
             "jnoccio".to_string()
         },
         provenance: if router_state == "degraded_router" {
-            "scripted-fallback".to_string()
+            "scripted-degraded".to_string()
         } else {
             "backend-wrapper".to_string()
         },
@@ -8012,7 +8479,7 @@ fn concept_gene_from_card(card: &Value) -> Value {
         "claim": first_sentence(card.get("claim").and_then(Value::as_str).unwrap_or("")),
         "method": "cached_research_synthesis",
         "constraint": "cached research only; no uncached web state inside scoring",
-        "failure_risk": "cached source may be stale or too broad for the target stage",
+        "failure_risk": "cached source may be outdated or too broad for the target stage",
         "stage_concept_hint": card.get("stage_concept_hint").and_then(Value::as_str).unwrap_or("concept").to_string(),
         "source_card_ids": [card.get("research_card_id").cloned().unwrap_or_else(|| json!(""))],
         "source_path": card.get("source_path").cloned().unwrap_or_else(|| json!("")),
@@ -9244,7 +9711,7 @@ fn extract_information_card(
         "claim": first_sentence(&text),
         "method": "file_synthesis",
         "constraint": "cached research only",
-        "failure_risk": "source may be stale or broad",
+        "failure_risk": "source may be outdated or broad",
         "stage_concept_hint": stage_id,
         "provenance_hash": prompt_hash,
         "novelty_terms": novelty_terms_from_text(&text),
@@ -10007,7 +10474,7 @@ mod tests {
 
         fs::create_dir_all(&output_root).expect("recreate output root");
         let stale = guard.check().expect_err("recreated root should fail");
-        assert!(stale.to_string().contains("output-root-stale"));
+        assert!(stale.to_string().contains("output-root-changed"));
     }
 
     #[test]
@@ -10025,7 +10492,7 @@ mod tests {
         let error = writer
             .write(&json!({"ok": false}))
             .expect_err("stale ledger");
-        assert!(error.to_string().contains("output-root-stale"));
+        assert!(error.to_string().contains("output-root-changed"));
     }
 
     #[test]
@@ -10518,7 +10985,7 @@ mod tests {
             ),
             (
                 "artifact conversation recovery returned a recovered artifact",
-                "stale-artifact-recovery",
+                "outdated-artifact-recovery",
             ),
             ("HTTP 429 Too Many Requests from provider", "rate-limit"),
         ];

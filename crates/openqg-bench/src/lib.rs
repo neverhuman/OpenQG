@@ -8,6 +8,8 @@ pub mod security;
 pub mod util;
 pub mod zyal;
 pub mod zyal_genome;
+pub mod zyal_judge;
+pub mod zyal_robustness;
 
 pub fn run() -> anyhow::Result<()> {
     cli::run()

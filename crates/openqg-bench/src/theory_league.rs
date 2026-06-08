@@ -82,6 +82,7 @@ fn row_json(r: &LeagueRow) -> Value {
         "aic": r.fit.aic,
         "bic": r.fit.bic,
         "coverage": r.fit.coverage,
+        "eligible": r.eligible,
         "delta_aic": r.delta_aic,
         "delta_bic": r.delta_bic,
         "delta_ln_evidence": r.delta_ln_evidence,
@@ -119,14 +120,15 @@ pub fn run_league(
         data.blocks.len()
     );
     println!(
-        "{:<10} {:>2} {:>9} {:>9} {:>9} {:>9} {:>9}",
-        "model", "k", "chi2", "AIC", "dAIC", "dBIC", "dlnZ"
+        "{:<11} {:>2} {:>9} {:>9} {:>9} {:>9} {:>9}  {}",
+        "model", "k", "chi2", "AIC", "dAIC", "dBIC", "dlnZ", "elig"
     );
     for r in &rows {
         println!(
-            "{:<10} {:>2} {:>9.3} {:>9.3} {:>+9.3} {:>+9.3} {:>+9.3}",
+            "{:<11} {:>2} {:>9.3} {:>9.3} {:>+9.3} {:>+9.3} {:>+9.3}  {}",
             r.fit.model_id, r.fit.k, r.fit.chi2, r.fit.aic, r.delta_aic, r.delta_bic,
-            r.delta_ln_evidence
+            r.delta_ln_evidence,
+            if r.eligible { "yes" } else { "NO (coverage)" }
         );
     }
 

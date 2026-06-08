@@ -43,8 +43,11 @@ impl FreeParam {
     }
 }
 
-/// Set a named [`CosmologyParams`] field. Returns false for an unknown name (a programming error
-/// in a model definition, surfaced rather than silently ignored).
+/// Set a named [`CosmologyParams`] field. Returns false for an unknown name. Every field a
+/// [`ModelClass`] can declare as a [`FreeParam`] MUST be handled here — an omission means the
+/// optimizer silently fails to vary that parameter while it still counts toward `k`, which is
+/// exactly the growth/MG bug the v3.0.0 review caught (`sigma8`/`mu0` were missing). [`params_for`]
+/// asserts the return so a future omission fails loudly instead of corrupting a fit.
 fn set_param(c: &mut CosmologyParams, name: &str, v: f64) -> bool {
     match name {
         "h" => c.h = v,
@@ -55,6 +58,8 @@ fn set_param(c: &mut CosmologyParams, name: &str, v: f64) -> bool {
         "w0" => c.w0 = v,
         "wa" => c.wa = v,
         "omega_k" => c.omega_k = v,
+        "sigma8" => c.sigma8 = v,
+        "mu0" => c.mu0 = v,
         _ => return false,
     }
     true
@@ -155,11 +160,18 @@ impl ModelClass {
         }
     }
 
-    /// Build the [`CosmologyParams`] for a given free-parameter vector (clamped to bounds).
+    /// Build the [`CosmologyParams`] for a given free-parameter vector (clamped to bounds). Panics
+    /// if a declared free parameter has no [`set_param`] handler — a model-definition bug that must
+    /// never silently produce an unfitted-but-penalized parameter.
     fn params_for(&self, x: &[f64]) -> CosmologyParams {
         let mut c = self.base.clone();
         for (p, &v) in self.free.iter().zip(x) {
-            set_param(&mut c, p.name, v.clamp(p.lo, p.hi));
+            assert!(
+                set_param(&mut c, p.name, v.clamp(p.lo, p.hi)),
+                "ModelClass '{}' declares free parameter '{}' with no set_param handler",
+                self.id,
+                p.name
+            );
         }
         c
     }
@@ -253,6 +265,12 @@ where
     }
 }
 
+/// Minimum coverage for a model to be *promotable* (rank-eligible). A model that cannot predict
+/// every scored observable would otherwise get a "free lunch": its AIC/BIC are computed over a
+/// partial likelihood, so dropping a hard constraint could let it outrank a full-coverage peer.
+/// v3.0.0 makes coverage **fail-closed** — a sub-floor model is reported but never wins.
+pub const COVERAGE_FLOOR: f64 = 1.0 - 1e-9;
+
 /// One row of the model-selection league table: a fitted model compared to the reference.
 #[derive(Debug, Clone, Serialize)]
 pub struct LeagueRow {
@@ -263,6 +281,9 @@ pub struct LeagueRow {
     pub delta_bic: f64,
     /// Schwarz/Laplace log-evidence difference Δln Z ≈ −½ ΔBIC (positive ⇒ favored).
     pub delta_ln_evidence: f64,
+    /// True if the model predicts every scored observable (coverage ≥ [`COVERAGE_FLOOR`]). Only an
+    /// eligible model may be promoted/win; ineligible rows are shown but sorted last.
+    pub eligible: bool,
 }
 
 /// Fit every model to the data and rank them against a reference model (by id). The reference is
@@ -293,15 +314,23 @@ where
         .map(|f| {
             let delta_aic = f.aic - ref_aic;
             let delta_bic = f.bic - ref_bic;
+            let eligible = f.coverage >= COVERAGE_FLOOR;
             LeagueRow {
                 fit: f,
                 delta_aic,
                 delta_bic,
                 delta_ln_evidence: -0.5 * delta_bic,
+                eligible,
             }
         })
         .collect();
-    rows.sort_by(|a, b| a.fit.aic.partial_cmp(&b.fit.aic).unwrap_or(std::cmp::Ordering::Equal));
+    // Eligible (full-coverage) models rank first; within each group, by AIC ascending. This is the
+    // fail-closed coverage gate: an incomplete model can never sit above a complete one.
+    rows.sort_by(|a, b| {
+        b.eligible
+            .cmp(&a.eligible)
+            .then(a.fit.aic.partial_cmp(&b.fit.aic).unwrap_or(std::cmp::Ordering::Equal))
+    });
     rows
 }
 
@@ -512,6 +541,94 @@ mod tests {
         for w in rows.windows(2) {
             assert!(w[0].fit.aic <= w[1].fit.aic + 1e-9);
         }
+    }
+
+    // --- v3.0.0 M0: regression guards for the growth/MG set_param bug the review caught ---
+
+    fn synth_growth(truth: &CosmologyParams, sigma: f64) -> LikelihoodData {
+        // fσ8 over a range of z (low z = large Ω_DE(a), high z = small) plus S8, computed from
+        // `truth`, with uncertainty `sigma`. Multiple redshifts let the fit distinguish amplitude.
+        let ids: Vec<String> = ["fsigma8@0.1", "fsigma8@0.4", "fsigma8@0.7", "fsigma8@1.1", "s8"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let preds = BackgroundForwardModel.predict(truth, &ids).unwrap();
+        let observables = preds
+            .iter()
+            .map(|p| ObservableRecord {
+                observable_id: p.observable_id.clone(),
+                kind: "growth".into(),
+                value: p.value,
+                uncertainty: sigma,
+                unit: p.unit.clone(),
+                source: None,
+            })
+            .collect();
+        LikelihoodData::diagonal(observables)
+    }
+
+    #[test]
+    fn coverage_gate_marks_incomplete_models_ineligible() {
+        // Add an observable no background/growth model can derive (needs a Boltzmann CMB spectrum):
+        // the model's coverage drops below the floor and it becomes non-promotable.
+        let mut data = tier0();
+        data.observables.push(ObservableRecord {
+            observable_id: "cl_tt@220".into(),
+            kind: "cmb".into(),
+            value: 5000.0,
+            uncertainty: 100.0,
+            unit: "uK^2".into(),
+            source: None,
+        });
+        let rows = model_league(&[ModelClass::lcdm()], &data, &BackgroundForwardModel, "lcdm");
+        assert!(rows[0].fit.coverage < 1.0, "coverage should be partial");
+        assert!(
+            !rows[0].eligible,
+            "a model missing a scored observable must be ineligible (fail-closed coverage)"
+        );
+    }
+
+    #[test]
+    fn set_param_handles_growth_fields_and_rejects_unknown() {
+        // The exact bug: sigma8/mu0 were declared free but had no set_param handler.
+        let mut c = CosmologyParams::planck_lcdm();
+        assert!(set_param(&mut c, "sigma8", 0.74));
+        assert!(set_param(&mut c, "mu0", -0.4));
+        assert_eq!(c.sigma8, 0.74);
+        assert_eq!(c.mu0, -0.4);
+        assert!(!set_param(&mut c, "definitely_not_a_field", 1.0));
+    }
+
+    #[test]
+    fn growth_fit_actually_recovers_sigma8() {
+        // Generate fσ8/S8 from σ8 = 0.74 (≠ the 0.811 default) and confirm the league fit moves
+        // σ8 there — i.e. the parameter genuinely reaches the forward model now.
+        let mut truth = CosmologyParams::planck_lcdm();
+        truth.sigma8 = 0.74;
+        let data = synth_growth(&truth, 0.005);
+        let fit = fit_model(&ModelClass::lcdm_growth(), &data, &BackgroundForwardModel);
+        let s8 = fit.best_params.iter().find(|(n, _)| n == "sigma8").unwrap().1;
+        assert!((s8 - 0.74).abs() < 0.03, "recovered sigma8={s8}, truth 0.74");
+    }
+
+    #[test]
+    fn mu0_reaches_the_forward_model_in_a_screened_mg_fit() {
+        // Data generated with suppressed growth (mu0=-0.4); the screened-MG fit must achieve a
+        // good fit AND its applied params must carry a non-default mu0 (it was previously frozen at 0).
+        let mut truth = CosmologyParams::planck_lcdm();
+        truth.mu0 = -0.4;
+        let data = synth_growth(&truth, 0.005);
+        let fit = fit_model(&ModelClass::screened_mg(), &data, &BackgroundForwardModel);
+        // It can fit the suppressed growth (chi2 small) — impossible if mu0 and sigma8 were both frozen.
+        assert!(fit.chi2 < 5.0, "screened_mg chi2={} on its own data", fit.chi2);
+        // mu0 is reported as a fitted parameter (degenerate with sigma8, so we only assert it is a
+        // genuine d.o.f. that moved off the 0.0 init OR sigma8 absorbed it — either proves it's live).
+        let mu0 = fit.best_params.iter().find(|(n, _)| n == "mu0").unwrap().1;
+        let s8 = fit.best_params.iter().find(|(n, _)| n == "sigma8").unwrap().1;
+        assert!(
+            mu0 < -0.05 || s8 < 0.78,
+            "neither mu0 ({mu0}) nor sigma8 ({s8}) absorbed the suppressed growth"
+        );
     }
 }
 

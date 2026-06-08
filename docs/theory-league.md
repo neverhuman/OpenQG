@@ -32,8 +32,8 @@ The fit is deterministic and the forward model is pure, so a league reproduces b
 | data | favored | ΔAIC (vs ΛCDM) | Δln Z | reading |
 |---|---|---|---|---|
 | **Geometry only** (BAO+CMB-prior+BBN, n=15) | **ΛCDM** | w0waCDM **+0.24** | −0.83 | Re-fitting ΛCDM shrinks CPL's gain from "+36.7 log-L" to **raw Δχ²≈3.8**; once its 2 extra parameters are penalized, evolving DE is *disfavored*. **The +36.7 was an artifact.** |
-| **+ growth** (fσ8 RSD + DES-Y3 S8, n=21) | w0waCDM (marginal) | −1.2 | −0.44 | Adding structure growth gives at most a weak, evidence-inconclusive hint for evolving DE. Modified-growth `μ0` is degenerate with σ8 here and **not** independently favored (ΔAIC +2). |
-| **+ local H0** (SH0ES ladder, full stack n=22) | **w0waCDM** | **−16.2** | **+7.0** | The local distance ladder stresses ΛCDM hard (χ² 27→44 — the H0 tension, quantified); a dark-energy extension is then strongly favored. |
+| **+ growth** (fσ8 RSD + DES-Y3 S8, n=21) | **ΛCDM** | w0waCDM **+1.4** | −1.75 | With the v3.0.0 `set_param` fix (σ8/μ0 now genuinely fit), ΛCDM's fitted σ8 = 0.776 absorbs the growth amplitude (χ² 27→23) and the extensions are *disfavored*. Modified-growth `μ0` fits to ≈+0.06 — a real, not-independently-favored result (ΔAIC +1.97), no longer an artifact of μ0 being frozen. |
+| **+ local H0** (SH0ES ladder, full stack n=22) | **w0waCDM** | **−14.0** | **+5.9** | The local distance ladder stresses ΛCDM hard (χ² 23→42 — the H0 tension, quantified); a dark-energy extension is then strongly favored. |
 
 The engine now responds correctly to *which* data it is given: no false evolving-DE signal on
 geometry alone, a real and large preference once the Cepheid-calibrated H0 is included, and an

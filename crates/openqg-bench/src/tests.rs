@@ -4,6 +4,25 @@ mod tests {
     use std::collections::BTreeMap;
 
     #[test]
+    fn theory_evolve_command_writes_a_credible_champion_report() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("openqg-theory-evolve-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let obs = dir.join("obs.jsonl");
+        let mut f = std::fs::File::create(&obs).expect("obs file");
+        writeln!(f, "{{\"observable_id\":\"dm_over_rd@0.510\",\"kind\":\"bao\",\"value\":13.62,\"uncertainty\":0.25,\"unit\":\"dimensionless\"}}").unwrap();
+        writeln!(f, "{{\"observable_id\":\"bbn_yp\",\"kind\":\"bbn\",\"value\":0.2453,\"uncertainty\":0.0034,\"unit\":\"dimensionless\"}}").unwrap();
+        drop(f);
+        let out = dir.join("champion.json");
+        crate::theory_evolve::run_evolve(&obs, &out, 10, 8, 1).expect("evolve runs");
+        let report: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&out).expect("report")).expect("json");
+        assert!(report["champion"]["credible"].as_bool().unwrap_or(false));
+        assert!(report["qd_score"].as_f64().unwrap_or(0.0) > 0.0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn scorecard_rewards_perfect_coverage() {
         let observables = vec![ObservableRecord {
             observable_id: "h0".into(),

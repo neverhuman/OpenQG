@@ -2,10 +2,11 @@ use anyhow::Result;
 
 use crate::{
     bench as bench_ops, data as data_ops, release as release_ops, schema as schema_ops,
-    score as score_ops, security as security_ops, zyal as zyal_ops, zyal_genome as zyal_genome_ops,
+    score as score_ops, security as security_ops, theory_evolve as theory_ops, zyal as zyal_ops,
+    zyal_genome as zyal_genome_ops,
 };
 
-use super::{bench, commands::Commands, data, release, schema, score, security, zyal};
+use super::{bench, commands::Commands, data, release, schema, score, security, theory, zyal};
 
 pub fn run(command: Commands) -> Result<()> {
     match command {
@@ -56,6 +57,15 @@ pub fn run(command: Commands) -> Result<()> {
                 zyal_ops::jekko_preview(&root, &output)
             }
             zyal::ZyalCommand::Genome { command } => zyal_genome_ops::run(command),
+        },
+        Commands::Theory { command } => match command {
+            theory::TheoryCommand::Evolve {
+                observables,
+                output,
+                generations,
+                population,
+                seed,
+            } => theory_ops::run_evolve(&observables, &output, generations, population, seed),
         },
         Commands::Security { command } => match command {
             security::SecurityCommand::Scan { output } => security_ops::scan(&output),

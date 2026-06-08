@@ -6,6 +6,7 @@ pub mod release;
 pub mod schema;
 pub mod score;
 pub mod security;
+pub mod theory;
 pub mod zyal;
 
 use anyhow::Result;

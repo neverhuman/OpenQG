@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-use super::{bench, data, release, schema, score, security, zyal};
+use super::{bench, data, release, schema, score, security, theory, zyal};
 
 #[derive(Debug, Subcommand)]
 pub(super) enum Commands {
@@ -27,6 +27,10 @@ pub(super) enum Commands {
     Zyal {
         #[command(subcommand)]
         command: zyal::ZyalCommand,
+    },
+    Theory {
+        #[command(subcommand)]
+        command: theory::TheoryCommand,
     },
     Security {
         #[command(subcommand)]

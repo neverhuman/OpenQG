@@ -12,6 +12,7 @@
 //! "derived, not fit" preference — see `docs/research/automated-theory-discovery.md` §2/§4.
 
 pub mod adversary;
+pub mod anchors;
 pub mod assessment;
 pub mod evaluate;
 pub mod evolve;
@@ -24,6 +25,7 @@ pub mod unification;
 pub mod vetoes;
 
 pub use adversary::Adversary;
+pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evolve::{evolve, Cell, Champion, EvolutionResult};

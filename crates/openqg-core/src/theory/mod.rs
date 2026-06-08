@@ -11,6 +11,7 @@
 //! This is the true, structural enforcement of the repo's "whitebox theories only" rule and the
 //! "derived, not fit" preference — see `docs/research/automated-theory-discovery.md` §2/§4.
 
+pub mod adversary;
 pub mod assessment;
 pub mod evaluate;
 pub mod evolve;
@@ -22,6 +23,7 @@ pub mod robustness;
 pub mod unification;
 pub mod vetoes;
 
+pub use adversary::Adversary;
 pub use assessment::{assess, CandidateAssessment};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evolve::{evolve, Cell, Champion, EvolutionResult};

@@ -1,6 +1,7 @@
 pub mod bench;
 pub mod cli;
 pub mod data;
+pub mod data_audit;
 pub mod release;
 pub mod schema;
 pub mod score;

@@ -21,6 +21,9 @@ echo "commit: $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 echo "[build] cargo build -p openqg-bench"
 cargo build -q -p openqg-bench
 
+echo "[audit] data integrity (sha256 vs data/manifest.json)"
+cargo run -q -p openqg-bench -- data audit
+
 echo "[run] theory league (tier0 + growth + S8) -> ${GOT}"
 mkdir -p "$(dirname "${GOT}")"
 cargo run -q -p openqg-bench -- theory league \

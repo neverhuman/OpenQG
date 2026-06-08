@@ -1,0 +1,62 @@
+{
+  "schema": "openqg-data-manifest.v1",
+  "description": "Reproducibility manifest: sha256 of every observational fixture the theory league consumes. `openqg data audit` verifies these; ops/replay.sh re-derives the league. Real bulk data stays out of git per the data policy; these are the small committed fixtures.",
+  "fixtures": [
+    {
+      "path": "data/fixtures/cosmology/tier0-combined.jsonl",
+      "sha256": "c9e5eca4c73ad5e5545ea58666108ea47b346dbeb191de364a005dcf78a8950a",
+      "kind": "tier0_geometry",
+      "covariance": "diagonal_only",
+      "covariance_note": "DESI DR1 BAO + Planck distance priors + BBN Yp"
+    },
+    {
+      "path": "data/fixtures/cosmology/bao-desi-dr1.jsonl",
+      "sha256": "fffb5114f7cb454ec557a3948280f76bb9976eff5eabd0f4e545058aeab19cd1",
+      "kind": "bao",
+      "covariance": "block_available",
+      "covariance_note": "DESI 2024 DR1 BAO (covariance in covariance/desi-dr1-bao.json)"
+    },
+    {
+      "path": "data/fixtures/cosmology/cmb-planck18.jsonl",
+      "sha256": "ffd859c46428bd3b042535e6486ed37c3d94b8f860668849be072dc73853a394",
+      "kind": "cmb_distance_prior",
+      "covariance": "block_available",
+      "covariance_note": "Planck-2018 compressed CMB priors (covariance in covariance/planck18-distance-priors.json)"
+    },
+    {
+      "path": "data/fixtures/cosmology/growth-rsd.jsonl",
+      "sha256": "1b736bf345689ad4a4cb7a0ff664f86129bacbbcfeaff4b56f3e6849376dea75",
+      "kind": "rsd",
+      "covariance": "diagonal_only",
+      "covariance_note": "RSD fsigma8 (6dFGS/BOSS-DR12/eBOSS)"
+    },
+    {
+      "path": "data/fixtures/cosmology/wl-s8.jsonl",
+      "sha256": "4426b275285a38529ebcff2f1a5071fe52f5cb67221ee21456185235c455c90b",
+      "kind": "weak_lensing",
+      "covariance": "diagonal_only",
+      "covariance_note": "DES-Y3 3x2pt S8"
+    },
+    {
+      "path": "data/fixtures/cosmology/sh0es-h0.jsonl",
+      "sha256": "592176646da22f9f6acdd60488314506588c962ee17873c593b35e6d91fef271",
+      "kind": "distance_ladder",
+      "covariance": "not_applicable",
+      "covariance_note": "SH0ES local H0 (Riess 2022)"
+    },
+    {
+      "path": "data/fixtures/cosmology/covariance/desi-dr1-bao.json",
+      "sha256": "a3485519796fea2b50dbc01212db75a5edde3e54b413d753b274ee4151b55f18",
+      "kind": "covariance",
+      "covariance": "is_covariance",
+      "covariance_note": "DESI DR1 BAO intra-tracer covariance blocks"
+    },
+    {
+      "path": "data/fixtures/cosmology/covariance/planck18-distance-priors.json",
+      "sha256": "7319f56d202db46d1d8f941131260d92fba1d8b1ba2cfd87de53e21290b81c41",
+      "kind": "covariance",
+      "covariance": "is_covariance",
+      "covariance_note": "Planck-2018 distance-prior 3x3 covariance"
+    }
+  ]
+}

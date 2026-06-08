@@ -23,6 +23,9 @@ pub fn run(command: Commands) -> Result<()> {
                 observables,
                 predictions,
             } => data_ops::smoke(&observables, &predictions),
+            data::DataCommand::Audit { manifest } => {
+                crate::data_audit::audit(&manifest)
+            }
         },
         Commands::Bench { command } => match command {
             bench::BenchCommand::Run {

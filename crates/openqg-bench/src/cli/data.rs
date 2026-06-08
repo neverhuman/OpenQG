@@ -21,4 +21,10 @@ pub enum DataCommand {
         #[arg(long, default_value = "data/fixtures/smoke/predictions.jsonl")]
         predictions: PathBuf,
     },
+    /// Verify every observational fixture against the sha256 recorded in the data manifest
+    /// (the reproducibility contract). Fails on any drift or missing fixture.
+    Audit {
+        #[arg(long, default_value = "data/manifest.json")]
+        manifest: PathBuf,
+    },
 }

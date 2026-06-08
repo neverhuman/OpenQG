@@ -363,6 +363,10 @@ mod tests {
             omega_k: 0.0,
             sigma8: 0.8,
             mu0: 0.0,
+            mg_family: super::super::MgFamily::None,
+            fr_n: 1.0,
+            fr_log10_fr0: -30.0,
+            ndgp_omega_rc: 0.0,
         }
     }
 

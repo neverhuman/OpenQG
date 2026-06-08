@@ -8,10 +8,10 @@
 //! This module is pure and testable with a mocked JSON string — the live jnoccio subprocess that
 //! produces the JSON is wired separately (it reuses the existing genome live-call machinery).
 
-use super::{AlphaBasis, Parameter, Provenance, Stability, Theory};
+use super::{run_veto_cascade, AlphaBasis, Parameter, Provenance, Stability, Theory};
 use crate::cosmology::CosmologyParams;
 use anyhow::{Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A proposed parameter. `provenance` is `"fundamental" | "derived" | "free"`; a `derived`
 /// parameter must carry a non-empty `mechanism` and may only depend (via `derived_from`) on
@@ -208,6 +208,58 @@ pub fn proposal_to_theory(json: &str) -> Result<(Theory, Vec<String>)> {
     Ok(proposal_into_theory(&proposal))
 }
 
+/// A provenance receipt for one LLM-proposed theory: the cryptographic hash of the exact model
+/// output, plus the deterministic oracle's verdict on it. This is the **sealed-nondeterminism**
+/// guarantee (v3.0.0 M6): the LLM's only contribution is pinned by `input_sha256`, and EVERY
+/// downstream decision (parse → derivation-check → veto cascade) is a pure, replayable function of
+/// that input. A run can therefore be re-adjudicated *without re-calling the model*, and a referee
+/// can confirm the recorded verdict by re-hashing the proposal and re-running the oracle — "disable
+/// the LLM, replay the proposals → identical verdicts and hashes".
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ProposalReceipt {
+    /// Where the proposal came from (e.g. `"proposer-cmd"`, `"fixture:example.jsonl"`).
+    pub source: String,
+    /// SHA-256 of the exact proposal JSON the model emitted (tamper-evident model-output pin).
+    pub input_sha256: String,
+    /// The id of the parsed theory (empty if the proposal was malformed).
+    pub theory_id: String,
+    /// Parameters whose claimed derivation could not be verified (demoted to `Free` ⇒ killed).
+    pub demoted_parameters: Vec<String>,
+    /// Whether the deterministic veto cascade KILLED the proposal.
+    pub vetoed: bool,
+    /// The veto reasons (the oracle's verdict), as stable debug strings.
+    pub veto_reasons: Vec<String>,
+}
+
+/// Adjudicate a raw proposal JSON deterministically into a [`ProposalReceipt`]. The same
+/// `(json, source)` ALWAYS yields the same receipt (no RNG/clock/network), so a sealed set of
+/// recorded proposals replays through the oracle bit-for-bit without the model. A malformed
+/// proposal is itself a (vetoed) verdict, never a panic.
+pub fn proposal_receipt(json: &str, source: &str) -> ProposalReceipt {
+    let input_sha256 = crate::sha256_digest(json.as_bytes());
+    match proposal_to_theory(json) {
+        Ok((theory, demoted)) => {
+            let reasons = run_veto_cascade(&theory);
+            ProposalReceipt {
+                source: source.to_string(),
+                input_sha256,
+                theory_id: theory.id.clone(),
+                demoted_parameters: demoted,
+                vetoed: !reasons.is_empty(),
+                veto_reasons: reasons.iter().map(|r| format!("{r:?}")).collect(),
+            }
+        }
+        Err(err) => ProposalReceipt {
+            source: source.to_string(),
+            input_sha256,
+            theory_id: String::new(),
+            demoted_parameters: Vec::new(),
+            vetoed: true,
+            veto_reasons: vec![format!("malformed proposal: {err}")],
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::run_veto_cascade;
@@ -296,5 +348,57 @@ mod tests {
     #[test]
     fn malformed_json_is_a_lethal_proposal() {
         assert!(proposal_to_theory("{not valid json").is_err());
+    }
+
+    // --- v3.0.0 M6: sealed-nondeterminism / replay-through-the-oracle receipts ---
+
+    #[test]
+    fn proposal_receipt_replays_identically_without_the_model() {
+        let json = r#"{"id":"p1","parameters":[
+            {"symbol":"H0","value":67.4,"provenance":"fundamental"}],
+            "background":{"h":0.674,"omega_m":0.315}}"#;
+        let a = proposal_receipt(json, "fixture");
+        let b = proposal_receipt(json, "fixture");
+        assert_eq!(a, b, "the oracle must re-adjudicate identically (no LLM needed)");
+        assert!(!a.vetoed);
+        assert_eq!(a.theory_id, "p1");
+        assert_eq!(a.input_sha256.len(), 64);
+    }
+
+    #[test]
+    fn the_receipt_pins_the_exact_model_output() {
+        let j1 = r#"{"id":"p","parameters":[],"background":{"h":0.674}}"#;
+        let j2 = r#"{"id":"p","parameters":[],"background":{"h":0.700}}"#; // one byte of physics changed
+        assert_ne!(
+            proposal_receipt(j1, "x").input_sha256,
+            proposal_receipt(j2, "x").input_sha256,
+            "any change to the model output must change the pinned hash"
+        );
+    }
+
+    #[test]
+    fn a_gray_box_proposal_is_vetoed_in_the_receipt() {
+        let json =
+            r#"{"id":"gb","parameters":[{"symbol":"f_ede","value":0.07,"provenance":"free"}]}"#;
+        let r = proposal_receipt(json, "fixture");
+        assert!(r.vetoed);
+        assert!(!r.veto_reasons.is_empty());
+    }
+
+    #[test]
+    fn a_handwave_derived_proposal_is_demoted_in_the_receipt() {
+        let json = r#"{"id":"hw","parameters":[
+            {"symbol":"xi","value":0.1,"provenance":"derived","mechanism":"  "}]}"#;
+        let r = proposal_receipt(json, "fixture");
+        assert_eq!(r.demoted_parameters, vec!["xi".to_string()]);
+        assert!(r.vetoed, "a demoted-to-free parameter must be killed");
+    }
+
+    #[test]
+    fn a_malformed_proposal_is_a_vetoed_verdict_not_a_panic() {
+        let r = proposal_receipt("{not json", "fixture");
+        assert!(r.vetoed);
+        assert!(r.theory_id.is_empty());
+        assert_eq!(r.input_sha256.len(), 64);
     }
 }

@@ -84,14 +84,9 @@ pub(crate) fn parse_live_verdict(stdout: &str) -> Option<(f64, f64, String)> {
     ))
 }
 
-pub(crate) fn run_live_critique(candidate: &Value, timeout_seconds: u64) -> LiveVerdict {
-    // The critic is a "hard" judgement → request the top-20% jnoccio models (M6).
-    run_live_critique_banded(candidate, timeout_seconds, RouteTier::Top20Pct)
-}
-
-/// As [`run_live_critique`], but explicitly requests a routing tier — `Top20Pct` forwards
-/// `JEKKO_RUN_QUALITY_BAND=top20` to jnoccio-fusion so the call routes to the top-20%-performing
-/// models, taming both stochasticity and weak-model noise.
+/// A single critic call at an explicit routing tier — `Top20Pct` forwards `JEKKO_RUN_QUALITY_BAND=top20`
+/// to jnoccio-fusion so the call routes to the top-20%-performing models, taming weak-model noise.
+/// Production scoring uses [`run_live_critique_voted`] (this single call ×N, aggregated).
 pub(crate) fn run_live_critique_banded(
     candidate: &Value,
     timeout_seconds: u64,

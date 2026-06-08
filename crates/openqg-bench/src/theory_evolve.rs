@@ -6,8 +6,8 @@
 use anyhow::{Context, Result};
 use openqg_core::cosmology::{BackgroundForwardModel, CosmologyParams, ForwardModel};
 use openqg_core::theory::{
-    evolve_run, miscalibrated, perturbation_robustness, proposal_to_theory, Champion,
-    GenerationReport, Provenance, Theory,
+    evolve_run, miscalibrated, perturbation_robustness, proposal_receipt, proposal_to_theory,
+    Champion, GenerationReport, Provenance, Theory,
 };
 use openqg_core::{score_metrics, ObservableRecord};
 use serde_json::{json, Value};
@@ -80,26 +80,20 @@ fn load_observables(path: &Path) -> Result<Vec<ObservableRecord>> {
         .collect()
 }
 
-/// Parse JSONL proposal lines, each through the derivation checker into `(Theory, demoted)`.
-fn proposals_from_lines<'a>(
-    lines: impl Iterator<Item = &'a str>,
-) -> Result<Vec<(Theory, Vec<String>)>> {
-    lines
-        .filter(|l| !l.trim().is_empty())
-        .map(|l| proposal_to_theory(l).with_context(|| format!("parse proposal: {l}")))
-        .collect()
-}
-
-/// Load theory proposals from a JSONL file.
-fn load_proposals(path: &Path) -> Result<Vec<(Theory, Vec<String>)>> {
+/// Read the raw (non-empty) proposal JSON lines from a file, preserving them verbatim so each can
+/// be hashed into a [`proposal_receipt`] (the sealed-nondeterminism ledger).
+fn read_proposal_lines(path: &Path) -> Result<Vec<String>> {
     let text =
         fs::read_to_string(path).with_context(|| format!("read proposals {}", path.display()))?;
-    proposals_from_lines(text.lines())
+    Ok(text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|s| s.to_string())
+        .collect())
 }
 
-/// Run an LLM-proposer command and parse its stdout as JSONL proposals. A non-zero exit or a
-/// command that cannot run is an error (a failed proposer is not silently ignored).
-fn run_proposer(cmd: &str) -> Result<Vec<(Theory, Vec<String>)>> {
+/// Run the LLM-proposer command and return its raw stdout proposal lines verbatim.
+fn run_proposer_lines(cmd: &str) -> Result<Vec<String>> {
     let out = std::process::Command::new("sh")
         .arg("-c")
         .arg(cmd)
@@ -112,9 +106,13 @@ fn run_proposer(cmd: &str) -> Result<Vec<(Theory, Vec<String>)>> {
             String::from_utf8_lossy(&out.stderr).trim()
         );
     }
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    proposals_from_lines(stdout.lines())
+    Ok(String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|s| s.to_string())
+        .collect())
 }
+
 
 /// One per-generation telemetry line (legacy-monitor-compatible metrics_point shape).
 fn metrics_point(gr: &GenerationReport, run_id: &str) -> Value {
@@ -174,14 +172,26 @@ pub fn run_evolve(
     let observables = load_observables(observables_path)?;
     let mut seeds = vec![Theory::baseline_lcdm()];
     let mut demotions: Vec<Value> = Vec::new();
-    let mut proposed = Vec::new();
+    // Collect the RAW proposal JSON + its source so each can be sealed into a provenance receipt.
+    let mut raw_proposals: Vec<(String, String)> = Vec::new();
     if let Some(pp) = proposals_path {
-        proposed.extend(load_proposals(pp)?);
+        let source = format!("fixture:{}", pp.display());
+        for line in read_proposal_lines(pp)? {
+            raw_proposals.push((line, source.clone()));
+        }
     }
     if let Some(cmd) = proposer_cmd {
-        proposed.extend(run_proposer(cmd)?);
+        for line in run_proposer_lines(cmd)? {
+            raw_proposals.push((line, "proposer-cmd".to_string()));
+        }
     }
-    for (theory, demoted) in proposed {
+    // Seal each proposal into a deterministic receipt (model-output hash + the oracle's verdict),
+    // then ingest it as a seed. The receipt is what lets a run be re-adjudicated without the model.
+    let mut receipts: Vec<Value> = Vec::with_capacity(raw_proposals.len());
+    for (raw, source) in &raw_proposals {
+        receipts.push(serde_json::to_value(proposal_receipt(raw, source))?);
+        let (theory, demoted) =
+            proposal_to_theory(raw).with_context(|| format!("parse proposal: {raw}"))?;
         if !demoted.is_empty() {
             demotions.push(json!({"proposal": theory.id, "demoted_parameters": demoted}));
         }
@@ -190,6 +200,14 @@ pub fn run_evolve(
 
     let run_dir = output_root.join("runs").join(run_id);
     fs::create_dir_all(&run_dir).with_context(|| format!("create {}", run_dir.display()))?;
+    // The sealed-nondeterminism ledger: one receipt per proposal (hash + deterministic verdict).
+    if !receipts.is_empty() {
+        let mut ledger = fs::File::create(run_dir.join("proposal-receipts.jsonl"))
+            .with_context(|| format!("create proposal-receipts.jsonl in {}", run_dir.display()))?;
+        for r in &receipts {
+            writeln!(ledger, "{}", serde_json::to_string(r)?)?;
+        }
+    }
     let model = BackgroundForwardModel;
     // ε is measured as improvement over the GR baseline (not absolute log-likelihood).
     let baseline_ll = baseline_log_likelihood(&observables);

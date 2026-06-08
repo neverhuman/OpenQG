@@ -40,7 +40,10 @@ pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
 pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, ModelClass};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use pareto::{dominates, objectives, pareto_front, Objectives};
-pub use proposal::{parse_proposal, proposal_into_theory, proposal_to_theory, TheoryProposal};
+pub use proposal::{
+    parse_proposal, proposal_into_theory, proposal_receipt, proposal_to_theory, ProposalReceipt,
+    TheoryProposal,
+};
 pub use robustness::perturbation_robustness;
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{

@@ -89,24 +89,30 @@ pub(crate) fn route_for_variant(
 ) -> RoutePolicy {
     let hard = stage.family == "hard";
     match variant {
-        GenomeVariant::PureJnoccio => RoutePolicy {
-            route_backend: "jnoccio".to_string(),
-            route_tier: if hard {
-                "top20_pct".to_string()
+        GenomeVariant::PureJnoccio => {
+            // Single-source the tier so route_tier and the embedded route_policy JSON can never
+            // disagree (they used to: route_tier was conditional but route_policy hardcoded
+            // "standard"). The typed RouteTier also normalizes the runbook/code spelling drift.
+            let tier = if hard {
+                RouteTier::Top20Pct
             } else {
-                "standard".to_string()
-            },
-            router_state: "nominal".to_string(),
-            judge_family: "jnoccio".to_string(),
-            provenance: "scripted-route-policy".to_string(),
-            route_policy: json!({"backend":"jnoccio","tier":"standard"}),
-        },
+                RouteTier::Standard
+            };
+            RoutePolicy {
+                route_backend: "jnoccio".to_string(),
+                route_tier: tier.as_str().to_string(),
+                router_state: "nominal".to_string(),
+                judge_family: "jnoccio".to_string(),
+                provenance: "scripted-route-policy".to_string(),
+                route_policy: json!({"backend":"jnoccio","tier": tier.as_str()}),
+            }
+        }
         GenomeVariant::Hybrid => {
             if hard && live_enabled && jailgun_available {
                 RoutePolicy {
                     route_backend: "jailgun".to_string(),
                     route_tier: if hard {
-                        "top20_pct".to_string()
+                        RouteTier::Top20Pct.as_str().to_string()
                     } else {
                         "standard".to_string()
                     },
@@ -119,7 +125,7 @@ pub(crate) fn route_for_variant(
                 RoutePolicy {
                     route_backend: "jnoccio".to_string(),
                     route_tier: if hard {
-                        "top20_pct".to_string()
+                        RouteTier::Top20Pct.as_str().to_string()
                     } else {
                         "standard".to_string()
                     },
@@ -131,7 +137,7 @@ pub(crate) fn route_for_variant(
             } else {
                 RoutePolicy {
                     route_backend: "jnoccio".to_string(),
-                    route_tier: "standard".to_string(),
+                    route_tier: RouteTier::Standard.as_str().to_string(),
                     router_state: "nominal".to_string(),
                     judge_family: "mixed".to_string(),
                     provenance: "scripted-route-policy".to_string(),
@@ -141,7 +147,7 @@ pub(crate) fn route_for_variant(
         }
         GenomeVariant::JailgunOnly => RoutePolicy {
             route_backend: "jailgun".to_string(),
-            route_tier: "manual".to_string(),
+            route_tier: RouteTier::Manual.as_str().to_string(),
             router_state: if live_enabled {
                 "nominal".to_string()
             } else {
@@ -334,7 +340,7 @@ pub(crate) fn candidate_route_policy(
     RoutePolicy {
         route_backend: route_backend.to_string(),
         route_tier: if route_backend == "jailgun" {
-            "top20_pct".to_string()
+            RouteTier::Top20Pct.as_str().to_string()
         } else {
             "standard".to_string()
         },

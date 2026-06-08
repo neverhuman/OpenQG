@@ -732,6 +732,8 @@ mod records;
 pub(crate) use records::*;
 mod research;
 pub(crate) use research::*;
+mod route;
+pub(crate) use route::RouteTier;
 mod resume;
 pub(crate) use resume::*;
 mod run_summary;

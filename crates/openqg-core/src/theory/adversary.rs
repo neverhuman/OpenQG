@@ -50,16 +50,18 @@ impl Adversary {
         (assessment.final_fitness - self.frontier_margin).max(0.0)
     }
 
-    /// Mean pressured fitness of a set of anchors (1.0 if there are none to protect).
-    fn anchor_health(&self, anchors: &[CandidateAssessment]) -> f64 {
+    /// Health of the *best-surviving* reference anchor: the maximum pressured fitness over the
+    /// protected anchors (1.0 if there are none). The honesty loop protects the strongest
+    /// reference (the GR baseline that must never die), so one aspirational anchor that happens to
+    /// fit a given dataset poorly cannot stall the escalation by dragging a mean down.
+    pub fn anchor_health(&self, anchors: &[CandidateAssessment]) -> f64 {
         if anchors.is_empty() {
             return 1.0;
         }
         anchors
             .iter()
             .map(|a| self.pressured_fitness(a))
-            .sum::<f64>()
-            / anchors.len() as f64
+            .fold(0.0_f64, f64::max)
     }
 
     /// Advance the frontier one generation. Escalate while the protected anchors stay healthy;

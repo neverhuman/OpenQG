@@ -16,8 +16,15 @@ pub enum TheoryCommand {
         /// here; for tests/offline, pass any command. Output is run through the derivation-checker.
         #[arg(long)]
         proposer_cmd: Option<String>,
-        #[arg(long, default_value = "target/openqg/theory/champion.json")]
-        output: PathBuf,
+        /// Base directory for run output; the run directory is `<output-root>/runs/<run-id>/`.
+        #[arg(long, default_value = "target/openqg/theory-evolve")]
+        output_root: PathBuf,
+        /// Run identifier (names the run directory and the telemetry).
+        #[arg(long, default_value = "default")]
+        run_id: String,
+        /// Flush the metrics-timeseries log every N generations (for live monitoring).
+        #[arg(long, default_value_t = 1)]
+        checkpoint_every: usize,
         #[arg(long, default_value_t = 60)]
         generations: usize,
         #[arg(long, default_value_t = 24)]

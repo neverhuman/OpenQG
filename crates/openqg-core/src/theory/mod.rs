@@ -28,7 +28,7 @@ pub use adversary::Adversary;
 pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
-pub use evolve::{evolve, Cell, Champion, EvolutionResult};
+pub use evolve::{evolve, evolve_run, Cell, Champion, EvolutionResult, GenerationReport};
 pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use pareto::{dominates, objectives, pareto_front, Objectives};

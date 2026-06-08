@@ -8,9 +8,13 @@
 //! holds its cell unless something genuinely beats it there, and structurally-broken candidates
 //! (vetoed ⇒ `final_fitness = 0`) can never become champions.
 
-use super::{assess, mutate, recombine, CandidateAssessment, Rng, Theory};
+use super::{
+    anchor_set, assess, mutate, recombine, run_veto_cascade, Adversary, AnchorKind,
+    CandidateAssessment, Rng, Theory,
+};
 use crate::cosmology::{CosmologyParams, ForwardModel};
 use crate::types::ObservableRecord;
+use serde::Serialize;
 use std::collections::BTreeMap;
 
 /// Behavioral descriptor for the MAP-Elites archive: (modifies-gravity, parameter-count bin,
@@ -121,6 +125,139 @@ where
     }
 }
 
+/// The most-fit credible candidate in the archive (the reported champion).
+fn best_champion(archive: &BTreeMap<Cell, Champion>) -> Option<Champion> {
+    archive
+        .values()
+        .filter(|c| c.assessment.is_credible())
+        .max_by(|a, b| {
+            a.assessment
+                .final_fitness
+                .partial_cmp(&b.assessment.final_fitness)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .cloned()
+}
+
+/// Per-generation telemetry emitted by [`evolve_run`] (one JSONL line per generation when logged).
+#[derive(Debug, Clone, Serialize)]
+pub struct GenerationReport {
+    pub generation: usize,
+    pub qd_score: f64,
+    pub archive_cells: usize,
+    /// The co-evolving adversary's current frontier margin (the rising bar).
+    pub frontier_margin: f64,
+    /// Mean pressured fitness of the `Survive` anchors (the honesty-loop signal).
+    pub anchor_health: f64,
+    /// Whether the frozen anchor/decoy set still calibrated this generation (good survive, decoys
+    /// die). If this ever goes false the engine's honesty has broken.
+    pub calibration_honest: bool,
+    pub champion_id: Option<String>,
+    pub champion_fitness: Option<f64>,
+    /// The champion's fitness after the adversary's frontier margin (does it still beat the bar?).
+    pub champion_pressured_fitness: Option<f64>,
+    pub champion_credible: bool,
+}
+
+/// Adversarial, observed evolution run: the same MAP-Elites loop as [`evolve`], but each generation
+/// a co-evolving [`Adversary`] escalates a frontier the champion must keep beating — with **honesty
+/// rollback** driven by the `Survive` anchors so the pressure never unfairly kills the reference —
+/// the frozen anchor/decoy set is re-checked for calibration, and `observer` is invoked with a
+/// [`GenerationReport`]. The archive itself is unchanged (cell-bests by `final_fitness`); the
+/// adversary gates champion-eligibility and is the telemetry's pulse, sustaining "robustness under
+/// judge" over a long run rather than letting it saturate.
+pub fn evolve_run<M, F>(
+    seeds: &[Theory],
+    observables: &[ObservableRecord],
+    model: &M,
+    baseline_log_likelihood: f64,
+    generations: usize,
+    population: usize,
+    seed: u64,
+    mut observer: F,
+) -> EvolutionResult
+where
+    M: ForwardModel<Theory = CosmologyParams>,
+    F: FnMut(&GenerationReport),
+{
+    let mut rng = Rng::new(seed);
+    let mut archive: BTreeMap<Cell, Champion> = BTreeMap::new();
+    let mut adversary = Adversary::new();
+
+    for theory in seeds {
+        let a = assess(theory, observables, model, baseline_log_likelihood);
+        insert(&mut archive, theory.clone(), a);
+    }
+
+    for gen in 0..generations {
+        let elites: Vec<Theory> = archive.values().map(|c| c.theory.clone()).collect();
+        if elites.is_empty() {
+            break;
+        }
+        for _ in 0..population {
+            let i = (rng.next_u64() as usize) % elites.len();
+            let child = if elites.len() > 1 && rng.chance(0.3) {
+                let mut j = (rng.next_u64() as usize) % elites.len();
+                if j == i {
+                    j = (j + 1) % elites.len();
+                }
+                recombine(&elites[i], &elites[j], &mut rng)
+            } else {
+                mutate(&elites[i], &mut rng, 0.6)
+            };
+            let a = assess(&child, observables, model, baseline_log_likelihood);
+            insert(&mut archive, child, a);
+        }
+
+        // Re-assess the frozen anchor/decoy set once: drives both the honesty rollback (Survive
+        // anchors' pressured health) and the calibration self-check (all anchors' outcomes).
+        let mut survive_assessments = Vec::new();
+        let mut calibration_honest = true;
+        for anchor in anchor_set() {
+            let vetoed = !run_veto_cascade(&anchor.theory).is_empty();
+            let asmt = assess(&anchor.theory, observables, model, baseline_log_likelihood);
+            let ok = match anchor.kind {
+                AnchorKind::Survive => !vetoed && asmt.is_credible(),
+                AnchorKind::Die => vetoed || !asmt.is_credible(),
+            };
+            if !ok {
+                calibration_honest = false;
+            }
+            if anchor.kind == AnchorKind::Survive {
+                survive_assessments.push(asmt);
+            }
+        }
+        adversary.update(&survive_assessments);
+
+        let champion = best_champion(&archive);
+        let anchor_health = adversary.anchor_health(&survive_assessments);
+        let report = GenerationReport {
+            generation: gen + 1,
+            qd_score: archive.values().map(|c| c.assessment.final_fitness).sum(),
+            archive_cells: archive.len(),
+            frontier_margin: adversary.frontier_margin,
+            anchor_health,
+            calibration_honest,
+            champion_id: champion.as_ref().map(|c| c.theory.id.clone()),
+            champion_fitness: champion.as_ref().map(|c| c.assessment.final_fitness),
+            champion_pressured_fitness: champion
+                .as_ref()
+                .map(|c| adversary.pressured_fitness(&c.assessment)),
+            champion_credible: champion.is_some(),
+        };
+        observer(&report);
+    }
+
+    let qd_score = archive.values().map(|c| c.assessment.final_fitness).sum();
+    let champion = best_champion(&archive);
+    EvolutionResult {
+        archive,
+        qd_score,
+        champion,
+        generations,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::mutation::{flip_to_quintic_decoy, inject_free_parameter};
@@ -197,6 +334,73 @@ mod tests {
         assert!(champ.assessment.is_credible());
         assert!(!champ.theory.id.contains("decoy"));
         assert!(!champ.theory.id.contains("graybox"));
+    }
+
+    #[test]
+    fn adversarial_run_observes_each_generation_and_stays_honest() {
+        let seeds = vec![Theory::baseline_lcdm()];
+        let mut reports = Vec::new();
+        let r = evolve_run(
+            &seeds,
+            &desi(),
+            &BackgroundForwardModel,
+            0.0,
+            40,
+            16,
+            1234,
+            |gr| reports.push(gr.clone()),
+        );
+        // The observer fired once per generation.
+        assert_eq!(reports.len(), 40);
+        // The honesty loop held throughout: the anchor/decoy set never miscalibrated, and the
+        // Survive anchors were never driven to zero pressured fitness (rollback protected them).
+        assert!(
+            reports.iter().all(|g| g.calibration_honest),
+            "calibration broke"
+        );
+        assert!(
+            reports.iter().all(|g| g.anchor_health > 0.0),
+            "anchors killed"
+        );
+        // The adversary actually escalated the frontier at some point (it is not inert).
+        assert!(
+            reports.iter().any(|g| g.frontier_margin > 0.0),
+            "frontier never escalated"
+        );
+        // A credible champion emerged.
+        let champ = r.champion.expect("credible champion");
+        assert!(champ.assessment.is_credible());
+        assert_eq!(reports.last().unwrap().generation, 40);
+    }
+
+    #[test]
+    fn evolve_run_is_deterministic_in_the_seed() {
+        let seeds = vec![Theory::baseline_lcdm()];
+        let a = evolve_run(
+            &seeds,
+            &desi(),
+            &BackgroundForwardModel,
+            0.0,
+            20,
+            12,
+            99,
+            |_| {},
+        );
+        let b = evolve_run(
+            &seeds,
+            &desi(),
+            &BackgroundForwardModel,
+            0.0,
+            20,
+            12,
+            99,
+            |_| {},
+        );
+        assert_eq!(
+            a.champion.map(|c| c.theory.id),
+            b.champion.map(|c| c.theory.id)
+        );
+        assert!((a.qd_score - b.qd_score).abs() < 1e-12);
     }
 
     #[test]

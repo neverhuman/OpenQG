@@ -65,11 +65,18 @@ impl CosmologyParams {
         (self.e_of_z(zp).ln() - self.e_of_z(zm).ln()) / (2.0 * h)
     }
 
-    /// Solve the linear growth equation from matter domination to today via RK4.
+    /// Solve the linear growth equation from matter domination to today via RK4, using the default
+    /// [`GROWTH_STEPS`] step count.
     pub fn growth_history(&self) -> GrowthHistory {
+        self.growth_history_with_steps(GROWTH_STEPS)
+    }
+
+    /// Solve the linear growth equation from matter domination to today via RK4 with an explicit
+    /// step count. Exposed so a convergence test can compare two resolutions; `growth_history`
+    /// pins the production value.
+    pub fn growth_history_with_steps(&self, steps: usize) -> GrowthHistory {
         let n_i = A_INITIAL.ln();
         let n_f = 0.0_f64;
-        let steps = GROWTH_STEPS;
         let dn = (n_f - n_i) / steps as f64;
 
         // State y = (δ, v) with v = dδ/dN. Matter-domination initial condition δ ∝ a ⇒ v = δ.
@@ -221,5 +228,89 @@ mod tests {
         let mut c = CosmologyParams::planck_lcdm();
         c.omega_m = 0.3;
         assert!((c.s8() - c.sigma8).abs() < 1e-12);
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // M3 solver-truth: analytic growth limits (Einstein–de Sitter, de Sitter) and measured RK4
+    // convergence.
+    // ----------------------------------------------------------------------------------------
+
+    /// An essentially-Einstein–de Sitter cosmology: Ωm = 1, radiation driven to ~0 (no baryons,
+    /// N_eff = 0 leaves only the tiny photon term), so the growing mode is the analytic D ∝ a.
+    fn einstein_de_sitter() -> CosmologyParams {
+        CosmologyParams {
+            h: 1.0,
+            omega_m: 1.0,
+            omega_b_h2: 0.0,
+            n_eff: 0.0,
+            sum_mnu: 0.0,
+            w0: -1.0,
+            wa: 0.0,
+            omega_k: 0.0,
+            sigma8: 0.8,
+            mu0: 0.0,
+        }
+    }
+
+    #[test]
+    fn einstein_de_sitter_growth_is_linear_in_a_with_f_unity() {
+        // EdS analytic growing mode: D(a) ∝ a, f = dln D/dln a = 1 exactly (Peebles 1980;
+        // Dodelson "Modern Cosmology" §7). Our integrator must reproduce both.
+        let c = einstein_de_sitter();
+        // f(z=0) → 1.
+        let f0 = c.growth_rate_today();
+        assert!((f0 - 1.0).abs() < 2e-3, "EdS f(0) = {f0}, expected 1");
+        // D(a)/D(1) = a across the history: sample at several a and compare to a.
+        let h = c.growth_history();
+        for &a in &[0.1_f64, 0.25, 0.5, 0.8] {
+            let (delta, f) = h.interp(a.ln());
+            let ratio = delta / h.delta_today;
+            assert!(
+                (ratio - a).abs() / a < 5e-3,
+                "EdS D(a)/D(1) = {ratio} at a={a}, expected a (linear growth)"
+            );
+            // f stays ≈ 1 throughout, not just today.
+            assert!((f - 1.0).abs() < 5e-3, "EdS f = {f} at a={a}, expected 1");
+        }
+    }
+
+    #[test]
+    fn de_sitter_expansion_suppresses_growth() {
+        // In a Λ-dominated (de Sitter) phase the Hubble drag freezes perturbation growth: the
+        // growth rate f is strongly suppressed below the EdS value of 1, and δ approaches a
+        // constant. We push Ωm → small so the late universe is nearly de Sitter (Peebles 1980).
+        let mut c = CosmologyParams::planck_lcdm();
+        c.omega_m = 0.02; // Λ-dominated today ⇒ near-de-Sitter expansion
+        c.mu0 = 0.0;
+        let f0 = c.growth_rate_today();
+        assert!(
+            f0 < 0.2,
+            "near-de-Sitter growth rate f(0) = {f0} should be strongly suppressed (≪ 1)"
+        );
+        // Growth is far weaker than in a matter-dominated (EdS) universe.
+        assert!(f0 < einstein_de_sitter().growth_rate_today());
+    }
+
+    #[test]
+    fn rk4_growth_converges_512_vs_1024_steps() {
+        // Measured RK4 convergence: refining 512 → 1024 steps must change fσ8 by far less than the
+        // ~3–5% observational σ on an RSD measurement. RK4 is O(h⁴) ⇒ ~16× error reduction per
+        // halving, so the change here is tiny.
+        let c = CosmologyParams::planck_lcdm();
+        let z = 0.5_f64;
+        let a = 1.0 / (1.0 + z);
+
+        let h512 = c.growth_history_with_steps(512);
+        let h1024 = c.growth_history_with_steps(1024);
+        let (d512, f512) = h512.interp(a.ln());
+        let (d1024, f1024) = h1024.interp(a.ln());
+        let fs512 = c.sigma8 * (d512 / h512.delta_today) * f512;
+        let fs1024 = c.sigma8 * (d1024 / h1024.delta_today) * f1024;
+
+        let rel = (fs512 - fs1024).abs() / fs1024.abs();
+        assert!(
+            rel < 1e-4,
+            "RK4 fσ8 512 vs 1024 relative change {rel:.3e} should be ≪ 3% obs σ"
+        );
     }
 }

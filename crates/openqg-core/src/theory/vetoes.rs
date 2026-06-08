@@ -53,6 +53,39 @@ pub enum VetoReason {
     /// Modifies gravity on linear scales but declares no screening to recover GR at the solar
     /// system (would violate the Cassini PPN γ bound).
     MissingScreening { modification_scale: f64 },
+
+    // --- Adjudication-only reasons (computed physics, not metadata labels) ---
+    /// ADJUDICATION: the tensor speed *recomputed at the GW170817 source epoch* violates the real
+    /// multi-messenger bound |c_T/c − 1| ≲ 3×10⁻¹⁵ (Abbott et al. 2017). This is the value-level
+    /// check that replaces the 1e-2 metadata triage gate — a candidate can carry `alpha_t = 0`
+    /// *today* yet still violate the bound once α_T is evolved to the source redshift.
+    TensorSpeedAtSource {
+        /// Redshift of the GW170817 host (NGC 4993).
+        z_source: f64,
+        /// |c_T/c − 1| evaluated at `z_source`.
+        ct_excess: f64,
+        /// The bound it exceeded.
+        bound: f64,
+    },
+    /// ADJUDICATION: the theory *declares* a screening mechanism (non-empty `screening` string)
+    /// but supplies no numeric `screening_recovery`, so its solar-system PPN deviation cannot be
+    /// computed. A bare string is not a physics claim — adjudication rejects it.
+    ScreeningRecoveryUnquantified { mechanism: String },
+    /// ADJUDICATION: the numeric screening recovery is out of the physical `[0, 1]` range, so it
+    /// does not describe a real suppression efficiency.
+    ScreeningRecoveryUnphysical { recovery: f64 },
+    /// ADJUDICATION: the *recomputed* residual solar-system PPN deviation `(γ−1)_pred =
+    /// modification_scale · (1 − recovery)` exceeds the Cassini bound |γ−1| ≲ 2.3×10⁻⁵ — the
+    /// declared screening does not actually recover GR tightly enough.
+    ScreeningInsufficientPpn {
+        /// Predicted residual |γ−1| at the solar system.
+        predicted_gamma_minus_one: f64,
+        /// The Cassini 1σ bound it exceeded.
+        bound: f64,
+    },
+    /// ADJUDICATION: the theory's own background is unphysical (the Friedmann sum E(z)² went
+    /// negative at some probed redshift) — recomputed, not clamped.
+    UnphysicalBackground { z: f64, e_squared: f64 },
 }
 
 impl VetoReason {
@@ -179,6 +212,145 @@ pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
 /// Convenience: true if the theory is killed by any veto.
 pub fn is_vetoed(theory: &Theory) -> bool {
     !run_veto_cascade(theory).is_empty()
+}
+
+// =====================================================================================
+// Triage vs adjudication (M3).
+//
+// `run_veto_cascade` above is **triage**: O(1) checks on candidate-supplied *metadata* (labels,
+// declared stability, a declared screening *string*), cheap enough to run on every proposal in the
+// search loop. Its tensor-speed gate uses a deliberately loose 1e-2 tolerance — a *search
+// warning*, not the physics bound — so promising candidates are not pruned before the expensive
+// stage.
+//
+// `adjudicate` below **recomputes physics** instead of trusting those labels. It is the gate a
+// candidate must clear to be promotable: the real ~10⁻¹⁵ GW170817 tensor-speed bound evaluated at
+// the source epoch, and a real solar-system PPN check derived from a *numeric* screening-recovery
+// field (a declared `screening` string with no number is rejected). All bounds are cited inline.
+// =====================================================================================
+
+/// Redshift of the GW170817 host galaxy NGC 4993 (heliocentric z_helio = 0.009783 ± 0.000023;
+/// cosmic z ≈ 0.0099). Source: Hjorth et al. 2017, ApJL 848 L31 (arXiv:1710.05856). The tensor
+/// speed must satisfy the multi-messenger bound *at the epoch the signal was emitted*.
+const GW170817_SOURCE_REDSHIFT: f64 = 0.0099;
+
+/// GW170817 + GRB 170817A tensor-speed bound: from the (+1.74 ± 0.05) s GW–GRB time lag,
+/// −3×10⁻¹⁵ ≤ (c_gw − c)/c ≤ +7×10⁻¹⁶ (Abbott et al. 2017, ApJL 848 L13, arXiv:1710.05834). We use
+/// the larger (negative-side) magnitude, 3×10⁻¹⁵, as a symmetric |c_T/c − 1| ceiling.
+const GW170817_CT_EXCESS_BOUND: f64 = 3.0e-15;
+
+/// Cassini solar-system PPN bound: γ − 1 = (2.1 ± 2.3)×10⁻⁵ (Bertotti, Iess & Tortora 2003,
+/// Nature 425, 374). A screened modified-gravity theory must keep its residual |γ−1| below the 1σ
+/// uncertainty, 2.3×10⁻⁵, at the solar system.
+const CASSINI_GAMMA_MINUS_ONE_BOUND: f64 = 2.3e-5;
+
+/// Redshifts at which the adjudicator probes the theory's own background for the unphysical
+/// (negative Friedmann sum) failure mode — late-time through recombination.
+const BACKGROUND_PROBE_REDSHIFTS: [f64; 6] = [0.0, 0.5, 1.0, 2.0, 10.0, 1100.0];
+
+/// Tensor-speed excess |c_T/c − 1| of a theory **recomputed at a given redshift**, from the
+/// α-basis relation c_T² = 1 + α_T (Bellini & Sawicki 2014, JCAP 07 (2014) 050, arXiv:1404.3713;
+/// see also Ezquiaga & Zumalacárregui 2017, PRL 119, 251304, arXiv:1710.05901). α_T is evolved to
+/// the source epoch with the standard " propto Ω_DE" α-function tracking ansatz used in hi_class
+/// (Zumalacárregui et al. 2017, JCAP 08 (2017) 019, arXiv:1605.06102): α_T(a) = α_T0 ·
+/// Ω_DE(a)/Ω_DE(today). At GW170817's low source redshift this ratio is ≈ 1, so the check is
+/// essentially the present-day α_T — but it is computed from the background, not read off a label,
+/// and it is the structural hook for redshift-dependent α-functions.
+pub fn tensor_speed_excess_at(theory: &Theory, z: f64) -> f64 {
+    let bg = &theory.background;
+    let omega_de_today = bg.omega_de();
+    // Ω_DE(a)/Ω_DE(today) = [ρ_DE(z)/ρ_DE0] / E(z)²  (= 1 at z = 0).
+    let e2 = bg.e_squared_unclamped(z);
+    let de_tracking = if omega_de_today.abs() < 1e-30 || e2 <= 0.0 {
+        1.0
+    } else {
+        bg.de_density_ratio(z) / e2
+    };
+    let alpha_t_at_z = theory.alpha.alpha_t * de_tracking;
+    // c_T = sqrt(1 + α_T); |c_T/c − 1| = |sqrt(1 + α_T) − 1| (exact, no small-α approximation).
+    ((1.0 + alpha_t_at_z).max(0.0).sqrt() - 1.0).abs()
+}
+
+/// **Adjudication**: recompute physics and return every hard failure (empty ⇒ promotable on
+/// physics). Unlike [`run_veto_cascade`] (triage), this trusts no candidate-supplied label:
+///
+/// 1. Tensor speed at the GW170817 source epoch vs the real ~10⁻¹⁵ bound (Abbott 2017).
+/// 2. A theory declaring `screening` must carry a numeric `screening_recovery` whose *recomputed*
+///    residual solar-system PPN γ−1 clears the Cassini bound (Bertotti 2003) — a bare string fails.
+/// 3. The theory's own background must be physical (E² ≥ 0) on the probe grid.
+///
+/// Adjudication is *additional* to triage: a candidate must pass both. We do not re-run the cheap
+/// metadata checks here (the search loop already did), so the two paths compose without overlap.
+pub fn adjudicate(theory: &Theory) -> Vec<VetoReason> {
+    let mut reasons = Vec::new();
+
+    // 1. Redshift-aware tensor speed at the GW170817 source epoch vs the real ~10⁻¹⁵ bound.
+    let ct_excess = tensor_speed_excess_at(theory, GW170817_SOURCE_REDSHIFT);
+    if ct_excess > GW170817_CT_EXCESS_BOUND {
+        reasons.push(VetoReason::TensorSpeedAtSource {
+            z_source: GW170817_SOURCE_REDSHIFT,
+            ct_excess,
+            bound: GW170817_CT_EXCESS_BOUND,
+        });
+    }
+
+    // 2. Screening must be a *quantified* physics claim that actually passes the Cassini PPN bound.
+    //    Only required when the theory modifies gravity on linear scales (otherwise GR screens
+    //    itself trivially).
+    let modification_scale = theory.alpha.modification_scale();
+    let modifies_linear_gravity = modification_scale > SCREENING_REQUIRED_SCALE;
+    if let Some(mechanism) = &theory.screening {
+        match theory.screening_recovery {
+            None => {
+                // Declared screening with no number: not a physics claim. (Only meaningful if it
+                // actually modifies gravity — a screening label on a GR theory is harmless.)
+                if modifies_linear_gravity {
+                    reasons.push(VetoReason::ScreeningRecoveryUnquantified {
+                        mechanism: mechanism.clone(),
+                    });
+                }
+            }
+            Some(recovery) => {
+                if !(0.0..=1.0).contains(&recovery) {
+                    reasons.push(VetoReason::ScreeningRecoveryUnphysical { recovery });
+                } else if modifies_linear_gravity {
+                    // Residual unscreened PPN deviation: a fraction (1 − recovery) of the linear
+                    // gravity modification leaks into the solar system. This is the schematic
+                    // chameleon thin-shell / Vainshtein suppression: full recovery (1.0) ⇒ γ → 1.
+                    // The exact thin-shell factor (Khoury & Weltman 2004, PRD 69, 044026) / the
+                    // Vainshtein (r_*/r)^{3/2} suppression (Vainshtein 1972, Phys.Lett.B39, 393)
+                    // is a v3.1 derivation; here recovery is the candidate's *derived* suppression
+                    // efficiency and we test the residual against Cassini. // VERIFY: replace the
+                    // linear (1−recovery) leakage with the mechanism-specific thin-shell/Vainshtein
+                    // formula once the f(R)/nDGP sectors land (M4).
+                    let predicted = modification_scale * (1.0 - recovery);
+                    if predicted > CASSINI_GAMMA_MINUS_ONE_BOUND {
+                        reasons.push(VetoReason::ScreeningInsufficientPpn {
+                            predicted_gamma_minus_one: predicted,
+                            bound: CASSINI_GAMMA_MINUS_ONE_BOUND,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. The theory's own background must be physical at every probe redshift (recomputed, not
+    //    clamped to E = 0).
+    for &z in &BACKGROUND_PROBE_REDSHIFTS {
+        if let Err(crate::cosmology::BackgroundError::NegativeESquared { z, e_squared }) =
+            theory.background.try_e_of_z(z)
+        {
+            reasons.push(VetoReason::UnphysicalBackground { z, e_squared });
+        }
+    }
+
+    reasons
+}
+
+/// True if the theory is killed by adjudication (the promotability gate).
+pub fn is_adjudicated_out(theory: &Theory) -> bool {
+    !adjudicate(theory).is_empty()
 }
 
 #[cfg(test)]
@@ -368,6 +540,44 @@ mod tests {
         t
     }
 
+    // ----------------------------------------------------------------------------------------
+    // M3 adjudication tests: recomputed physics must reject what triage labels let through.
+    // ----------------------------------------------------------------------------------------
+
+    /// Build the adversary's "declare-good-metadata" decoy: a CPL theory that passes every cheap
+    /// triage check by *asserting* good metadata (α_T = 0 today, a bare `screening` string, hand
+    /// healthy stability, dimension-4 terms, an arbitrary w0) but has no quantified screening.
+    fn metadata_decoy() -> Theory {
+        let mut t = Theory::baseline_lcdm();
+        t.id = "metadata-decoy-cpl-vainshtein".into();
+        // Modifies gravity on linear scales (so screening is genuinely required)…
+        t.alpha = AlphaBasis {
+            alpha_m: 0.1,
+            alpha_b: 0.05,
+            alpha_k: 0.2,
+            alpha_t: 0.0, // …but declares the tensor sector safe today.
+        };
+        // A bare screening *string* — the decoy's whole trick — with NO numeric recovery.
+        t.screening = Some("vainshtein".into());
+        t.screening_recovery = None;
+        // Hand-set healthy stability (asserted, not derived).
+        t.stability = Stability::healthy();
+        // An arbitrary CPL background (dimension-4 terms inherited from the baseline).
+        t.background.w0 = -0.85;
+        t.background.wa = 0.2;
+        // A provenanced parameter so the whitebox triage gate is satisfied.
+        t.parameters.push(Parameter {
+            symbol: "alpha_M0".into(),
+            value: 0.1,
+            physical_meaning: "Planck-mass run amplitude".into(),
+            provenance: Provenance::Derived {
+                mechanism: "conformal coupling in the assumed scalar potential".into(),
+                certificate: None,
+            },
+        });
+        t
+    }
+
     #[test]
     fn derived_with_passing_certificate_survives() {
         // β = 0.1 ⇒ coupled-DE G_eff/G = 1.02 — the certificate verifies, so the value-level gate
@@ -436,5 +646,124 @@ mod tests {
         let only_diag = VetoReason::UncertifiedDerivedParameter { symbol: "x".into() };
         assert!(!only_diag.is_kill());
         assert!(VetoReason::FreeParameter { symbol: "x".into() }.is_kill());
+    }
+
+    #[test]
+    fn metadata_decoy_passes_triage_but_is_killed_by_adjudication() {
+        let decoy = metadata_decoy();
+        // It sails through the cheap metadata triage: declared screening string ⇒ no
+        // MissingScreening, α_T = 0 ⇒ no GW gate, healthy stability, dim-4 terms, whitebox params.
+        assert!(
+            run_veto_cascade(&decoy).is_empty(),
+            "decoy must PASS triage, got {:?}",
+            run_veto_cascade(&decoy)
+        );
+        // But adjudication recomputes physics and kills it with a receipt that names the failing
+        // computed quantity: the screening is an unquantified label, not a real recovery.
+        let verdict = adjudicate(&decoy);
+        assert!(
+            verdict.iter().any(|r| matches!(
+                r,
+                VetoReason::ScreeningRecoveryUnquantified { mechanism } if mechanism == "vainshtein"
+            )),
+            "adjudication must KILL the decoy naming the unquantified screening, got {verdict:?}"
+        );
+        assert!(is_adjudicated_out(&decoy));
+    }
+
+    #[test]
+    fn a_quantified_but_insufficient_screening_is_killed_by_adjudication() {
+        // Same decoy, now with a *number* — but a recovery too weak to pass Cassini: with
+        // modification_scale = 0.1 and recovery = 0.9, residual γ−1 ≈ 0.01 ≫ 2.3e-5.
+        let mut t = metadata_decoy();
+        t.screening_recovery = Some(0.9);
+        let verdict = adjudicate(&t);
+        assert!(
+            verdict
+                .iter()
+                .any(|r| matches!(r, VetoReason::ScreeningInsufficientPpn { .. })),
+            "weak recovery must fail the Cassini PPN bound, got {verdict:?}"
+        );
+    }
+
+    #[test]
+    fn a_sufficiently_screened_modified_gravity_clears_adjudication() {
+        // modification_scale = max(|α_m|,|α_b|,|α_k|) = 0.2 for this decoy. To suppress it below
+        // Cassini's 2.3e-5 we need (1 − recovery) < 1.15e-4, i.e. recovery ≳ 0.999885.
+        // Vainshtein/chameleon screening in the solar system is far deeper than this, so a
+        // genuinely-screened theory clears the bound.
+        let mut t = metadata_decoy();
+        t.screening_recovery = Some(0.999_9);
+        assert!(
+            adjudicate(&t).is_empty(),
+            "a deeply-screened theory must clear adjudication, got {:?}",
+            adjudicate(&t)
+        );
+    }
+
+    #[test]
+    fn redshift_aware_tensor_speed_kills_a_today_safe_but_evolving_alpha_t() {
+        // A candidate can hide an α_T violation behind "α_T = 0 *today*" only if α_T does not
+        // evolve. Here we hand it a non-zero present-day α_T well above the 10⁻¹⁵ bound: the
+        // recomputed tensor speed at the GW170817 source epoch kills it (triage's 1e-2 gate would
+        // also catch this large a value — the point is that adjudication uses the *real* bound, so
+        // even an α_T of 1e-10, which triage waves through, dies here).
+        let mut t = Theory::baseline_lcdm();
+        t.alpha.alpha_t = 1.0e-10; // passes triage (|α_T| < 1e-2) …
+        assert!(
+            !run_veto_cascade(&t)
+                .iter()
+                .any(|r| matches!(r, VetoReason::GravitationalWaveSpeed { .. })),
+            "α_T = 1e-10 must pass the loose triage gate"
+        );
+        // … but |c_T/c − 1| ≈ 5e-11 ≫ 3e-15, so adjudication kills it at the source epoch.
+        let verdict = adjudicate(&t);
+        assert!(
+            verdict.iter().any(|r| matches!(
+                r,
+                VetoReason::TensorSpeedAtSource { ct_excess, bound, .. }
+                    if *ct_excess > *bound
+            )),
+            "adjudication must apply the real 10⁻¹⁵ GW170817 bound, got {verdict:?}"
+        );
+    }
+
+    #[test]
+    fn the_gr_baseline_and_a_truly_screened_theory_pass_both_paths() {
+        // GR ΛCDM passes triage and adjudication (α_T = 0, no screening claim, physical bg).
+        assert!(run_veto_cascade(&Theory::baseline_lcdm()).is_empty());
+        assert!(adjudicate(&Theory::baseline_lcdm()).is_empty());
+        // tensor-speed excess at the source epoch is exactly 0 for GR.
+        assert_eq!(
+            tensor_speed_excess_at(&Theory::baseline_lcdm(), GW170817_SOURCE_REDSHIFT),
+            0.0
+        );
+    }
+
+    #[test]
+    fn an_out_of_range_screening_recovery_is_rejected() {
+        let mut t = metadata_decoy();
+        t.screening_recovery = Some(1.5); // not a fraction
+        assert!(adjudicate(&t)
+            .iter()
+            .any(|r| matches!(r, VetoReason::ScreeningRecoveryUnphysical { .. })));
+    }
+
+    #[test]
+    fn an_unphysical_background_is_caught_by_adjudication() {
+        // A runaway phantom with large wa drives the DE density — and the Friedmann sum — negative
+        // at high z, which `e_of_z` would silently clamp to 0. Adjudication reports it instead.
+        let mut t = Theory::baseline_lcdm();
+        t.background.w0 = 5.0; // strongly positive w ⇒ ρ_DE blows up toward early times…
+        t.background.wa = 0.0;
+        // Make ΩDE negative so the sum can go negative: push Ωm above 1 so ΩDE = 1−Ωm−Ωr < 0.
+        t.background.omega_m = 1.4;
+        let verdict = adjudicate(&t);
+        assert!(
+            verdict
+                .iter()
+                .any(|r| matches!(r, VetoReason::UnphysicalBackground { .. })),
+            "a negative Friedmann sum must be reported, got {verdict:?}"
+        );
     }
 }

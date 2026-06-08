@@ -74,6 +74,11 @@ pub struct TheoryProposal {
     pub alpha: AlphaProposal,
     #[serde(default)]
     pub screening: Option<String>,
+    /// Numeric screening recovery efficiency in `[0, 1]` (see [`Theory::screening_recovery`]).
+    /// A proposal that declares `screening` but omits this is *unquantified* and will fail M3
+    /// adjudication — exactly the metadata-decoy the split veto is designed to catch.
+    #[serde(default)]
+    pub screening_recovery: Option<f64>,
     #[serde(default)]
     pub stability: StabilityProposal,
     #[serde(default)]
@@ -191,6 +196,7 @@ pub fn proposal_into_theory(p: &TheoryProposal) -> (Theory, Vec<String>) {
         },
         stability,
         screening: p.screening.clone(),
+        screening_recovery: p.screening_recovery,
         background,
     };
     (theory, demoted)

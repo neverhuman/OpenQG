@@ -190,6 +190,9 @@
     "data/fixtures/tension/": {
       "command": "just zyal-test"
     },
+    "data/fixtures/cosmology/": {
+      "command": "just zyal-test"
+    },
     "benchmarks/suites/": {
       "command": "just bench-smoke"
     },

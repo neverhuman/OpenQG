@@ -88,6 +88,9 @@ impl BackgroundForwardModel {
             "omega_b_h2" => Some((c.omega_b_h2, 1e-9, "dimensionless")),
             "r_drag" => Some((c.sound_horizon_drag(), 0.05, "Mpc")),
             "bbn_yp" | "yp" => Some((c.bbn_helium_fraction(), 1e-5, "dimensionless")),
+            // Compressed CMB distance priors (computable from the background alone).
+            "cmb_R" => Some((c.cmb_shift_r(), 0.001, "dimensionless")),
+            "cmb_lA" => Some((c.cmb_acoustic_scale(), 0.01, "dimensionless")),
             _ => {
                 if let Some(z) = parse_z(id, "dm_over_rd") {
                     Some((c.bao_dm_over_rd(z), 0.01, "dimensionless"))

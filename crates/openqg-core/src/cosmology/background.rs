@@ -163,20 +163,45 @@ impl CosmologyParams {
         1291.0 * om.powf(0.251) / (1.0 + 0.659 * om.powf(0.828)) * (1.0 + b1 * ob.powf(b2))
     }
 
-    /// Comoving sound horizon at the drag epoch r_drag (Mpc), by direct integration of the
-    /// sound speed over the early universe: r_s = ∫_{z_drag}^∞ c_s(z)/H(z) dz, with
-    /// c_s = c / sqrt(3 (1 + R)). Integrated in x = ln(1+z) where the integrand decays.
-    pub fn sound_horizon_drag(&self) -> f64 {
-        let z_drag = self.z_drag();
-        let x_lo = (1.0 + z_drag).ln();
+    /// Comoving sound horizon r_s(z) (Mpc), by direct integration of the sound speed over the
+    /// early universe: r_s = ∫_z^∞ c_s(z')/H(z') dz', with c_s = c / sqrt(3 (1 + R)). Integrated
+    /// in x = ln(1+z') where the integrand decays.
+    pub fn sound_horizon(&self, z: f64) -> f64 {
+        let x_lo = (1.0 + z).ln();
         let x_hi = (1.0 + 1.0e8_f64).ln();
-        // integrand in x: c_s/H * (1+z), with z = e^x - 1.
-        let integral = simpson(x_lo, x_hi, 8192, |x| {
-            let z = x.exp() - 1.0;
-            let cs = C_KM_S / (3.0 * (1.0 + self.baryon_photon_ratio(z))).sqrt();
-            cs / self.hubble(z) * (1.0 + z)
-        });
-        integral
+        simpson(x_lo, x_hi, 8192, |x| {
+            let zp = x.exp() - 1.0;
+            let cs = C_KM_S / (3.0 * (1.0 + self.baryon_photon_ratio(zp))).sqrt();
+            cs / self.hubble(zp) * (1.0 + zp)
+        })
+    }
+
+    /// Comoving sound horizon at the drag epoch r_drag (Mpc).
+    pub fn sound_horizon_drag(&self) -> f64 {
+        self.sound_horizon(self.z_drag())
+    }
+
+    /// Redshift of recombination / last scattering z_* (Hu & Sugiyama 1996 fitting formula).
+    pub fn z_star(&self) -> f64 {
+        let om = self.omega_m * self.h * self.h; // ωm
+        let ob = self.omega_b_h2;
+        let g1 = 0.0783 * ob.powf(-0.238) / (1.0 + 39.5 * ob.powf(0.763));
+        let g2 = 0.560 / (1.0 + 21.1 * ob.powf(1.81));
+        1048.0 * (1.0 + 0.00124 * ob.powf(-0.738)) * (1.0 + g1 * om.powf(g2))
+    }
+
+    /// CMB shift parameter R = sqrt(Ω_m) (H0/c) D_M(z_*) (dimensionless) — a compressed CMB
+    /// distance observable (Planck-2018: R ≈ 1.7502).
+    pub fn cmb_shift_r(&self) -> f64 {
+        let z_star = self.z_star();
+        self.omega_m.sqrt() * (self.h0() / C_KM_S) * self.transverse_comoving_distance(z_star)
+    }
+
+    /// CMB acoustic scale ℓ_A = π D_M(z_*) / r_s(z_*) (Planck-2018: ℓ_A ≈ 301.5).
+    pub fn cmb_acoustic_scale(&self) -> f64 {
+        let z_star = self.z_star();
+        std::f64::consts::PI * self.transverse_comoving_distance(z_star)
+            / self.sound_horizon(z_star)
     }
 
     /// Eisenstein & Hu 1998 closed-form fit for r_s (Mpc), used as an independent cross-check
@@ -301,6 +326,18 @@ mod tests {
         // z_drag lands in the expected ~1060 band.
         let zd = c.z_drag();
         assert!(zd > 1000.0 && zd < 1100.0, "z_drag = {zd}");
+    }
+
+    #[test]
+    fn cmb_distance_priors_match_planck() {
+        let c = CosmologyParams::planck_lcdm();
+        let z_star = c.z_star();
+        assert!(z_star > 1080.0 && z_star < 1100.0, "z_star = {z_star}");
+        // Planck-2018 compressed CMB priors: R ≈ 1.7502, ℓ_A ≈ 301.5.
+        let r = c.cmb_shift_r();
+        assert!(r > 1.73 && r < 1.77, "R = {r}");
+        let l_a = c.cmb_acoustic_scale();
+        assert!(l_a > 299.0 && l_a < 304.0, "l_A = {l_a}");
     }
 
     #[test]

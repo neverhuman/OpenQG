@@ -6,7 +6,8 @@
 use anyhow::{Context, Result};
 use openqg_core::cosmology::BackgroundForwardModel;
 use openqg_core::theory::{
-    evolve, perturbation_robustness, proposal_to_theory, Champion, Provenance, Theory,
+    evolve, miscalibrated, perturbation_robustness, proposal_to_theory, Champion, Provenance,
+    Theory,
 };
 use openqg_core::ObservableRecord;
 use serde_json::{json, Value};
@@ -121,6 +122,9 @@ pub fn run_evolve(
         seed,
     );
 
+    // Honesty self-check against the frozen anchor/decoy calibration set.
+    let calibration = miscalibrated(&observables, &model, 0.0);
+
     let report = json!({
         "engine": "openqg-core/theory-evolve",
         "observables": observables_path.display().to_string(),
@@ -132,6 +136,12 @@ pub fn run_evolve(
         "archive_cells": result.archive.len(),
         "seeds": seeds.len(),
         "proposal_demotions": demotions,
+        // Honesty self-check: the frozen anchor/decoy set must calibrate (good anchors survive,
+        // decoys die) for this run's verdicts to be trustworthy.
+        "calibration": {
+            "honest": calibration.is_empty(),
+            "miscalibrated_anchors": calibration,
+        },
         "champion": result.champion.as_ref().map(|c| {
             // Robustness-under-perturbation of the champion (structural stability).
             let robustness =

@@ -22,10 +22,16 @@ use std::path::Path;
 /// scalar-field / coupling sectors and are deliberately NOT faked here.
 fn available_models(has_growth: bool) -> Vec<ModelClass> {
     if has_growth {
+        // v3.0.0 M4: the pre-registered growth-scoreable league. lcdm/w0waCDM are the standard
+        // null + CPL; screened_mg is the leading-order μ0 handle; f_r and nDGP are the genuinely
+        // DERIVED modified-gravity families (scale-dependent μ(a,k) from one fundamental parameter).
+        // EDE and coupled-DE remain triage-only (await the scalar-field / Boltzmann sectors in v3.1).
         vec![
             ModelClass::lcdm_growth(),
             ModelClass::w0wa_cdm_growth(),
             ModelClass::screened_mg(),
+            ModelClass::f_r(),
+            ModelClass::ndgp(),
         ]
     } else {
         vec![ModelClass::lcdm(), ModelClass::w_cdm(), ModelClass::w0wa_cdm()]

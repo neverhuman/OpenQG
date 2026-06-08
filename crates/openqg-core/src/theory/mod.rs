@@ -23,6 +23,7 @@ pub mod pareto;
 pub mod proposal;
 pub mod robustness;
 pub mod unification;
+pub mod unification_data;
 pub mod vetoes;
 
 pub use adversary::Adversary;

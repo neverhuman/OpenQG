@@ -14,6 +14,7 @@
 pub mod adversary;
 pub mod anchors;
 pub mod assessment;
+pub mod certificate;
 pub mod evaluate;
 pub mod evolve;
 pub mod holdout;
@@ -28,6 +29,9 @@ pub mod vetoes;
 pub use adversary::Adversary;
 pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
+pub use certificate::{
+    registered_relations, relation_registry, CertificateOutcome, DerivedCertificate,
+};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evolve::{evolve, evolve_run, Cell, Champion, EvolutionResult, GenerationReport};
 pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
@@ -37,7 +41,7 @@ pub use pareto::{dominates, objectives, pareto_front, Objectives};
 pub use proposal::{parse_proposal, proposal_into_theory, proposal_to_theory, TheoryProposal};
 pub use robustness::perturbation_robustness;
 pub use unification::{unification_report, DomainCheck, UnificationReport};
-pub use vetoes::{run_veto_cascade, VetoReason};
+pub use vetoes::{run_veto_cascade, run_veto_cascade_full, VetoReason};
 
 use crate::cosmology::CosmologyParams;
 use serde::{Deserialize, Serialize};
@@ -49,20 +53,53 @@ use serde::{Deserialize, Serialize};
 pub enum Provenance {
     /// A fundamental constant fixed by a symmetry or first principle of the theory.
     Fundamental,
-    /// Derived from a stated upstream mechanism/relation (the note must be non-empty and name
-    /// the derivation — this is the machine-checkable replacement for self-asserted text).
-    Derived { mechanism: String },
+    /// Derived from a stated upstream mechanism/relation. The `mechanism` note must be non-empty
+    /// and name the derivation (the text-level machine-check). `certificate` optionally binds the
+    /// *value*: a [`DerivedCertificate`] that recomputes the number from cited closed-form inputs.
+    /// A certificate that FAILS verification demotes the parameter to `Free` (killed) in the veto
+    /// cascade; `None` keeps today's text-only behavior but is flagged "uncertified". `#[serde(default)]`
+    /// keeps back-compat: pre-M1 JSON (no `certificate` key) deserializes with `certificate = None`.
+    Derived {
+        mechanism: String,
+        #[serde(default)]
+        certificate: Option<DerivedCertificate>,
+    },
     /// A free fitting parameter — the gray-box trap. Always vetoed.
     Free,
 }
 
 impl Provenance {
     /// True when this provenance is acceptable for a whitebox theory.
+    ///
+    /// NOTE: this is the cheap text-level gate (non-empty mechanism). It does **not** run the
+    /// value-level certificate oracle — that lives in the veto cascade ([`vetoes`]), which demotes a
+    /// `Derived` parameter whose attached certificate fails verification. Keeping the certificate
+    /// check out of `is_whitebox` preserves the existing semantics of every caller.
     pub fn is_whitebox(&self) -> bool {
         match self {
             Provenance::Fundamental => true,
-            Provenance::Derived { mechanism } => !mechanism.trim().is_empty(),
+            Provenance::Derived { mechanism, .. } => !mechanism.trim().is_empty(),
             Provenance::Free => false,
+        }
+    }
+
+    /// Convenience constructor for a text-only (uncertified) derived provenance — equivalent to the
+    /// pre-M1 `Provenance::Derived { mechanism }`. Use [`Self::derived_certified`] to bind a value.
+    pub fn derived(mechanism: impl Into<String>) -> Self {
+        Provenance::Derived {
+            mechanism: mechanism.into(),
+            certificate: None,
+        }
+    }
+
+    /// Convenience constructor for a value-level certified derived provenance.
+    pub fn derived_certified(
+        mechanism: impl Into<String>,
+        certificate: DerivedCertificate,
+    ) -> Self {
+        Provenance::Derived {
+            mechanism: mechanism.into(),
+            certificate: Some(certificate),
         }
     }
 }
@@ -74,6 +111,52 @@ pub struct Parameter {
     pub value: f64,
     pub physical_meaning: String,
     pub provenance: Provenance,
+}
+
+/// Taxonomy of the *role* a numeric degree of freedom plays in a model, for class-aware scoring and
+/// complexity penalties (M1 §5 / plan "Parameter registry + taxonomy"). This is the type + a helper
+/// now; scoring wires it in a later milestone. The roles distinguish a genuinely *derived* constant
+/// (no complexity cost: it is fixed by the theory) from a *physically free* fitted knob (the
+/// gray-box cost the engine penalizes) and from book-keeping roles (nuisance, calibration) and the
+/// adversary traps (a post-search choice, a forbidden fixture value).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParameterRole {
+    /// A constant fixed by the theory's structure and recomputable from inputs (a verified
+    /// `Provenance::Derived` certificate). Carries no complexity penalty.
+    DerivedConstant,
+    /// A value pinned to an external measurement/convention (e.g. a fixed CMB temperature). Fixed,
+    /// not fitted; no complexity penalty.
+    FixedExternal,
+    /// A genuine physical free parameter that the optimizer varies (the gray-box cost). Penalized.
+    PhysicalFree,
+    /// A nuisance parameter marginalized over (e.g. a survey calibration offset). Penalized, but as
+    /// a nuisance, not as a physics claim.
+    Nuisance,
+    /// A calibration/standardization parameter (e.g. a supernova light-curve standardization term).
+    Calibration,
+    /// A choice made *after* seeing the search data (a multiplicity/look-elsewhere hazard). Flagged.
+    PostSearchChoice,
+    /// A value matching a frozen calibration fixture/decoy it must never reproduce (an adversary
+    /// trap: copying the fixture answer instead of deriving it). A hard red flag.
+    ForbiddenFixtureValue,
+}
+
+impl ParameterRole {
+    /// Whether this role contributes to the model's complexity penalty (i.e. it is an effective
+    /// fitted degree of freedom rather than something fixed or derived). Derived constants and
+    /// fixed-external values cost nothing; free/nuisance/calibration knobs do. The two adversary
+    /// traps are counted as costed (they are illegitimate fitted freedom).
+    pub fn counts_as_free_dof(&self) -> bool {
+        match self {
+            ParameterRole::DerivedConstant | ParameterRole::FixedExternal => false,
+            ParameterRole::PhysicalFree
+            | ParameterRole::Nuisance
+            | ParameterRole::Calibration
+            | ParameterRole::PostSearchChoice
+            | ParameterRole::ForbiddenFixtureValue => true,
+        }
+    }
 }
 
 /// One building block of the action, carrying just enough structure for the cheap symbolic
@@ -228,8 +311,53 @@ mod serde_tests {
         assert_eq!(json, "\"fundamental\"");
         let d = serde_json::to_string(&Provenance::Derived {
             mechanism: "m".into(),
+            certificate: None,
         })
         .unwrap();
         assert!(d.contains("derived"));
+    }
+
+    #[test]
+    fn legacy_derived_json_without_certificate_round_trips() {
+        // Back-compat: pre-M1 JSON has no `certificate` key. `#[serde(default)]` fills it with None.
+        let legacy = r#"{"derived":{"mechanism":"conformal coupling"}}"#;
+        let p: Provenance = serde_json::from_str(legacy).expect("legacy derived deserializes");
+        assert_eq!(p, Provenance::derived("conformal coupling"));
+        assert!(p.is_whitebox());
+    }
+
+    #[test]
+    fn certified_derived_round_trips() {
+        let cert = crate::theory::DerivedCertificate {
+            relation: "coupled_de_geff_over_g".into(),
+            inputs: vec![("beta".into(), 0.1)],
+            expected: 1.02,
+            tolerance: 1e-9,
+        };
+        let p = Provenance::derived_certified("coupled-DE fifth force", cert.clone());
+        let json = serde_json::to_string(&p).unwrap();
+        let back: Provenance = serde_json::from_str(&json).unwrap();
+        assert_eq!(p, back);
+        match back {
+            Provenance::Derived {
+                certificate: Some(c),
+                ..
+            } => assert!(c.verify()),
+            _ => panic!("expected certified derived"),
+        }
+    }
+
+    #[test]
+    fn parameter_role_complexity_accounting() {
+        assert!(!ParameterRole::DerivedConstant.counts_as_free_dof());
+        assert!(!ParameterRole::FixedExternal.counts_as_free_dof());
+        assert!(ParameterRole::PhysicalFree.counts_as_free_dof());
+        assert!(ParameterRole::Nuisance.counts_as_free_dof());
+        assert!(ParameterRole::Calibration.counts_as_free_dof());
+        assert!(ParameterRole::PostSearchChoice.counts_as_free_dof());
+        assert!(ParameterRole::ForbiddenFixtureValue.counts_as_free_dof());
+        // serde uses snake_case (matches the registry-role strings in the plan).
+        let j = serde_json::to_string(&ParameterRole::DerivedConstant).unwrap();
+        assert_eq!(j, "\"derived_constant\"");
     }
 }

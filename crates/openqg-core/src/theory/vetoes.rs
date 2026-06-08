@@ -30,6 +30,18 @@ pub enum VetoReason {
     FreeParameter { symbol: String },
     /// A `Derived` parameter whose mechanism note is empty (provenance not machine-checkable).
     UnprovenancedParameter { symbol: String },
+    /// A `Derived` parameter that carries a value-level [`DerivedCertificate`](super::DerivedCertificate)
+    /// which FAILED verification (the claimed number does not equal the cited closed form). The
+    /// parameter is treated as `Free` and killed — this is the M1 "derived, not fit" value-level gate.
+    FailedDerivationCertificate {
+        symbol: String,
+        relation: String,
+        detail: String,
+    },
+    /// A `Derived` parameter with NO certificate: it still passes (text-checked, today's behavior)
+    /// but is flagged so the critic/ledger knows the value was never machine-verified. This variant
+    /// is a *diagnostic*, not a kill — `is_vetoed` ignores it (see [`VetoReason::is_kill`]).
+    UncertifiedDerivedParameter { symbol: String },
     /// Tensor speed excess incompatible with GW170817.
     GravitationalWaveSpeed { alpha_t: f64 },
     /// Wrong-sign kinetic term or non-positive no-ghost determinant (negative-norm ghost).
@@ -43,9 +55,29 @@ pub enum VetoReason {
     MissingScreening { modification_scale: f64 },
 }
 
-/// Run the full deterministic veto cascade. Returns every violation found (empty ⇒ passes), so
-/// the diagnostics are informative for the critic; any non-empty result is a hard kill.
+impl VetoReason {
+    /// Whether this reason is a hard kill. All structural violations are kills; the M1
+    /// `UncertifiedDerivedParameter` is a non-fatal *diagnostic* (today's text-only behavior is
+    /// preserved) and is the sole non-kill reason.
+    pub fn is_kill(&self) -> bool {
+        !matches!(self, VetoReason::UncertifiedDerivedParameter { .. })
+    }
+}
+
+/// Run the full deterministic veto cascade. Returns every **kill** reason found (empty ⇒ passes);
+/// any non-empty result is a hard kill. Non-fatal diagnostics (the M1 "uncertified derived"
+/// flag) are filtered out here to preserve the historical `.is_empty()` ⇒ "passes" contract — use
+/// [`run_veto_cascade_full`] to also see diagnostics.
 pub fn run_veto_cascade(theory: &Theory) -> Vec<VetoReason> {
+    run_veto_cascade_full(theory)
+        .into_iter()
+        .filter(VetoReason::is_kill)
+        .collect()
+}
+
+/// Run the cascade and return every reason, *including* non-fatal diagnostics (e.g. an uncertified
+/// derived parameter). Useful for the critic/ledger; use [`run_veto_cascade`] for the kill verdict.
+pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
     let mut reasons = Vec::new();
 
     // 1. Dimensional homogeneity: every Lagrangian-density term must be mass-dimension 4.
@@ -68,14 +100,38 @@ pub fn run_veto_cascade(theory: &Theory) -> Vec<VetoReason> {
         }
     }
 
-    // 3. Whitebox provenance: no free / unprovenanced parameters (machine-checkable, not text).
+    // 3. Whitebox provenance: no free / unprovenanced parameters (machine-checkable, not text), and
+    //    — M1 — a `Derived` value with a FAILING certificate is treated as `Free` (killed); a
+    //    `Derived` with no certificate keeps today's text-only behavior but emits a diagnostic.
     for p in &theory.parameters {
         match &p.provenance {
             Provenance::Free => reasons.push(VetoReason::FreeParameter {
                 symbol: p.symbol.clone(),
             }),
-            Provenance::Derived { mechanism } if mechanism.trim().is_empty() => {
+            Provenance::Derived { mechanism, .. } if mechanism.trim().is_empty() => {
                 reasons.push(VetoReason::UnprovenancedParameter {
+                    symbol: p.symbol.clone(),
+                })
+            }
+            Provenance::Derived {
+                certificate: Some(cert),
+                ..
+            } => {
+                // Value-level gate: recompute the value from cited closed-form inputs.
+                match cert.check() {
+                    super::certificate::CertificateOutcome::Verified { .. } => {}
+                    other => reasons.push(VetoReason::FailedDerivationCertificate {
+                        symbol: p.symbol.clone(),
+                        relation: cert.relation.clone(),
+                        detail: format!("{other:?}"),
+                    }),
+                }
+            }
+            Provenance::Derived {
+                certificate: None, ..
+            } => {
+                // Text-checked but never value-verified: diagnostic only (not a kill).
+                reasons.push(VetoReason::UncertifiedDerivedParameter {
                     symbol: p.symbol.clone(),
                 })
             }
@@ -163,6 +219,7 @@ mod tests {
             physical_meaning: "dark-sector coupling".into(),
             provenance: Provenance::Derived {
                 mechanism: "   ".into(),
+                certificate: None,
             },
         });
         assert!(run_veto_cascade(&t)
@@ -272,6 +329,7 @@ mod tests {
             physical_meaning: "Planck-mass run amplitude".into(),
             provenance: Provenance::Derived {
                 mechanism: "conformal coupling beta in the chameleon potential".into(),
+                certificate: None,
             },
         });
         assert!(
@@ -279,5 +337,104 @@ mod tests {
             "{:?}",
             run_veto_cascade(&t)
         );
+    }
+
+    use super::super::DerivedCertificate;
+
+    /// Helper: a screened, GW-safe, ghost-free MG theory carrying one `Derived` α_M parameter whose
+    /// provenance we vary per test.
+    fn mg_with_alpha_m(provenance: Provenance) -> Theory {
+        let mut t = Theory::baseline_lcdm();
+        t.id = "mg-cert-test".into();
+        t.alpha = AlphaBasis {
+            alpha_m: 0.05,
+            alpha_b: -0.03,
+            alpha_k: 0.1,
+            alpha_t: 0.0,
+        };
+        t.screening = Some("chameleon".into());
+        t.stability = Stability {
+            kinetic_coefficient: 0.8,
+            q_s: 0.5,
+            sound_speed_sq: 0.4,
+            has_nondegenerate_higher_derivatives: false,
+        };
+        t.parameters.push(Parameter {
+            symbol: "Geff_over_G".into(),
+            value: 1.02,
+            physical_meaning: "coupled-DE effective gravitational coupling".into(),
+            provenance,
+        });
+        t
+    }
+
+    #[test]
+    fn derived_with_passing_certificate_survives() {
+        // β = 0.1 ⇒ coupled-DE G_eff/G = 1.02 — the certificate verifies, so the value-level gate
+        // passes and the theory is not killed.
+        let cert = DerivedCertificate {
+            relation: "coupled_de_geff_over_g".into(),
+            inputs: vec![("beta".into(), 0.1)],
+            expected: 1.02,
+            tolerance: 1e-9,
+        };
+        let t = mg_with_alpha_m(Provenance::derived_certified(
+            "coupled-DE fifth force",
+            cert,
+        ));
+        assert!(
+            run_veto_cascade(&t).is_empty(),
+            "{:?}",
+            run_veto_cascade(&t)
+        );
+    }
+
+    #[test]
+    fn derived_with_failing_certificate_is_demoted_and_killed() {
+        // Same relation/inputs, but the claimed value (1.5) is NOT 1.02 — the certificate fails, so
+        // the parameter is treated as Free and the theory is killed.
+        let cert = DerivedCertificate {
+            relation: "coupled_de_geff_over_g".into(),
+            inputs: vec![("beta".into(), 0.1)],
+            expected: 1.5,
+            tolerance: 1e-3,
+        };
+        let t = mg_with_alpha_m(Provenance::derived_certified(
+            "coupled-DE fifth force",
+            cert,
+        ));
+        let reasons = run_veto_cascade(&t);
+        assert!(
+            reasons.iter().any(|r| matches!(
+                r,
+                VetoReason::FailedDerivationCertificate { symbol, .. } if symbol == "Geff_over_G"
+            )),
+            "expected a failed-certificate kill, got {reasons:?}"
+        );
+        assert!(is_vetoed(&t));
+    }
+
+    #[test]
+    fn derived_without_certificate_passes_but_emits_uncertified_diagnostic() {
+        // Today's behavior is preserved: a text-only Derived param does NOT kill the theory...
+        let t = mg_with_alpha_m(Provenance::derived("a stated mechanism"));
+        assert!(
+            run_veto_cascade(&t).is_empty(),
+            "{:?}",
+            run_veto_cascade(&t)
+        );
+        assert!(!is_vetoed(&t));
+        // ...but the full cascade flags it as uncertified for the critic/ledger.
+        assert!(run_veto_cascade_full(&t).iter().any(|r| matches!(
+            r,
+            VetoReason::UncertifiedDerivedParameter { symbol } if symbol == "Geff_over_G"
+        )));
+    }
+
+    #[test]
+    fn uncertified_diagnostic_is_not_a_kill() {
+        let only_diag = VetoReason::UncertifiedDerivedParameter { symbol: "x".into() };
+        assert!(!only_diag.is_kill());
+        assert!(VetoReason::FreeParameter { symbol: "x".into() }.is_kill());
     }
 }

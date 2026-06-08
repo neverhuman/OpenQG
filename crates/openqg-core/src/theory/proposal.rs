@@ -118,9 +118,9 @@ pub fn proposal_into_theory(p: &TheoryProposal) -> (Theory, Vec<String>) {
                     let mechanism_ok = !q.mechanism.trim().is_empty();
                     let deps_ok = q.derived_from.iter().all(|d| known.iter().any(|k| k == d));
                     if mechanism_ok && deps_ok {
-                        Provenance::Derived {
-                            mechanism: q.mechanism.clone(),
-                        }
+                        // Text-level provenance only; a value-level certificate is attached by
+                        // model-family code in a later milestone (M1 certificate.rs / vetoes.rs).
+                        Provenance::derived(q.mechanism.clone())
                     } else {
                         // Unverifiable derivation ⇒ demote to a free parameter (veto will kill it).
                         demoted.push(q.symbol.clone());

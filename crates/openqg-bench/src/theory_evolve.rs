@@ -18,7 +18,7 @@ use std::path::Path;
 fn provenance_label(p: &Provenance) -> String {
     match p {
         Provenance::Fundamental => "fundamental".into(),
-        Provenance::Derived { mechanism } => format!("derived: {mechanism}"),
+        Provenance::Derived { mechanism, .. } => format!("derived: {mechanism}"),
         Provenance::Free => "free".into(),
     }
 }

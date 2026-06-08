@@ -53,9 +53,7 @@ fn good_screened_mg() -> Theory {
         symbol: "alpha_M0".into(),
         value: 0.05,
         physical_meaning: "Planck-mass run amplitude".into(),
-        provenance: Provenance::Derived {
-            mechanism: "conformal coupling beta in the chameleon potential".into(),
-        },
+        provenance: Provenance::derived("conformal coupling beta in the chameleon potential"),
     });
     t
 }

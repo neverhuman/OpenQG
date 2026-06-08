@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# OpenQG jankurai pre-commit gate (repo-local, version-controlled).
+#
+# Rejects any commit that ADDS caps or findings versus the accepted baseline. This is a
+# regression ratchet: the repo's pre-existing accepted debt is tolerated, but a change can never
+# make the audit worse — it can only hold or improve it. ("Reject any commit that adds
+# caps/issues so the agent can fix.") As debt is burned down, run `just audit-baseline` to lower
+# the accepted floor so regressions can never creep back.
+#
+# A full advisory audit runs (~3-4s warm); it degrades to ADVISORY past the timeout so a commit
+# never hangs. Note: jankurai's own `--mode ratchet` also enforces the absolute minimum_score
+# (85) and so would block every commit until the repo reaches 85; this gate compares deltas
+# instead, which is what lets debt be paid down incrementally.
+#
+# Install:  just install-hooks   (sets core.hooksPath to ops/git-hooks)
+# Bypass (sparingly):  JANKURAI_SKIP_HOOKS=1 git commit   OR   git commit --no-verify
+set -uo pipefail
+
+[[ "${JANKURAI_SKIP_HOOKS:-0}" == "1" ]] && exit 0
+command -v jankurai >/dev/null 2>&1 || { echo "⚠ jankurai not on PATH; skipping audit gate." >&2; exit 0; }
+command -v jq >/dev/null 2>&1 || { echo "⚠ jq not on PATH; skipping audit gate." >&2; exit 0; }
+
+repo="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$repo" || exit 0
+
+baseline="target/jankurai/accepted-baseline.json"
+if [[ ! -s "$baseline" ]]; then
+  echo "⚠ no jankurai accepted baseline ($baseline); run 'just audit-baseline'. Commit allowed." >&2
+  exit 0
+fi
+
+timeout_s="${JANKURAI_HOOK_TIMEOUT:-120}"
+out="$(mktemp -d)"
+trap 'rm -rf "$out"' EXIT
+
+timeout "$timeout_s" jankurai audit . --mode advisory --json "$out/cur.json" --md "$out/cur.md" \
+  --no-score-history >/dev/null 2>"$out/err"
+rc=$?
+if [[ $rc == 124 ]]; then
+  echo "⚠ jankurai audit exceeded ${timeout_s}s (cold cache?). Commit allowed; run 'just audit-ratchet' before pushing." >&2
+  exit 0
+fi
+if [[ ! -s "$out/cur.json" ]]; then
+  echo "⚠ jankurai audit produced no report; commit allowed." >&2
+  [[ -s "$out/err" ]] && sed -n '1,4p' "$out/err" >&2
+  exit 0
+fi
+
+jqn() { jq -r "$1" "$2" 2>/dev/null || echo 0; }
+cur_caps=$(jqn '(.caps_applied // []) | length' "$out/cur.json")
+base_caps=$(jqn '(.caps_applied // []) | length' "$baseline")
+cur_find=$(jqn '(.findings // []) | length' "$out/cur.json")
+base_find=$(jqn '(.findings // []) | length' "$baseline")
+cur_hard=$(jqn '[(.findings // [])[] | select(.hardness=="hard")] | length' "$out/cur.json")
+base_hard=$(jqn '[(.findings // [])[] | select(.hardness=="hard")] | length' "$baseline")
+
+if (( cur_caps > base_caps )) || (( cur_find > base_find )) || (( cur_hard > base_hard )); then
+  echo "" >&2
+  echo "✗ jankurai pre-commit gate BLOCKED: this change adds caps/issues vs the accepted baseline." >&2
+  echo "    caps:        baseline=${base_caps}  now=${cur_caps}" >&2
+  echo "    findings:    baseline=${base_find}  now=${cur_find}" >&2
+  echo "    hard issues: baseline=${base_hard}  now=${cur_hard}" >&2
+  newcaps=$(comm -13 \
+    <(jq -r '(.caps_applied // [])[]' "$baseline" 2>/dev/null | sort) \
+    <(jq -r '(.caps_applied // [])[]' "$out/cur.json" 2>/dev/null | sort) | paste -sd, -)
+  [[ -n "$newcaps" ]] && echo "    new caps: ${newcaps}" >&2
+  echo "  → fix the new findings, or (after intentionally accepting them) refresh: just audit-baseline" >&2
+  echo "  → emergency bypass: JANKURAI_SKIP_HOOKS=1 git commit   (or: git commit --no-verify)" >&2
+  exit 1
+fi
+
+if (( cur_caps < base_caps )) || (( cur_find < base_find )); then
+  echo "✓ jankurai gate: improved (caps ${base_caps}→${cur_caps}, findings ${base_find}→${cur_find}). Run 'just audit-baseline' to lock it in." >&2
+fi
+exit 0

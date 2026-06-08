@@ -68,6 +68,11 @@ audit-baseline:
 audit-ratchet:
 	jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 
+install-hooks:
+	git config core.hooksPath ops/git-hooks
+	chmod +x ops/git-hooks/pre-commit
+	@echo "installed: core.hooksPath=ops/git-hooks (jankurai regression gate active)"
+
 security:
 	bash tools/security-lane.sh
 

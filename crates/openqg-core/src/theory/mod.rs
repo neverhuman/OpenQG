@@ -25,6 +25,7 @@ pub mod proposal;
 pub mod robustness;
 pub mod sectors;
 pub mod unification;
+pub mod unification_data;
 pub mod vetoes;
 
 pub use adversary::Adversary;

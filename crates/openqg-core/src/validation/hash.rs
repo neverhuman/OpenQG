@@ -172,5 +172,9 @@ fn is_skipped_source_tree(path: &Path) -> bool {
     let Some(file_name) = path.file_name().and_then(|s| s.to_str()) else {
         return false;
     };
-    matches!(file_name, ".git" | "target" | ".jekko")
+    // `ZYAL/` is the genome-evolution engine's own input tree (runbooks with a distinct DSL
+    // schema, read by the engine and validated by it + `just zyal-test`). It is a separate
+    // subsystem from the canonical agent control-plane runbooks under `agent/zyal/`, so this
+    // layout validator skips it rather than rejecting engine inputs as misplaced agent tools.
+    matches!(file_name, ".git" | "target" | ".jekko" | "ZYAL")
 }

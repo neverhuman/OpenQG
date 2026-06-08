@@ -18,7 +18,7 @@
 //! Determinism: the simplex starts from each free parameter's `init`/step, Nelder–Mead is
 //! coefficient-fixed, and the forward model is pure — so a fit reproduces bit-for-bit.
 
-use crate::cosmology::{CosmologyParams, ForwardModel};
+use crate::cosmology::{CosmologyParams, ForwardModel, MgFamily};
 use crate::scoring::{score_metrics_cov, LikelihoodData};
 use serde::Serialize;
 
@@ -55,6 +55,11 @@ fn set_param(c: &mut CosmologyParams, name: &str, v: f64) -> bool {
         "omega_k" => c.omega_k = v,
         "sigma8" => c.sigma8 = v,
         "mu0" => c.mu0 = v,
+        // M4 derived-MG fundamental parameters (active only when the model's `base.mg_family` selects
+        // the family). f(R) fits log₁₀|f_R0| on a log scale; nDGP fits the dimensionless crossover.
+        "fr_log10_fr0" => c.fr_log10_fr0 = v,
+        "fr_n" => c.fr_n = v,
+        "ndgp_omega_rc" => c.ndgp_omega_rc = v,
         _ => return false,
     }
     true
@@ -151,6 +156,58 @@ impl ModelClass {
                 FreeParam::new("omega_m", 0.315, 0.20, 0.45),
                 FreeParam::new("sigma8", 0.811, 0.60, 1.00),
                 FreeParam::new("mu0", 0.0, -1.0, 1.0),
+            ],
+        }
+    }
+
+    /// f(R) Hu–Sawicki `{n, f_R0}` — a *genuinely-derived* modified-gravity family (plan M4). The
+    /// growth modification is NOT a free `μ0`: it is the scale-dependent `μ(a,k)` *computed* from the
+    /// scalaron of the f(R) action (Hu & Sawicki 2007, arXiv:0705.1158; `theory/sectors/fr.rs`). The
+    /// fundamental free parameters are the index `n` and the present-day amplitude (fit as
+    /// `log₁₀|f_R0|`); `h, Ω_m, σ8` are the background/normalization. As `|f_R0| → 0` this *is* ΛCDM.
+    pub fn f_r() -> Self {
+        let mut base = CosmologyParams::planck_lcdm();
+        base.mg_family = MgFamily::FrHuSawicki;
+        base.fr_n = 1.0;
+        base.fr_log10_fr0 = -5.0; // |f_R0| = 1e-5, a mid-range cosmological value
+        ModelClass {
+            id: "fr_hu_sawicki".into(),
+            description: "f(R) Hu–Sawicki {n, f_R0}: derived scalaron μ(a,k), chameleon-screened"
+                .into(),
+            base,
+            free: vec![
+                FreeParam::new("h", 0.674, 0.55, 0.80),
+                FreeParam::new("omega_m", 0.315, 0.20, 0.45),
+                FreeParam::new("sigma8", 0.811, 0.60, 1.00),
+                // The two fundamental action parameters. log₁₀|f_R0| ∈ [−20, −3.3]: the lower bound
+                // is the GR limit, the upper is near current cosmological bounds (|f_R0|~5e-4).
+                FreeParam::new("fr_log10_fr0", -5.0, -20.0, -3.3),
+                FreeParam::new("fr_n", 1.0, 1.0, 4.0),
+            ],
+        }
+    }
+
+    /// nDGP `{r_c}` — a *genuinely-derived* modified-gravity family (plan M4). The growth modification
+    /// is the QSA coupling `μ(a) = 1 + 1/(3β(a))` *computed* from the single fundamental brane-crossover
+    /// scale (Koyama & Maartens 2006, astro-ph/0511634; `theory/sectors/ndgp.rs`), fit as the
+    /// dimensionless `Ω_rc = 1/(4 H₀² r_c²)`. Normal branch ⇒ enhanced growth; `Ω_rc → 0` (`r_c → ∞`)
+    /// *is* ΛCDM. Vainshtein-screened on small scales.
+    pub fn ndgp() -> Self {
+        let mut base = CosmologyParams::planck_lcdm();
+        base.mg_family = MgFamily::Ndgp;
+        base.ndgp_omega_rc = 0.1;
+        ModelClass {
+            id: "ndgp".into(),
+            description: "nDGP {r_c}: derived μ(a)=1+1/(3β), normal branch, Vainshtein-screened"
+                .into(),
+            base,
+            free: vec![
+                FreeParam::new("h", 0.674, 0.55, 0.80),
+                FreeParam::new("omega_m", 0.315, 0.20, 0.45),
+                FreeParam::new("sigma8", 0.811, 0.60, 1.00),
+                // The single fundamental scale. Ω_rc ∈ [0, 2]: 0 is GR (r_c→∞); 2 is a strong
+                // modification (H₀ r_c ≈ 0.35).
+                FreeParam::new("ndgp_omega_rc", 0.1, 0.0, 2.0),
             ],
         }
     }
@@ -776,6 +833,38 @@ mod tests {
         );
     }
 
+    // --- v3.0.0 M4: the derived f(R) / nDGP families (genuine action-level genome) ---
+
+    #[test]
+    fn set_param_handles_the_derived_mg_fundamental_params() {
+        // The M4 fundamental parameters must reach the forward model through set_param.
+        let mut c = CosmologyParams::planck_lcdm();
+        assert!(set_param(&mut c, "fr_log10_fr0", -4.0));
+        assert!(set_param(&mut c, "fr_n", 2.0));
+        assert!(set_param(&mut c, "ndgp_omega_rc", 0.3));
+        assert_eq!(c.fr_log10_fr0, -4.0);
+        assert_eq!(c.fr_n, 2.0);
+        assert_eq!(c.ndgp_omega_rc, 0.3);
+    }
+
+    #[test]
+    fn fr_and_ndgp_classes_derive_growth_not_free_alphas() {
+        // The derived families' genome is the action-level fundamental parameter, NOT a free μ0/α.
+        let fr = ModelClass::f_r();
+        assert!(fr.free.iter().any(|p| p.name == "fr_log10_fr0"));
+        assert!(fr.free.iter().any(|p| p.name == "fr_n"));
+        assert!(
+            !fr.free.iter().any(|p| p.name == "mu0"),
+            "f(R) must not fit a free μ0"
+        );
+        let ndgp = ModelClass::ndgp();
+        assert!(ndgp.free.iter().any(|p| p.name == "ndgp_omega_rc"));
+        assert!(
+            !ndgp.free.iter().any(|p| p.name == "mu0"),
+            "nDGP must not fit a free μ0"
+        );
+    }
+
     #[test]
     fn multistart_is_deterministic() {
         let data = tier0();
@@ -819,6 +908,74 @@ mod tests {
         assert!(
             fit.boundary_hit,
             "a parameter pinned to its bound must set boundary_hit"
+        );
+    }
+
+    #[test]
+    fn fr_fit_recovers_an_enhanced_growth_signal() {
+        // Generate fσ8 from an f(R) truth with |f_R0| = 1e-4 (enhanced growth); the f(R) fit must
+        // reach a good χ² and recover a non-GR amplitude (log₁₀|f_R0| well above the GR floor).
+        let mut truth = CosmologyParams::planck_lcdm();
+        truth.mg_family = MgFamily::FrHuSawicki;
+        truth.fr_n = 1.0;
+        truth.fr_log10_fr0 = -4.0;
+        let data = synth_growth(&truth, 0.003);
+        let fit = fit_model(&ModelClass::f_r(), &data, &BackgroundForwardModel);
+        assert!(fit.chi2 < 8.0, "f(R) chi2={} on its own data", fit.chi2);
+        let lf = fit
+            .best_params
+            .iter()
+            .find(|(n, _)| n == "fr_log10_fr0")
+            .unwrap()
+            .1;
+        assert!(
+            lf > -7.0,
+            "f(R) fit should recover an active |f_R0|, got log₁₀|f_R0|={lf}"
+        );
+    }
+
+    #[test]
+    fn ndgp_fit_recovers_the_crossover_scale() {
+        // Generate fσ8 from an nDGP truth (Ω_rc = 0.5, enhanced growth); the nDGP fit must reach a
+        // good χ² and recover a non-zero crossover (Ω_rc well above the GR floor of 0).
+        let mut truth = CosmologyParams::planck_lcdm();
+        truth.mg_family = MgFamily::Ndgp;
+        truth.ndgp_omega_rc = 0.5;
+        let data = synth_growth(&truth, 0.003);
+        let fit = fit_model(&ModelClass::ndgp(), &data, &BackgroundForwardModel);
+        assert!(fit.chi2 < 8.0, "nDGP chi2={} on its own data", fit.chi2);
+        let orc = fit
+            .best_params
+            .iter()
+            .find(|(n, _)| n == "ndgp_omega_rc")
+            .unwrap()
+            .1;
+        assert!(
+            orc > 0.1,
+            "nDGP fit should recover a non-zero Ω_rc, got {orc}"
+        );
+    }
+
+    #[test]
+    fn derived_families_recover_lcdm_growth_in_their_gr_limit() {
+        // With the fundamental parameter at its GR value, the derived family's fσ8 must equal plain
+        // ΛCDM — proving "vanishing fundamental parameter ⇒ literally ΛCDM", not a near-miss.
+        let lcdm_fs8 = CosmologyParams::planck_lcdm().growth_fsigma8(0.5);
+
+        let mut fr = CosmologyParams::planck_lcdm();
+        fr.mg_family = MgFamily::FrHuSawicki;
+        fr.fr_log10_fr0 = -20.0; // GR floor
+        assert!(
+            (fr.growth_fsigma8_kref(0.5) - lcdm_fs8).abs() < 1e-6,
+            "f(R) GR limit"
+        );
+
+        let mut nd = CosmologyParams::planck_lcdm();
+        nd.mg_family = MgFamily::Ndgp;
+        nd.ndgp_omega_rc = 0.0; // r_c → ∞
+        assert!(
+            (nd.growth_fsigma8_kref(0.5) - lcdm_fs8).abs() < 1e-9,
+            "nDGP GR limit"
         );
     }
 }

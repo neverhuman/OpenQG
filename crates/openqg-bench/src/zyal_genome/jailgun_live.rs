@@ -72,7 +72,21 @@ pub(crate) fn run_live_call_attempt(
     prompt: &str,
     timeout_seconds: u64,
     attempt: usize,
+    started_at: &str,
+) -> Result<LiveAttempt> {
+    run_live_call_attempt_env(command, prompt, timeout_seconds, attempt, started_at, &[])
+}
+
+/// As [`run_live_call_attempt`], but sets extra environment variables on the spawned process — used
+/// to forward `JEKKO_RUN_QUALITY_BAND=top20` so a hard-stage/critic call routes to the top-20%
+/// jnoccio models (M6 ZYAL hardening).
+pub(crate) fn run_live_call_attempt_env(
+    command: &[String],
+    prompt: &str,
+    timeout_seconds: u64,
+    attempt: usize,
     _started_at: &str,
+    extra_env: &[(String, String)],
 ) -> Result<LiveAttempt> {
     if command.is_empty() {
         bail!("live command is empty");
@@ -83,6 +97,9 @@ pub(crate) fn run_live_call_attempt(
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    for (key, value) in extra_env {
+        cmd.env(key, value);
+    }
     #[cfg(unix)]
     // SAFETY: pre_exec runs in the forked child before exec; setsid() is async-signal-safe and
     // the closure performs no allocation or non-reentrant work beyond the single libc call.

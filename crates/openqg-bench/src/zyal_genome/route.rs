@@ -45,6 +45,19 @@ impl RouteTier {
         Self::parse(s).unwrap_or(RouteTier::Standard)
     }
 
+    /// The jnoccio-fusion **quality band** this tier requests, forwarded to the gateway via the
+    /// `JEKKO_RUN_QUALITY_BAND` env var so the router constrains model selection to that win-rate
+    /// percentile (see `~/jekko` `jankurai-runner/src/model_policy.rs`: `top10|top20|top50|...`).
+    /// `Top20Pct` ⇒ `"top20"` (the top-20%-performing jnoccio models); the other tiers impose no
+    /// band (`None`). This is what makes `route_tier` actually influence WHICH model runs, rather
+    /// than only being recorded in the ledger.
+    pub fn quality_band(self) -> Option<&'static str> {
+        match self {
+            RouteTier::Top20Pct => Some("top20"),
+            RouteTier::Standard | RouteTier::Manual => None,
+        }
+    }
+
     /// True if two tier strings refer to the same tier under the alias table (the comparison a
     /// drift-safe equality check should use instead of `==` on raw strings).
     pub fn same_tier(a: &str, b: &str) -> bool {

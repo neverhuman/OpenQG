@@ -436,7 +436,16 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                     .unwrap_or("")
                     .to_string();
                 let before = candidate_score(&promoted[i]);
-                let verdict = run_live_critique(&promoted[i], live_timeout);
+                // M6: multi-call voting on the top-20% jnoccio models tames run-to-run LLM
+                // stochasticity (the median is robust to an outlier call). Default 3 votes;
+                // ZYAL_CRITIC_VOTES overrides (use 3–5). One vote reproduces the single-call path.
+                let voted =
+                    run_live_critique_voted(&promoted[i], live_timeout, env_usize("ZYAL_CRITIC_VOTES", 3));
+                let votes = voted.votes;
+                let ok_votes = voted.ok_votes;
+                let falsifiability_spread = voted.falsifiability_spread;
+                let plausibility_spread = voted.plausibility_spread;
+                let verdict = voted.verdict;
                 let live_factor = (verdict.falsifiability + verdict.plausibility) / 2.0;
                 let mut after = before * (0.4 + 0.6 * live_factor);
                 if !verdict.fatal_flaw.trim().is_empty() && verdict.plausibility < 0.4 {
@@ -472,6 +481,11 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                     "falsifiability": verdict.falsifiability,
                     "plausibility": verdict.plausibility,
                     "fatal_flaw": verdict.fatal_flaw,
+                    "quality_band": "top20",
+                    "votes": votes,
+                    "ok_votes": ok_votes,
+                    "falsifiability_spread": round6(falsifiability_spread),
+                    "plausibility_spread": round6(plausibility_spread),
                     "final_before": round6(before),
                     "final_after": round6(after),
                 }))?;

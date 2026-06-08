@@ -19,8 +19,24 @@ likelihood backend.
 `bbn_yp` — primordial helium mass fraction Y_p from Aver et al. 2015 (JCAP 07 011,
 arXiv:1503.08146), the standard BBN abundance anchor.
 
+## `sh0es-h0.jsonl` — local distance-ladder H0 (Tier-2)
+The Cepheid-calibrated local Hubble constant H0 = 73.04 ± 1.04 km/s/Mpc (Riess et al. 2022, ApJL
+934 L7, arXiv:2112.04876). Added as the scalar `h0` observable; in the league it stresses ΛCDM and
+makes the H0 tension quantitative.
+
+## `growth-rsd.jsonl` — redshift-space-distortion fσ8 (Tier-1)
+Linear growth-rate × amplitude fσ8(z) from RSD: 6dFGS (Beutler et al. 2012), the BOSS DR12
+consensus z = 0.38/0.51/0.61 (Alam et al. 2017, MNRAS 470 2617), and eBOSS DR16 QSO z = 1.48 (Hou
+et al. 2021). Uses the `fsigma8@<z>` id convention. Per-point (diagonal) uncertainties; the BOSS
+DR12 intra-sample covariance is a labeled follow-up via the `--covariance` flag.
+
+## `wl-s8.jsonl` — weak-lensing S8 (Tier-1)
+The weak-lensing clustering amplitude S8 = σ8 √(Ω_m/0.3) = 0.776 ± 0.017 from the DES Year-3 3×2pt
+analysis (Abbott et al. 2022, PRD 105 023520). Scalar `s8` observable.
+
 ## Tiering
-These are **Tier-0**: exactly computable from the FLRW background alone (distances + sound
-horizon + BBN), so the default pure-Rust engine can score them deterministically. Tier-1 (CMB
-C_ℓ) and Tier-2 (DES/KiDS 3×2pt for S8) require the optional Boltzmann backend and full
-covariances — see `docs/research/forward-model-and-unification.md`.
+**Tier-0** (BAO, SNe μ(z), sound horizon, BBN) is exactly computable from the FLRW background.
+**Tier-1 linear growth** (fσ8, S8) is now also in-repo: the background+growth forward model
+integrates the linear growth equation with the GW170817-safe `μ(a)` modified-gravity handle
+(`openqg_core::cosmology::growth`). The full CMB C_ℓ and nonlinear P(k) still require the optional
+Boltzmann backend — see `docs/boltzmann-backend.md` and `docs/theory-league.md`.

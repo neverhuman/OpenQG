@@ -14,15 +14,30 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
 
-/// The model classes currently scoreable on the background forward model. As the growth / scalar
-/// sectors land (Tiers 1–2), the modified-gravity, early-dark-energy and coupled-dark-energy
-/// classes join this list (`docs/zyal-next-level-design.md` §3).
-fn available_models() -> Vec<ModelClass> {
-    vec![
-        ModelClass::lcdm(),
-        ModelClass::w_cdm(),
-        ModelClass::w0wa_cdm(),
-    ]
+/// The model classes scoreable on the given data. When growth observables (fσ8 / S8) are present
+/// the growth-aware variants are used — σ8 becomes a fitted parameter and the screened modified-
+/// gravity class (free μ0) joins the league. On geometry-only data the background variants are
+/// used so σ8 is not an unconstrained nuisance inflating the parameter count. The early-dark-energy
+/// and coupled-dark-energy classes (`docs/zyal-next-level-design.md` §3.3, §3.5) await the
+/// scalar-field / coupling sectors and are deliberately NOT faked here.
+fn available_models(has_growth: bool) -> Vec<ModelClass> {
+    if has_growth {
+        vec![
+            ModelClass::lcdm_growth(),
+            ModelClass::w0wa_cdm_growth(),
+            ModelClass::screened_mg(),
+        ]
+    } else {
+        vec![ModelClass::lcdm(), ModelClass::w_cdm(), ModelClass::w0wa_cdm()]
+    }
+}
+
+/// Does the dataset contain growth-of-structure observables (fσ8 / S8 / σ8)?
+fn has_growth_observables(obs: &[ObservableRecord]) -> bool {
+    obs.iter().any(|o| {
+        let id = o.observable_id.as_str();
+        id.starts_with("fsigma8") || id == "s8" || id == "S8" || id == "sigma8"
+    })
 }
 
 fn load_observables(paths: &[std::path::PathBuf]) -> Result<Vec<ObservableRecord>> {
@@ -93,7 +108,7 @@ pub fn run_league(
         blocks,
     };
 
-    let models = available_models();
+    let models = available_models(has_growth_observables(&data.observables));
     let rows = model_league(&models, &data, &BackgroundForwardModel, reference);
 
     // Console summary.

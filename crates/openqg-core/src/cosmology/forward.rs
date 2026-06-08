@@ -91,6 +91,10 @@ impl BackgroundForwardModel {
             // Compressed CMB distance priors (computable from the background alone).
             "cmb_R" => Some((c.cmb_shift_r(), 0.001, "dimensionless")),
             "cmb_lA" => Some((c.cmb_acoustic_scale(), 0.01, "dimensionless")),
+            // Growth-of-structure observables (Tier-1): linear growth integrated from the
+            // background + the late-time μ0 modified-gravity handle.
+            "s8" | "S8" => Some((c.s8(), 1e-4, "dimensionless")),
+            "sigma8" => Some((c.sigma8, 1e-6, "dimensionless")),
             _ => {
                 if let Some(z) = parse_z(id, "dm_over_rd") {
                     Some((c.bao_dm_over_rd(z), 0.01, "dimensionless"))
@@ -100,6 +104,8 @@ impl BackgroundForwardModel {
                     Some((c.bao_dv_over_rd(z), 0.01, "dimensionless"))
                 } else if let Some(z) = parse_z(id, "mu") {
                     Some((c.distance_modulus(z), 1e-4, "mag"))
+                } else if let Some(z) = parse_z(id, "fsigma8") {
+                    Some((c.growth_fsigma8(z), 1e-4, "dimensionless"))
                 } else {
                     None
                 }
@@ -168,14 +174,29 @@ mod tests {
 
     #[test]
     fn omits_observables_it_cannot_derive_rather_than_faking() {
-        // A background-only model must NOT invent s8 (needs growth) — coverage stays honest.
+        // The background+growth model must NOT invent a full-CMB-spectrum observable (a C_ℓ band
+        // power needs the Boltzmann backend) — coverage stays honest.
         let model = BackgroundForwardModel;
         let c = CosmologyParams::planck_lcdm();
         let preds = model
-            .predict(&c, &["s8".to_string(), "h0".to_string()])
+            .predict(&c, &["cl_tt@220".to_string(), "h0".to_string()])
             .unwrap();
         assert_eq!(preds.len(), 1);
         assert_eq!(preds[0].observable_id, "h0");
+    }
+
+    #[test]
+    fn predicts_growth_observables() {
+        let model = BackgroundForwardModel;
+        let c = CosmologyParams::planck_lcdm();
+        let ids: Vec<String> = ["fsigma8@0.5", "s8", "sigma8"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let preds = model.predict(&c, &ids).unwrap();
+        assert_eq!(preds.len(), 3);
+        let fs8 = preds.iter().find(|p| p.observable_id == "fsigma8@0.5").unwrap();
+        assert!(fs8.value > 0.40 && fs8.value < 0.50, "fσ8 = {}", fs8.value);
     }
 
     #[test]

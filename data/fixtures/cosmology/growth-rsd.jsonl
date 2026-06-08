@@ -1,0 +1,5 @@
+{"observable_id":"fsigma8@0.067","kind":"rsd","value":0.423,"uncertainty":0.055,"unit":"dimensionless","source":"beutler2012_6dfgs_mnras_423_3430"}
+{"observable_id":"fsigma8@0.38","kind":"rsd","value":0.497,"uncertainty":0.045,"unit":"dimensionless","source":"alam2017_boss_dr12_consensus_mnras_470_2617"}
+{"observable_id":"fsigma8@0.51","kind":"rsd","value":0.458,"uncertainty":0.038,"unit":"dimensionless","source":"alam2017_boss_dr12_consensus_mnras_470_2617"}
+{"observable_id":"fsigma8@0.61","kind":"rsd","value":0.436,"uncertainty":0.034,"unit":"dimensionless","source":"alam2017_boss_dr12_consensus_mnras_470_2617"}
+{"observable_id":"fsigma8@1.48","kind":"rsd","value":0.462,"uncertainty":0.045,"unit":"dimensionless","source":"hou2021_eboss_dr16_qso_mnras_500_1201"}

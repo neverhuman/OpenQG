@@ -121,6 +121,40 @@ impl ModelClass {
         }
     }
 
+    /// ΛCDM with the growth sector active: adds σ8 (the clustering amplitude) as a free parameter
+    /// so the fit can be scored against fσ8 / S8 growth data.
+    pub fn lcdm_growth() -> Self {
+        let mut m = Self::lcdm();
+        m.free.push(FreeParam::new("sigma8", 0.811, 0.60, 1.00));
+        m
+    }
+
+    /// w0waCDM with the growth sector active (free σ8 in addition to H0, Ω_m, w0, wa).
+    pub fn w0wa_cdm_growth() -> Self {
+        let mut m = Self::w0wa_cdm();
+        m.free.push(FreeParam::new("sigma8", 0.811, 0.60, 1.00));
+        m
+    }
+
+    /// Screened modified gravity: a GR-Λ *expansion* history with a modified effective
+    /// gravitational coupling for growth, μ(a) = 1 + μ0 ρ_DE(a)/ρ_DE0 (the GW170817-safe, screened
+    /// Horndeski / α-basis class at leading order — `docs/zyal-next-level-design.md` §3.4). Free:
+    /// H0, Ω_m, σ8, μ0. A negative μ0 (weaker late-time gravity) is the leading S8-tension reliever.
+    pub fn screened_mg() -> Self {
+        ModelClass {
+            id: "screened_mg".into(),
+            description: "GR-Λ background + modified growth μ(a)=1+μ0 ρ_DE(a)/ρ_DE0 (screened, α_T=0)"
+                .into(),
+            base: CosmologyParams::planck_lcdm(),
+            free: vec![
+                FreeParam::new("h", 0.674, 0.55, 0.80),
+                FreeParam::new("omega_m", 0.315, 0.20, 0.45),
+                FreeParam::new("sigma8", 0.811, 0.60, 1.00),
+                FreeParam::new("mu0", 0.0, -1.0, 1.0),
+            ],
+        }
+    }
+
     /// Build the [`CosmologyParams`] for a given free-parameter vector (clamped to bounds).
     fn params_for(&self, x: &[f64]) -> CosmologyParams {
         let mut c = self.base.clone();

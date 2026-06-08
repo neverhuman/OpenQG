@@ -49,6 +49,23 @@ pub struct CosmologyParams {
     pub wa: f64,
     /// Curvature density today Ωk (0 ⇒ spatially flat).
     pub omega_k: f64,
+    /// Present-day linear matter-clustering amplitude σ8 (sets the growth normalization). Not
+    /// derivable from the background alone (it follows from the primordial amplitude A_s and the
+    /// transfer function), so it is a genuine cosmological parameter. Default: Planck-2018 σ8.
+    #[serde(default = "default_sigma8")]
+    pub sigma8: f64,
+    /// Late-time modified-gravity growth amplitude μ0 in the standard μ(a) = 1 + μ0 ρ_DE(a)/ρ_DE0
+    /// parametrization (Planck-2018 MG, arXiv:1807.06209): the effective gravitational coupling for
+    /// matter perturbations is enhanced (μ0 > 0) or suppressed (μ0 < 0). GR ⇒ 0. This is the
+    /// leading-order, GW170817-safe (α_T = 0) handle the background+growth model can score; the
+    /// exact α-basis G_eff is the Boltzmann backend's job (`docs/boltzmann-backend.md`).
+    #[serde(default)]
+    pub mu0: f64,
+}
+
+/// Planck-2018 σ8 default for deserializing theories written before the growth sector existed.
+fn default_sigma8() -> f64 {
+    0.811
 }
 
 impl CosmologyParams {
@@ -63,6 +80,8 @@ impl CosmologyParams {
             w0: -1.0,
             wa: 0.0,
             omega_k: 0.0,
+            sigma8: 0.811,
+            mu0: 0.0,
         }
     }
 
@@ -88,7 +107,7 @@ impl CosmologyParams {
     }
 
     /// Dark-energy density evolution ρDE(z)/ρDE(0) for the CPL parametrization.
-    fn de_density_ratio(&self, z: f64) -> f64 {
+    pub(crate) fn de_density_ratio(&self, z: f64) -> f64 {
         let a = 1.0 / (1.0 + z);
         // ρDE(a)/ρDE0 = a^{-3(1+w0+wa)} exp(-3 wa (1-a)).
         a.powf(-3.0 * (1.0 + self.w0 + self.wa)) * (-3.0 * self.wa * (1.0 - a)).exp()
@@ -319,6 +338,8 @@ mod tests {
             w0: -1.0,
             wa: 0.0,
             omega_k: 0.0,
+            sigma8: 0.811,
+            mu0: 0.0,
         };
         let dc = c.comoving_distance(1.0);
         assert!(dc > 3250.0 && dc < 3450.0, "D_C(z=1) = {dc} Mpc");

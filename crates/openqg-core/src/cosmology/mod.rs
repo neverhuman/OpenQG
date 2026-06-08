@@ -4,8 +4,10 @@
 
 mod background;
 mod forward;
+mod growth;
 mod subprocess;
 
 pub use background::{CosmologyParams, C_KM_S};
 pub use forward::{BackgroundForwardModel, ForwardKind, ForwardManifest, ForwardModel};
+pub use growth::GrowthHistory;
 pub use subprocess::SubprocessForwardModel;

@@ -176,9 +176,19 @@ impl CosmologyParams {
         })
     }
 
-    /// Comoving sound horizon at the drag epoch r_drag (Mpc).
+    /// Comoving sound horizon at the drag epoch r_drag (Mpc), via the Aubourg et al. 2015
+    /// (arXiv:1411.1074, eq. 16) fitting formula calibrated to CAMB (accurate to ~0.1% over the
+    /// relevant parameter range). NOTE: we deliberately do NOT use `sound_horizon(z_drag())` here
+    /// — the EH98 fitting-formula `z_drag` is ~4% low for Planck cosmologies, and feeding it into
+    /// the otherwise-accurate integral biases r_drag ~2% high, which would propagate into every
+    /// BAO ratio (D_M/r_d, D_H/r_d, D_V/r_d). The CAMB-calibrated fit gives r_drag ≈ 147.1 Mpc for
+    /// Planck-2018, matching the fiducial.
     pub fn sound_horizon_drag(&self) -> f64 {
-        self.sound_horizon(self.z_drag())
+        let omega_b = self.omega_b_h2;
+        let omega_nu = self.sum_mnu / MNU_TO_OMEGA_H2; // ω_ν = Σmν / 93.14
+        let omega_cb = (self.omega_m * self.h * self.h - omega_nu).max(1e-6); // ω_cb = ω_m − ω_ν
+        55.154 * (-72.3 * (omega_nu + 0.0006).powi(2)).exp()
+            / (omega_cb.powf(0.25351) * omega_b.powf(0.12807))
     }
 
     /// Redshift of recombination / last scattering z_* (Hu & Sugiyama 1996 fitting formula).
@@ -232,9 +242,10 @@ impl CosmologyParams {
 
     /// Primordial helium mass fraction Y_p from a linearized BBN fit around the fiducial
     /// (ωb = 0.02237, N_eff = 3.046 ⇒ Y_p = 0.2470), consistent with PRIMAT/PArthENoPE to
-    /// sub-percent over the relevant range. Slopes: ∂Y_p/∂ωb ≈ 1.0, ∂Y_p/∂N_eff ≈ 0.0134.
+    /// sub-percent over the relevant range. Slopes: ∂Y_p/∂ωb ≈ 0.5, ∂Y_p/∂N_eff ≈ 0.0134
+    /// (the ωb slope is ~0.4–0.7 in PRIMAT/PArthENoPE, not 1.0).
     pub fn bbn_helium_fraction(&self) -> f64 {
-        0.2470 + 1.0 * (self.omega_b_h2 - 0.02237) + 0.0134 * (self.n_eff - 3.046)
+        0.2470 + 0.5 * (self.omega_b_h2 - 0.02237) + 0.0134 * (self.n_eff - 3.046)
     }
 
     /// Density today contributed by massive neutrinos, Ων = Σmν / (93.14 h²). Provided so a
@@ -318,11 +329,12 @@ mod tests {
     fn sound_horizon_is_physical_and_fit_cross_checks() {
         let c = CosmologyParams::planck_lcdm();
         let rd = c.sound_horizon_drag();
-        // Planck-2018 fiducial r_drag ≈ 147 Mpc.
-        assert!(rd > 143.0 && rd < 151.0, "r_drag = {rd} Mpc");
-        // The independent EH98 closed-form fit agrees with the integral to a few percent.
+        // Planck-2018 fiducial r_drag = 147.09 Mpc (CAMB). The Aubourg-2015 fit must match it
+        // tightly — a loose band here previously masked a ~2.4% bias.
+        assert!(rd > 146.0 && rd < 148.0, "r_drag = {rd} Mpc");
+        // The independent EH98 closed-form fit is itself ~2% high, so agree only to ~5%.
         let fit = c.sound_horizon_drag_eh98_fit();
-        assert!(approx(rd, fit, 0.03), "integral {rd} vs EH98 fit {fit}");
+        assert!(approx(rd, fit, 0.05), "r_drag {rd} vs EH98 fit {fit}");
         // z_drag lands in the expected ~1060 band.
         let zd = c.z_drag();
         assert!(zd > 1000.0 && zd < 1100.0, "z_drag = {zd}");

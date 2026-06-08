@@ -75,8 +75,9 @@ pub fn mutate(theory: &Theory, rng: &mut Rng, rate: f64) -> Theory {
     if t.modifies_gravity() && t.screening.is_none() && rng.chance(0.5) {
         t.screening = Some("vainshtein".into());
     }
+    // Bounded, deterministic id (lineage is not encoded in the id to avoid unbounded growth).
     let tag = rng.next_u64() & 0xffff;
-    t.id = format!("{}-m{tag:04x}", theory.id);
+    t.id = format!("thy-m{tag:04x}");
     t
 }
 
@@ -110,7 +111,7 @@ pub fn recombine(a: &Theory, b: &Theory, rng: &mut Rng) -> Theory {
             None => child.parameters.push(p.clone()),
         }
     }
-    child.id = format!("{}x{}", a.id, b.id);
+    child.id = format!("thy-x{:04x}", rng.next_u64() & 0xffff);
     child
 }
 

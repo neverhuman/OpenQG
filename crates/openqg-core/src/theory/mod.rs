@@ -11,11 +11,13 @@
 //! This is the true, structural enforcement of the repo's "whitebox theories only" rule and the
 //! "derived, not fit" preference — see `docs/research/automated-theory-discovery.md` §2/§4.
 
+pub mod assessment;
 pub mod evaluate;
 pub mod mutation;
 pub mod unification;
 pub mod vetoes;
 
+pub use assessment::{assess, CandidateAssessment};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use unification::{unification_report, DomainCheck, UnificationReport};

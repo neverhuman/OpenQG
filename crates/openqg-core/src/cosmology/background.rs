@@ -29,6 +29,29 @@ const NU_FACTOR: f64 = 0.227_10;
 /// Sum-of-neutrino-masses → Ων h² conversion (eV): Ωνh² = Σmν / 93.14.
 const MNU_TO_OMEGA_H2: f64 = 93.14;
 
+/// A background-evaluation failure that must propagate as a rejection rather than be clamped to a
+/// fictitious value. Currently only an unphysical (negative) Friedmann sum.
+#[derive(Debug, Clone, PartialEq)]
+pub enum BackgroundError {
+    /// The dimensionless expansion rate squared went negative at this redshift: the Friedmann
+    /// closure sum is unphysical (e.g. a runaway phantom or large open curvature). The honest
+    /// response is an error, not `E = 0`.
+    NegativeESquared { z: f64, e_squared: f64 },
+}
+
+impl std::fmt::Display for BackgroundError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BackgroundError::NegativeESquared { z, e_squared } => write!(
+                f,
+                "unphysical background: E(z={z})² = {e_squared} < 0 (negative Friedmann sum)"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for BackgroundError {}
+
 /// Background cosmological parameters. These are the *physical* genes a candidate owns; the
 /// methods below derive observables from them. Baseline values reproduce Planck-2018 ΛCDM.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -121,6 +144,33 @@ impl CosmologyParams {
         let curvature = self.omega_k * zp1.powi(2);
         let dark = self.omega_de() * self.de_density_ratio(z);
         (matter + radiation + curvature + dark).max(0.0).sqrt()
+    }
+
+    /// Squared dimensionless expansion rate E(z)² = (H(z)/H0)² **without** the non-negativity
+    /// clamp. For a phantom-crossing or large-Ωk cosmology the Friedmann sum can go negative at
+    /// some z (the universe would recollapse / be unphysical there); `e_of_z` silently clamps that
+    /// to 0, which hides a pathological background. `try_e_of_z` instead reports it as an error so
+    /// the caller (M3 adjudication / the forward model) can reject the theory rather than score a
+    /// fictitious E = 0. Friedmann sum: E² = Ωm(1+z)³ + Ωr(1+z)⁴ + Ωk(1+z)² + ΩDE ρ̃DE(z)
+    /// (Hogg 1999, astro-ph/9905116, eq. 14, generalized to CPL dark energy).
+    pub fn e_squared_unclamped(&self, z: f64) -> f64 {
+        let zp1 = 1.0 + z;
+        let matter = self.omega_m * zp1.powi(3);
+        let radiation = self.omega_r() * zp1.powi(4);
+        let curvature = self.omega_k * zp1.powi(2);
+        let dark = self.omega_de() * self.de_density_ratio(z);
+        matter + radiation + curvature + dark
+    }
+
+    /// E(z) = H(z)/H0, returning an error (not a 0-clamp) when E(z)² < 0, i.e. when the Friedmann
+    /// sum is negative and the background is unphysical at this redshift.
+    pub fn try_e_of_z(&self, z: f64) -> Result<f64, BackgroundError> {
+        let e2 = self.e_squared_unclamped(z);
+        if e2 < 0.0 {
+            Err(BackgroundError::NegativeESquared { z, e_squared: e2 })
+        } else {
+            Ok(e2.sqrt())
+        }
     }
 
     /// H(z) in km/s/Mpc.
@@ -405,5 +455,126 @@ mod tests {
         assert!(cpl.e_of_z(0.5) != lcdm.e_of_z(0.5));
         // At z=0 both reduce to E=1 regardless of w (DE density ratio = 1 at a=1).
         assert!(approx(cpl.e_of_z(0.0), 1.0, 1e-9));
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // M3 solver-truth: analytic limits, the flat-ΛCDM distance identity, an *error* (not a clamp)
+    // on E² < 0, measured integrator convergence, and literature distance cross-checks.
+    // ----------------------------------------------------------------------------------------
+
+    /// A clean flat ΛCDM (h=0.7, Ωm=0.3, no radiation/curvature) for analytic-limit tests where a
+    /// closed form or a published number exists.
+    fn flat_lcdm_h70() -> CosmologyParams {
+        CosmologyParams {
+            h: 0.7,
+            omega_m: 0.3,
+            omega_b_h2: 0.0224,
+            n_eff: 3.046,
+            sum_mnu: 0.06,
+            w0: -1.0,
+            wa: 0.0,
+            omega_k: 0.0,
+            sigma8: 0.811,
+            mu0: 0.0,
+        }
+    }
+
+    #[test]
+    fn flat_lcdm_distance_duality_identity_holds_across_redshift() {
+        // Etherington distance-duality / flat-ΛCDM identity: D_L = (1+z)² D_A exactly, since
+        // D_L = (1+z) D_M and D_A = D_M/(1+z) (Hogg 1999, astro-ph/9905116, eqs. 18–21).
+        let c = flat_lcdm_h70();
+        for &z in &[0.1, 0.5, 1.0, 2.0, 3.0] {
+            let dl = c.luminosity_distance(z);
+            let da = c.angular_diameter_distance(z);
+            assert!(
+                approx(dl, (1.0 + z).powi(2) * da, 1e-12),
+                "D_L={dl} vs (1+z)²D_A={} at z={z}",
+                (1.0 + z).powi(2) * da
+            );
+        }
+    }
+
+    #[test]
+    fn negative_e_squared_is_an_error_not_a_clamp() {
+        // Construct a background whose Friedmann sum is negative at high z: Ωm > 1 makes ΩDE < 0,
+        // and a strongly positive w0 makes ρ_DE grow toward early times, so the negative DE term
+        // overwhelms the matter term. `e_of_z` would clamp E to 0; `try_e_of_z` must Err.
+        let mut c = CosmologyParams::planck_lcdm();
+        c.omega_m = 1.4; // ⇒ ΩDE = 1 − 1.4 − Ωr < 0
+        c.w0 = 5.0;
+        c.wa = 0.0;
+        let z = 1000.0;
+        assert!(
+            c.e_squared_unclamped(z) < 0.0,
+            "test setup must make E² < 0; got {}",
+            c.e_squared_unclamped(z)
+        );
+        // The clamped path hides it as a real 0…
+        assert_eq!(c.e_of_z(z), 0.0);
+        // …the honest path reports it.
+        match c.try_e_of_z(z) {
+            Err(BackgroundError::NegativeESquared { z: zz, e_squared }) => {
+                assert_eq!(zz, z);
+                assert!(e_squared < 0.0);
+            }
+            other => panic!("expected NegativeESquared error, got {other:?}"),
+        }
+        // A physical cosmology never errors on the same query.
+        assert!(CosmologyParams::planck_lcdm().try_e_of_z(z).is_ok());
+    }
+
+    #[test]
+    fn simpson_integrator_converges_2048_vs_4096_panels() {
+        // Measured convergence of the distance integrand 1/E(z'): refining 2048 → 4096 panels must
+        // change the result by far less than the ~0.5% observational σ on a BAO distance. Composite
+        // Simpson is O(h⁴), so doubling the panel count cuts the error ~16×.
+        let c = CosmologyParams::planck_lcdm();
+        let z = 2.0;
+        let i2048 = simpson(0.0, z, 2048, |zp| 1.0 / c.e_of_z(zp));
+        let i4096 = simpson(0.0, z, 4096, |zp| 1.0 / c.e_of_z(zp));
+        let rel = (i2048 - i4096).abs() / i4096.abs();
+        assert!(
+            rel < 1e-6,
+            "Simpson 2048 vs 4096 relative change {rel:.3e} should be ≪ 0.5% obs σ"
+        );
+    }
+
+    #[test]
+    fn comoving_distance_matches_flat_lcdm_closed_form_integral() {
+        // Cross-check against the textbook flat-ΛCDM comoving distance, D_C/D_H = ∫₀ᶻ dz'/E(z')
+        // with E² = Ωm(1+z')³ + ΩΛ (Hogg 1999, astro-ph/9905116, eqs. 14–15) for the matter+Λ-only
+        // model Ωm=0.3, ΩΛ=0.7. Reference values were computed independently at very high accuracy
+        // (composite Simpson, 2×10⁵ panels) of that closed-form integrand:
+        //   z=1 → 0.771427, z=2 → 1.209471, z=3 → 1.484020  (dimensionless D_C/D_H).
+        // (These match the standard Ωm=0.3/ΩΛ=0.7 curve in Hogg's Fig. 2.)
+        let c = CosmologyParams {
+            omega_b_h2: 0.0, // baryons enter only via radiation/r_drag, not D_C; strip for clarity
+            n_eff: 0.0,      // matter + Λ only, matching the two-component comparator (Ωr ~ 5e-5)
+            sum_mnu: 0.0,
+            ..flat_lcdm_h70()
+        };
+        let dh = c.hubble_distance(); // c/H0 = 299792.458/70 ≈ 4282.7 Mpc
+        for &(z, reference) in &[(1.0, 0.771427), (2.0, 1.209471), (3.0, 1.484020)] {
+            let dc_over_dh = c.comoving_distance(z) / dh;
+            // Allow 0.1% — our model carries a tiny (~5e-5) residual radiation term n_eff=0 cannot
+            // fully remove, and 2048 panels vs 2×10⁵ in the comparator.
+            assert!(
+                (dc_over_dh - reference).abs() / reference < 1e-3,
+                "D_C/D_H(z={z}) = {dc_over_dh}, closed-form reference {reference}"
+            );
+        }
+    }
+
+    #[test]
+    fn r_drag_matches_planck2018_published_value() {
+        // Planck-2018 TT,TE,EE+lowE+lensing ΛCDM: r_drag = 147.09 ± 0.26 Mpc (Planck 2018 VI,
+        // arXiv:1807.06209, Table 2). Our Aubourg-2015-calibrated fit must reproduce it to ≲ 0.3%.
+        let c = CosmologyParams::planck_lcdm();
+        let rd = c.sound_horizon_drag();
+        assert!(
+            (rd - 147.09).abs() / 147.09 < 0.003,
+            "r_drag = {rd} Mpc vs Planck-2018 147.09 Mpc"
+        );
     }
 }

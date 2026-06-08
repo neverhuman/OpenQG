@@ -37,7 +37,9 @@ pub use pareto::{dominates, objectives, pareto_front, Objectives};
 pub use proposal::{parse_proposal, proposal_into_theory, proposal_to_theory, TheoryProposal};
 pub use robustness::perturbation_robustness;
 pub use unification::{unification_report, DomainCheck, UnificationReport};
-pub use vetoes::{run_veto_cascade, VetoReason};
+pub use vetoes::{
+    adjudicate, is_adjudicated_out, run_veto_cascade, tensor_speed_excess_at, VetoReason,
+};
 
 use crate::cosmology::CosmologyParams;
 use serde::{Deserialize, Serialize};
@@ -161,6 +163,17 @@ pub struct Theory {
     /// Declared screening mechanism that recovers GR at solar-system densities (chameleon,
     /// Vainshtein, symmetron, k-mouflage…). `None` ⇒ none declared.
     pub screening: Option<String>,
+    /// Numeric screening *recovery efficiency* in `[0, 1]`: the fraction by which the linear
+    /// gravity modification is suppressed inside the screened region (the solar system). 1.0 ⇒
+    /// gravity is fully restored to GR (PPN γ → 1, no residual fifth force); 0.0 ⇒ no screening
+    /// at all. This is the machine-checkable replacement for a bare `screening` *string*: M3
+    /// adjudication recomputes the residual PPN deviation `(γ−1)_pred = modification_scale ·
+    /// (1 − recovery)` and tests it against the Cassini bound (Bertotti, Iess & Tortora 2003,
+    /// Nature 425, 374: γ−1 = (2.1 ± 2.3)×10⁻⁵). `None` ⇒ no numeric recovery was supplied, so a
+    /// theory that *claims* screening but does not quantify it fails adjudication. Additive,
+    /// serde-default, so theories written before M3 deserialize unchanged.
+    #[serde(default)]
+    pub screening_recovery: Option<f64>,
     /// Background cosmology this theory predicts (drives the forward model).
     pub background: CosmologyParams,
 }
@@ -200,6 +213,7 @@ impl Theory {
             alpha: AlphaBasis::gr(),
             stability: Stability::healthy(),
             screening: None,
+            screening_recovery: None,
             background: CosmologyParams::planck_lcdm(),
         }
     }

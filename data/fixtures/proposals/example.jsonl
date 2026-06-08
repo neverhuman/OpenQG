@@ -1,0 +1,3 @@
+{"id":"prop-screened-mg","parameters":[{"symbol":"alpha_M0","value":0.05,"provenance":"derived","mechanism":"Planck-mass run from the conformal coupling beta","derived_from":["Omega_m"]}],"alpha":{"alpha_m":0.05,"alpha_b":-0.02},"screening":"chameleon","stability":{"q_s":0.6,"sound_speed_sq":0.4,"kinetic_coefficient":0.8},"background":{"h":0.68,"omega_m":0.31}}
+{"id":"prop-graybox-ede","parameters":[{"symbol":"f_ede","value":0.07,"provenance":"free","physical_meaning":"early dark energy fraction tuned to raise H0"}]}
+{"id":"prop-handwave-darksector","parameters":[{"symbol":"xi_dm","value":0.1,"provenance":"derived","mechanism":"dark-sector coupling","derived_from":["quantum_gravity"]}]}

@@ -193,6 +193,9 @@
     "data/fixtures/cosmology/": {
       "command": "just zyal-test"
     },
+    "data/fixtures/proposals/": {
+      "command": "just zyal-test"
+    },
     "benchmarks/suites/": {
       "command": "just bench-smoke"
     },

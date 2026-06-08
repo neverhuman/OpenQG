@@ -61,11 +61,19 @@ pub fn run(command: Commands) -> Result<()> {
         Commands::Theory { command } => match command {
             theory::TheoryCommand::Evolve {
                 observables,
+                proposals,
                 output,
                 generations,
                 population,
                 seed,
-            } => theory_ops::run_evolve(&observables, &output, generations, population, seed),
+            } => theory_ops::run_evolve(
+                &observables,
+                proposals.as_deref(),
+                &output,
+                generations,
+                population,
+                seed,
+            ),
         },
         Commands::Security { command } => match command {
             security::SecurityCommand::Scan { output } => security_ops::scan(&output),

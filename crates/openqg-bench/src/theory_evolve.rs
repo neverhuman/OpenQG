@@ -5,7 +5,9 @@
 
 use anyhow::{Context, Result};
 use openqg_core::cosmology::BackgroundForwardModel;
-use openqg_core::theory::{evolve, perturbation_robustness, Champion, Provenance, Theory};
+use openqg_core::theory::{
+    evolve, perturbation_robustness, proposal_to_theory, Champion, Provenance, Theory,
+};
 use openqg_core::ObservableRecord;
 use serde_json::{json, Value};
 use std::fs;
@@ -76,16 +78,38 @@ fn load_observables(path: &Path) -> Result<Vec<ObservableRecord>> {
         .collect()
 }
 
-/// Run the evolution loop from the GR/ΛCDM baseline seed and write the champion report.
+/// Load theory proposals (one TheoryProposal JSON per line), each run through the derivation
+/// checker into a `(Theory, demoted-symbols)` pair.
+fn load_proposals(path: &Path) -> Result<Vec<(Theory, Vec<String>)>> {
+    let text =
+        fs::read_to_string(path).with_context(|| format!("read proposals {}", path.display()))?;
+    text.lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| proposal_to_theory(l).with_context(|| format!("parse proposal: {l}")))
+        .collect()
+}
+
+/// Run the evolution loop from the GR/ΛCDM baseline (plus any proposals) and write the champion
+/// report.
 pub fn run_evolve(
     observables_path: &Path,
+    proposals_path: Option<&Path>,
     output: &Path,
     generations: usize,
     population: usize,
     seed: u64,
 ) -> Result<()> {
     let observables = load_observables(observables_path)?;
-    let seeds = vec![Theory::baseline_lcdm()];
+    let mut seeds = vec![Theory::baseline_lcdm()];
+    let mut demotions: Vec<Value> = Vec::new();
+    if let Some(pp) = proposals_path {
+        for (theory, demoted) in load_proposals(pp)? {
+            if !demoted.is_empty() {
+                demotions.push(json!({"proposal": theory.id, "demoted_parameters": demoted}));
+            }
+            seeds.push(theory);
+        }
+    }
     let model = BackgroundForwardModel;
     let result = evolve(
         &seeds,
@@ -106,6 +130,8 @@ pub fn run_evolve(
         "seed": seed,
         "qd_score": result.qd_score,
         "archive_cells": result.archive.len(),
+        "seeds": seeds.len(),
+        "proposal_demotions": demotions,
         "champion": result.champion.as_ref().map(|c| {
             // Robustness-under-perturbation of the champion (structural stability).
             let robustness =

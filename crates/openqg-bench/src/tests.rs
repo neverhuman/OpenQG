@@ -14,11 +14,41 @@ mod tests {
         writeln!(f, "{{\"observable_id\":\"bbn_yp\",\"kind\":\"bbn\",\"value\":0.2453,\"uncertainty\":0.0034,\"unit\":\"dimensionless\"}}").unwrap();
         drop(f);
         let out = dir.join("champion.json");
-        crate::theory_evolve::run_evolve(&obs, &out, 10, 8, 1).expect("evolve runs");
+        crate::theory_evolve::run_evolve(&obs, None, &out, 10, 8, 1).expect("evolve runs");
         let report: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&out).expect("report")).expect("json");
         assert!(report["champion"]["credible"].as_bool().unwrap_or(false));
         assert!(report["qd_score"].as_f64().unwrap_or(0.0) > 0.0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn theory_evolve_seeds_proposals_and_demotes_unverifiable_derivations() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("openqg-theory-prop-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let obs = dir.join("obs.jsonl");
+        let mut f = std::fs::File::create(&obs).expect("obs file");
+        writeln!(f, "{{\"observable_id\":\"dm_over_rd@0.510\",\"kind\":\"bao\",\"value\":13.62,\"uncertainty\":0.25,\"unit\":\"dimensionless\"}}").unwrap();
+        writeln!(f, "{{\"observable_id\":\"bbn_yp\",\"kind\":\"bbn\",\"value\":0.2453,\"uncertainty\":0.0034,\"unit\":\"dimensionless\"}}").unwrap();
+        drop(f);
+        // A gray-box (free) proposal and a hand-wavy "derived" proposal (fake dependency).
+        let props = dir.join("proposals.jsonl");
+        let mut p = std::fs::File::create(&props).expect("props file");
+        writeln!(p, "{{\"id\":\"prop-graybox\",\"parameters\":[{{\"symbol\":\"f_ede\",\"value\":0.07,\"provenance\":\"free\"}}]}}").unwrap();
+        writeln!(p, "{{\"id\":\"prop-handwave\",\"parameters\":[{{\"symbol\":\"xi\",\"value\":0.1,\"provenance\":\"derived\",\"mechanism\":\"x\",\"derived_from\":[\"nonexistent\"]}}]}}").unwrap();
+        drop(p);
+        let out = dir.join("champion.json");
+        crate::theory_evolve::run_evolve(&obs, Some(&props), &out, 10, 8, 1).expect("evolve runs");
+        let report: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&out).expect("report")).expect("json");
+        // Baseline + 2 proposals were seeded; the hand-wavy derivation was demoted; and neither
+        // gray-box proposal can be the (credible) champion.
+        assert_eq!(report["seeds"].as_u64().unwrap_or(0), 3);
+        assert!(!report["proposal_demotions"].as_array().unwrap().is_empty());
+        assert!(report["champion"]["credible"].as_bool().unwrap_or(false));
+        let champ_id = report["champion"]["id"].as_str().unwrap_or("");
+        assert!(!champ_id.contains("graybox") && !champ_id.contains("handwave"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 

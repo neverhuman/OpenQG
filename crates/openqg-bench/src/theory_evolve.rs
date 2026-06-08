@@ -5,7 +5,7 @@
 
 use anyhow::{Context, Result};
 use openqg_core::cosmology::BackgroundForwardModel;
-use openqg_core::theory::{evolve, Champion, Provenance, Theory};
+use openqg_core::theory::{evolve, perturbation_robustness, Champion, Provenance, Theory};
 use openqg_core::ObservableRecord;
 use serde_json::{json, Value};
 use std::fs;
@@ -19,12 +19,13 @@ fn provenance_label(p: &Provenance) -> String {
     }
 }
 
-fn champion_json(c: &Champion) -> Value {
+fn champion_json(c: &Champion, robustness: f64) -> Value {
     let a = &c.assessment;
     json!({
         "id": c.theory.id,
         "final_fitness": a.final_fitness,
         "credible": a.is_credible(),
+        "perturbation_robustness": robustness,
         "fit": {
             "vetoed": a.evaluation.vetoed,
             "epsilon_delta_log_likelihood": a.evaluation.epsilon_delta_log_likelihood,
@@ -105,7 +106,12 @@ pub fn run_evolve(
         "seed": seed,
         "qd_score": result.qd_score,
         "archive_cells": result.archive.len(),
-        "champion": result.champion.as_ref().map(champion_json),
+        "champion": result.champion.as_ref().map(|c| {
+            // Robustness-under-perturbation of the champion (structural stability).
+            let robustness =
+                perturbation_robustness(&c.theory, &observables, &model, 0.0, seed, 48);
+            champion_json(c, robustness)
+        }),
     });
 
     if let Some(parent) = output.parent() {

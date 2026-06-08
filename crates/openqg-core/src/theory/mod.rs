@@ -15,6 +15,8 @@ pub mod assessment;
 pub mod evaluate;
 pub mod evolve;
 pub mod mutation;
+pub mod pareto;
+pub mod robustness;
 pub mod unification;
 pub mod vetoes;
 
@@ -22,6 +24,8 @@ pub use assessment::{assess, CandidateAssessment};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evolve::{evolve, Cell, Champion, EvolutionResult};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
+pub use pareto::{dominates, objectives, pareto_front, Objectives};
+pub use robustness::perturbation_robustness;
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{run_veto_cascade, VetoReason};
 

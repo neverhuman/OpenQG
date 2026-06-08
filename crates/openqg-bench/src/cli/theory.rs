@@ -11,6 +11,11 @@ pub enum TheoryCommand {
         /// population alongside the GR/LCDM baseline. Each is run through the derivation-checker.
         #[arg(long)]
         proposals: Option<PathBuf>,
+        /// Optional shell command whose stdout is JSONL theory proposals (one per line) — the
+        /// generic LLM-proposer hook. For the live jnoccio proposer, pass the jekko invocation
+        /// here; for tests/offline, pass any command. Output is run through the derivation-checker.
+        #[arg(long)]
+        proposer_cmd: Option<String>,
         #[arg(long, default_value = "target/openqg/theory/champion.json")]
         output: PathBuf,
         #[arg(long, default_value_t = 60)]

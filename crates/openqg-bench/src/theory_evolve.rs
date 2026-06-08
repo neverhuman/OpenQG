@@ -79,15 +79,40 @@ fn load_observables(path: &Path) -> Result<Vec<ObservableRecord>> {
         .collect()
 }
 
-/// Load theory proposals (one TheoryProposal JSON per line), each run through the derivation
-/// checker into a `(Theory, demoted-symbols)` pair.
-fn load_proposals(path: &Path) -> Result<Vec<(Theory, Vec<String>)>> {
-    let text =
-        fs::read_to_string(path).with_context(|| format!("read proposals {}", path.display()))?;
-    text.lines()
+/// Parse JSONL proposal lines, each through the derivation checker into `(Theory, demoted)`.
+fn proposals_from_lines<'a>(
+    lines: impl Iterator<Item = &'a str>,
+) -> Result<Vec<(Theory, Vec<String>)>> {
+    lines
         .filter(|l| !l.trim().is_empty())
         .map(|l| proposal_to_theory(l).with_context(|| format!("parse proposal: {l}")))
         .collect()
+}
+
+/// Load theory proposals from a JSONL file.
+fn load_proposals(path: &Path) -> Result<Vec<(Theory, Vec<String>)>> {
+    let text =
+        fs::read_to_string(path).with_context(|| format!("read proposals {}", path.display()))?;
+    proposals_from_lines(text.lines())
+}
+
+/// Run an LLM-proposer command and parse its stdout as JSONL proposals. A non-zero exit or a
+/// command that cannot run is an error (a failed proposer is not silently ignored).
+fn run_proposer(cmd: &str) -> Result<Vec<(Theory, Vec<String>)>> {
+    let out = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .output()
+        .with_context(|| format!("run proposer command: {cmd}"))?;
+    if !out.status.success() {
+        anyhow::bail!(
+            "proposer command failed ({}): {}",
+            out.status,
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    proposals_from_lines(stdout.lines())
 }
 
 /// Run the evolution loop from the GR/ΛCDM baseline (plus any proposals) and write the champion
@@ -95,6 +120,7 @@ fn load_proposals(path: &Path) -> Result<Vec<(Theory, Vec<String>)>> {
 pub fn run_evolve(
     observables_path: &Path,
     proposals_path: Option<&Path>,
+    proposer_cmd: Option<&str>,
     output: &Path,
     generations: usize,
     population: usize,
@@ -103,13 +129,18 @@ pub fn run_evolve(
     let observables = load_observables(observables_path)?;
     let mut seeds = vec![Theory::baseline_lcdm()];
     let mut demotions: Vec<Value> = Vec::new();
+    let mut proposed = Vec::new();
     if let Some(pp) = proposals_path {
-        for (theory, demoted) in load_proposals(pp)? {
-            if !demoted.is_empty() {
-                demotions.push(json!({"proposal": theory.id, "demoted_parameters": demoted}));
-            }
-            seeds.push(theory);
+        proposed.extend(load_proposals(pp)?);
+    }
+    if let Some(cmd) = proposer_cmd {
+        proposed.extend(run_proposer(cmd)?);
+    }
+    for (theory, demoted) in proposed {
+        if !demoted.is_empty() {
+            demotions.push(json!({"proposal": theory.id, "demoted_parameters": demoted}));
         }
+        seeds.push(theory);
     }
     let model = BackgroundForwardModel;
     let result = evolve(

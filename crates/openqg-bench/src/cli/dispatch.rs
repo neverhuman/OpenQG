@@ -62,6 +62,7 @@ pub fn run(command: Commands) -> Result<()> {
             theory::TheoryCommand::Evolve {
                 observables,
                 proposals,
+                proposer_cmd,
                 output,
                 generations,
                 population,
@@ -69,6 +70,7 @@ pub fn run(command: Commands) -> Result<()> {
             } => theory_ops::run_evolve(
                 &observables,
                 proposals.as_deref(),
+                proposer_cmd.as_deref(),
                 &output,
                 generations,
                 population,

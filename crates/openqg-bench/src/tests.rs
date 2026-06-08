@@ -14,7 +14,7 @@ mod tests {
         writeln!(f, "{{\"observable_id\":\"bbn_yp\",\"kind\":\"bbn\",\"value\":0.2453,\"uncertainty\":0.0034,\"unit\":\"dimensionless\"}}").unwrap();
         drop(f);
         let out = dir.join("champion.json");
-        crate::theory_evolve::run_evolve(&obs, None, &out, 10, 8, 1).expect("evolve runs");
+        crate::theory_evolve::run_evolve(&obs, None, None, &out, 10, 8, 1).expect("evolve runs");
         let report: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&out).expect("report")).expect("json");
         assert!(report["champion"]["credible"].as_bool().unwrap_or(false));
@@ -39,7 +39,8 @@ mod tests {
         writeln!(p, "{{\"id\":\"prop-handwave\",\"parameters\":[{{\"symbol\":\"xi\",\"value\":0.1,\"provenance\":\"derived\",\"mechanism\":\"x\",\"derived_from\":[\"nonexistent\"]}}]}}").unwrap();
         drop(p);
         let out = dir.join("champion.json");
-        crate::theory_evolve::run_evolve(&obs, Some(&props), &out, 10, 8, 1).expect("evolve runs");
+        crate::theory_evolve::run_evolve(&obs, Some(&props), None, &out, 10, 8, 1)
+            .expect("evolve runs");
         let report: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&out).expect("report")).expect("json");
         // Baseline + 2 proposals were seeded; the hand-wavy derivation was demoted; and neither
@@ -49,6 +50,29 @@ mod tests {
         assert!(report["champion"]["credible"].as_bool().unwrap_or(false));
         let champ_id = report["champion"]["id"].as_str().unwrap_or("");
         assert!(!champ_id.contains("graybox") && !champ_id.contains("handwave"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn theory_evolve_seeds_from_a_proposer_command() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("openqg-theory-cmd-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let obs = dir.join("obs.jsonl");
+        let mut f = std::fs::File::create(&obs).expect("obs file");
+        writeln!(f, "{{\"observable_id\":\"dm_over_rd@0.510\",\"kind\":\"bao\",\"value\":13.62,\"uncertainty\":0.25,\"unit\":\"dimensionless\"}}").unwrap();
+        drop(f);
+        // The generic LLM-proposer hook: any command whose stdout is JSONL proposals. Here a
+        // mock `printf` stands in for the live jnoccio invocation.
+        let cmd = "printf '{\"id\":\"prop-mock-mg\",\"parameters\":[{\"symbol\":\"a\",\"value\":0.05,\"provenance\":\"derived\",\"mechanism\":\"conformal coupling\",\"derived_from\":[\"Omega_m\"]}],\"alpha\":{\"alpha_m\":0.05},\"screening\":\"vainshtein\",\"stability\":{\"q_s\":0.6,\"sound_speed_sq\":0.4,\"kinetic_coefficient\":0.8}}\\n'";
+        let out = dir.join("champion.json");
+        crate::theory_evolve::run_evolve(&obs, None, Some(cmd), &out, 10, 8, 1)
+            .expect("evolve runs");
+        let report: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&out).expect("report")).expect("json");
+        // Baseline + the one proposed theory from the command's stdout.
+        assert_eq!(report["seeds"].as_u64().unwrap_or(0), 2);
+        assert!(report["champion"]["credible"].as_bool().unwrap_or(false));
         let _ = std::fs::remove_dir_all(&dir);
     }
 

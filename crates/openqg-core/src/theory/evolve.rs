@@ -125,11 +125,15 @@ where
     }
 }
 
-/// The most-fit credible candidate in the archive (the reported champion).
-fn best_champion(archive: &BTreeMap<Cell, Champion>) -> Option<Champion> {
+/// The most-fit credible candidate that also **clears the adversary's frontier** (pressured
+/// fitness > 0, i.e. `final_fitness > margin`). `None` if nothing in the archive beats the bar —
+/// the honest signal that the rising frontier has out-run the whole population. Because the margin
+/// is a constant offset it does not change the *ranking*; its job is to *cull* sub-frontier
+/// candidates, so this is the most-fit credible elite restricted to survivors of the threshold.
+fn pressured_champion(archive: &BTreeMap<Cell, Champion>, margin: f64) -> Option<Champion> {
     archive
         .values()
-        .filter(|c| c.assessment.is_credible())
+        .filter(|c| c.assessment.is_credible() && c.assessment.final_fitness > margin)
         .max_by(|a, b| {
             a.assessment
                 .final_fitness
@@ -190,7 +194,21 @@ where
     }
 
     for gen in 0..generations {
-        let elites: Vec<Theory> = archive.values().map(|c| c.theory.clone()).collect();
+        // The adversary's frontier acts as a *survival threshold*: only candidates whose
+        // final_fitness clears the current margin are allowed to breed. The rising bar therefore
+        // progressively prunes the weakest cells from the gene pool (a real selection effect, not
+        // the old constant offset that left the ranking — and thus the output — untouched). If the
+        // bar momentarily out-runs every cell, fall back to the full archive so the run does not
+        // collapse; the honesty rollback lowers the margin next generation.
+        let margin = adversary.frontier_margin;
+        let mut elites: Vec<Theory> = archive
+            .values()
+            .filter(|c| c.assessment.final_fitness > margin)
+            .map(|c| c.theory.clone())
+            .collect();
+        if elites.is_empty() {
+            elites = archive.values().map(|c| c.theory.clone()).collect();
+        }
         if elites.is_empty() {
             break;
         }
@@ -229,7 +247,9 @@ where
         }
         adversary.update(&survive_assessments);
 
-        let champion = best_champion(&archive);
+        // The reported champion must clear the (post-update) frontier — the adversary now gates
+        // champion-eligibility, not just the telemetry.
+        let champion = pressured_champion(&archive, adversary.frontier_margin);
         let anchor_health = adversary.anchor_health(&survive_assessments);
         let report = GenerationReport {
             generation: gen + 1,
@@ -249,7 +269,8 @@ where
     }
 
     let qd_score = archive.values().map(|c| c.assessment.final_fitness).sum();
-    let champion = best_champion(&archive);
+    // The final champion must clear the final frontier (None ⇒ the bar out-ran the population).
+    let champion = pressured_champion(&archive, adversary.frontier_margin);
     EvolutionResult {
         archive,
         qd_score,
@@ -371,6 +392,52 @@ mod tests {
         let champ = r.champion.expect("credible champion");
         assert!(champ.assessment.is_credible());
         assert_eq!(reports.last().unwrap().generation, 40);
+    }
+
+    #[test]
+    fn the_frontier_culls_candidates_below_it_and_can_out_run_the_population() {
+        // The adversary's margin is now a real survival threshold (not the old constant offset
+        // that left the ranking untouched). Below the champion's fitness it survives; above it the
+        // frontier out-runs the whole population and there is no eligible champion.
+        let base = Theory::baseline_lcdm();
+        let a = assess(&base, &desi(), &BackgroundForwardModel, 0.0);
+        let f = a.final_fitness;
+        assert!(f > 0.0);
+        let mut archive = BTreeMap::new();
+        insert(&mut archive, base.clone(), a);
+        assert!(
+            pressured_champion(&archive, f - 0.01).is_some(),
+            "champion below the frontier should survive"
+        );
+        assert!(
+            pressured_champion(&archive, f + 0.01).is_none(),
+            "no candidate clears a frontier above the best fitness"
+        );
+    }
+
+    #[test]
+    fn reported_champion_actually_clears_the_final_frontier() {
+        // End-to-end: the champion evolve_run returns must beat the final adversarial bar.
+        let seeds = vec![Theory::baseline_lcdm()];
+        let mut last = None;
+        let r = evolve_run(
+            &seeds,
+            &desi(),
+            &BackgroundForwardModel,
+            0.0,
+            60,
+            16,
+            1234,
+            |gr| last = Some(gr.clone()),
+        );
+        let champ = r.champion.expect("a champion that clears the frontier");
+        let final_margin = last.unwrap().frontier_margin;
+        assert!(
+            champ.assessment.final_fitness > final_margin,
+            "champion fitness {} must clear final frontier {}",
+            champ.assessment.final_fitness,
+            final_margin
+        );
     }
 
     #[test]

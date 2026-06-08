@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# OpenQG pre-push quality gate (repo-local, version-controlled).
+#
+# Runs the aggregated local-CI quality gates (fast tests + zyal validation +
+# jankurai audit ratchet) before any push is allowed, so a regression can never
+# leave the machine. Mirrors `bash scripts/ci-local.sh`'s cheap lanes.
+#
+# Install:  just install-hooks   (sets core.hooksPath to ops/git-hooks)
+# Bypass (sparingly):  git push --no-verify
+set -euo pipefail
+
+exec bash ops/ci/quality-gates.sh

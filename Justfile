@@ -21,6 +21,10 @@ core-test:
 bench-test:
 	CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo nextest run -p openqg-bench --locked --frozen
 
+# Focused proof lane for the ZYAL adversarial-robustness engine (genome + judge + robustness).
+zyal-test:
+	CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo nextest run -p openqg-bench --locked --frozen -E 'test(zyal_genome) + test(zyal_judge) + test(zyal_robustness)'
+
 core-doc-test:
 	CARGO_TARGET_DIR=target/fast CARGO_INCREMENTAL=0 CARGO_NET_OFFLINE=true cargo test -p openqg-core --locked --frozen --doc
 
@@ -70,7 +74,7 @@ audit-ratchet:
 
 install-hooks:
 	git config core.hooksPath ops/git-hooks
-	chmod +x ops/git-hooks/pre-commit
+	chmod +x ops/git-hooks/pre-commit ops/git-hooks/pre-push
 	@echo "installed: core.hooksPath=ops/git-hooks (jankurai regression gate active)"
 
 security:
@@ -81,6 +85,7 @@ check:
 	just data-verify
 	just bench-smoke
 	just zyal-validate
+	just zyal-test
 	just security
 
 release-check:

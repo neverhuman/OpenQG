@@ -217,6 +217,18 @@
     "agent/zyal/": {
       "command": "just zyal-validate"
     },
+    "ZYAL/": {
+      "command": "just zyal-validate"
+    },
+    "ZYAL/anchors/": {
+      "command": "cargo test -p openqg-bench zyal_judge"
+    },
+    "ZYAL/stages/": {
+      "command": "just zyal-validate"
+    },
+    "ZYAL/runs/": {
+      "command": "just zyal-validate"
+    },
     "crates/openqg-bench/": {
       "command": "just fast"
     },
@@ -240,6 +252,9 @@
     },
     "tools/security-lane.sh": {
       "command": "just security"
+    },
+    "tools/": {
+      "command": "just fast"
     }
   }
 }

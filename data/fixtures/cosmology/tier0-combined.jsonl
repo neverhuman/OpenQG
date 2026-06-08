@@ -1,0 +1,15 @@
+{"observable_id":"dv_over_rd@0.295","kind":"bao","value":7.93,"uncertainty":0.15,"unit":"dimensionless","source":"desi2024_vi_dr1_bgs"}
+{"observable_id":"dm_over_rd@0.510","kind":"bao","value":13.62,"uncertainty":0.25,"unit":"dimensionless","source":"desi2024_vi_dr1_lrg1"}
+{"observable_id":"dh_over_rd@0.510","kind":"bao","value":20.98,"uncertainty":0.61,"unit":"dimensionless","source":"desi2024_vi_dr1_lrg1"}
+{"observable_id":"dm_over_rd@0.706","kind":"bao","value":16.85,"uncertainty":0.32,"unit":"dimensionless","source":"desi2024_vi_dr1_lrg2"}
+{"observable_id":"dh_over_rd@0.706","kind":"bao","value":20.08,"uncertainty":0.60,"unit":"dimensionless","source":"desi2024_vi_dr1_lrg2"}
+{"observable_id":"dm_over_rd@0.930","kind":"bao","value":21.71,"uncertainty":0.28,"unit":"dimensionless","source":"desi2024_vi_dr1_lrg3_elg1"}
+{"observable_id":"dh_over_rd@0.930","kind":"bao","value":17.88,"uncertainty":0.35,"unit":"dimensionless","source":"desi2024_vi_dr1_lrg3_elg1"}
+{"observable_id":"dm_over_rd@1.317","kind":"bao","value":27.79,"uncertainty":0.69,"unit":"dimensionless","source":"desi2024_vi_dr1_elg2"}
+{"observable_id":"dh_over_rd@1.317","kind":"bao","value":13.82,"uncertainty":0.42,"unit":"dimensionless","source":"desi2024_vi_dr1_elg2"}
+{"observable_id":"dv_over_rd@1.491","kind":"bao","value":26.07,"uncertainty":0.67,"unit":"dimensionless","source":"desi2024_vi_dr1_qso"}
+{"observable_id":"dm_over_rd@2.330","kind":"bao","value":39.71,"uncertainty":0.94,"unit":"dimensionless","source":"desi2024_vi_dr1_lya"}
+{"observable_id":"dh_over_rd@2.330","kind":"bao","value":8.52,"uncertainty":0.17,"unit":"dimensionless","source":"desi2024_vi_dr1_lya"}
+{"observable_id":"bbn_yp","kind":"bbn","value":0.2453,"uncertainty":0.0034,"unit":"dimensionless","source":"aver2015_helium_abundance"}
+{"observable_id":"cmb_R","kind":"cmb","value":1.7502,"uncertainty":0.0046,"unit":"dimensionless","source":"planck2018_distance_priors_chen2019"}
+{"observable_id":"cmb_lA","kind":"cmb","value":301.471,"uncertainty":0.090,"unit":"dimensionless","source":"planck2018_distance_priors_chen2019"}

@@ -36,9 +36,9 @@ log "score compare"
 cargo run -p openqg-bench -- score compare --scorecard target/openqg/bench-smoke/scorecard.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 
 log "audit advisory (accepted baseline)"
-jankurai audit . --mode advisory --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md
+jankurai audit . --mode advisory --full --json target/jankurai/accepted-baseline.json --md target/jankurai/accepted-baseline.md
 log "audit ratchet"
-jankurai audit . --mode ratchet --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
+jankurai audit . --mode ratchet --full --baseline target/jankurai/accepted-baseline.json --json target/jankurai/repo-score.json --md target/jankurai/repo-score.md
 
 log "release pack"
 cargo run -p openqg-bench -- release pack --scorecard target/openqg/bench-smoke/scorecard.json --output reports/releases/draft

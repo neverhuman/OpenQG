@@ -33,7 +33,7 @@ timeout_s="${JANKURAI_HOOK_TIMEOUT:-120}"
 out="$(mktemp -d)"
 trap 'rm -rf "$out"' EXIT
 
-timeout "$timeout_s" jankurai audit . --mode advisory --json "$out/cur.json" --md "$out/cur.md" \
+timeout "$timeout_s" jankurai audit . --mode advisory --full --json "$out/cur.json" --md "$out/cur.md" \
   --no-score-history >/dev/null 2>"$out/err"
 rc=$?
 if [[ $rc == 124 ]]; then

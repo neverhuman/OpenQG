@@ -18,6 +18,8 @@
 //! - Eisenstein & Hu 1998 (astro-ph/9709112) for z_drag and the r_s fitting formula.
 //! - CPL parametrization w(a) = w0 + wa (1 - a) (Chevallier-Polarski 2001; Linder 2003).
 
+use serde::{Deserialize, Serialize};
+
 /// Speed of light in km/s.
 pub const C_KM_S: f64 = 299_792.458;
 /// Photon density today as ωγ = Ωγ h², for T_CMB = 2.7255 K.
@@ -29,7 +31,7 @@ const MNU_TO_OMEGA_H2: f64 = 93.14;
 
 /// Background cosmological parameters. These are the *physical* genes a candidate owns; the
 /// methods below derive observables from them. Baseline values reproduce Planck-2018 ΛCDM.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CosmologyParams {
     /// Dimensionless Hubble parameter h, with H0 = 100 h km/s/Mpc.
     pub h: f64,

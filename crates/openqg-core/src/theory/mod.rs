@@ -36,10 +36,12 @@ pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{run_veto_cascade, VetoReason};
 
 use crate::cosmology::CosmologyParams;
+use serde::{Deserialize, Serialize};
 
 /// Where a parameter's value comes from. The engine trusts structure, not prose: only a
 /// `Derived` parameter with a non-empty mechanism, or a `Fundamental` constant, is whitebox.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Provenance {
     /// A fundamental constant fixed by a symmetry or first principle of the theory.
     Fundamental,
@@ -62,7 +64,7 @@ impl Provenance {
 }
 
 /// A named physical parameter with a meaning and a provenance.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Parameter {
     pub symbol: String,
     pub value: f64,
@@ -73,7 +75,7 @@ pub struct Parameter {
 /// One building block of the action, carrying just enough structure for the cheap symbolic
 /// vetoes: its mass dimension (a 4D Lagrangian density must be dimension 4) and the number of
 /// uncontracted Lorentz indices (a scalar action term must have zero).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Term {
     pub name: String,
     pub mass_dimension: i32,
@@ -81,7 +83,7 @@ pub struct Term {
 }
 
 /// Linear α-basis deviation functions (evaluated today). GR ⇒ all zero.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct AlphaBasis {
     /// Planck-mass run rate α_M (modifies lensing + GW friction).
     pub alpha_m: f64,
@@ -115,7 +117,7 @@ impl AlphaBasis {
 
 /// Scalar-sector linear-stability coefficients. No-ghost ⇒ kinetic term and Q_s positive;
 /// no gradient instability ⇒ sound speed squared non-negative.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Stability {
     /// Sign/coefficient of the scalar kinetic term (must be > 0: wrong sign ⇒ ghost).
     pub kinetic_coefficient: f64,
@@ -141,7 +143,7 @@ impl Stability {
 }
 
 /// A full candidate theory.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Theory {
     pub id: String,
     /// Named physical parameters with provenance.
@@ -201,5 +203,29 @@ impl Theory {
     /// True if the theory modifies gravity on linear scales (non-GR α-functions).
     pub fn modifies_gravity(&self) -> bool {
         self.alpha.modification_scale() > 1e-6 || self.alpha.alpha_t.abs() > 1e-6
+    }
+}
+
+#[cfg(test)]
+mod serde_tests {
+    use super::*;
+
+    #[test]
+    fn theory_serde_round_trips() {
+        let t = Theory::baseline_lcdm();
+        let json = serde_json::to_string(&t).expect("serialize");
+        let back: Theory = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(t, back);
+    }
+
+    #[test]
+    fn provenance_serializes_snake_case() {
+        let json = serde_json::to_string(&Provenance::Fundamental).unwrap();
+        assert_eq!(json, "\"fundamental\"");
+        let d = serde_json::to_string(&Provenance::Derived {
+            mechanism: "m".into(),
+        })
+        .unwrap();
+        assert!(d.contains("derived"));
     }
 }

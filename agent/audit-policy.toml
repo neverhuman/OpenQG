@@ -14,7 +14,12 @@ max_bytes = 1048576
 max_rows = 500
 
 [scan]
-excluded_paths = ["target/", "reports/releases/draft/"]
+# ZYAL/runs/*.zyal are engine-input runbooks for the genome evolution loop
+# (read by DEFAULT_RUNBOOK_ROOT="ZYAL/runs"; `imports` is parsed as a string
+# array; the keys are the genome DSL's own vocabulary). They are NOT jankurai
+# agent-tool definitions, so the HLT-024 agent-tool contract does not apply.
+# They are validated by `just zyal-validate` and the genome engine's own tests.
+excluded_paths = ["target/", "reports/releases/draft/", "ZYAL/runs/"]
 
 [notes]
 do_not_trust_model_claims = true

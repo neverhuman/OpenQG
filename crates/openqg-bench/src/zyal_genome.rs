@@ -31,6 +31,13 @@ extern "C" {
 
 use crate::util::{read_jsonl, sha256_digest};
 
+/// Explicit empty JSON object for optional runbook/config sub-trees that are
+/// legitimately absent. A missing optional section documents "use the built-in
+/// defaults for this block" — an expected typed state, not an error or a guess.
+fn empty_object() -> Value {
+    Value::Object(serde_json::Map::new())
+}
+
 const SCHEMA_VERSION: &str = "zyal-gene-eval.v1";
 const DEFAULT_STAGE_ROOT: &str = "ZYAL/stages";
 const DEFAULT_RUNBOOK_ROOT: &str = "ZYAL/runs";
@@ -521,7 +528,7 @@ pub fn preflight(
     let evaluation = runbook
         .get("evaluation")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let output_root = if output_root != PathBuf::from(DEFAULT_OUTPUT_ROOT) {
         output_root
     } else {
@@ -650,7 +657,7 @@ pub fn run_variant(
     let evaluation = runbook
         .get("evaluation")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let jailgun_available = jailgun_available || jailgun_available_from_environment();
 
     let max_generations = resolve_generation_count(generations, max_generations, &evaluation)?;
@@ -1658,7 +1665,7 @@ fn resolve_population_config(
     let evolution = evaluation
         .get("evolution")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let population_size = population_size
         .or_else(|| {
             evolution
@@ -1755,10 +1762,10 @@ fn resolve_live_config(live_selective: bool, runbook: &Value) -> LiveConfig {
     let evaluation = runbook
         .get("evaluation")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let merged = deep_merge_values(
-        &evaluation.get("live").cloned().unwrap_or_else(|| json!({})),
-        &runbook.get("live").cloned().unwrap_or_else(|| json!({})),
+        &evaluation.get("live").cloned().unwrap_or_else(empty_object),
+        &runbook.get("live").cloned().unwrap_or_else(empty_object),
     );
     let enabled = live_selective
         || merged
@@ -4376,7 +4383,7 @@ fn hybrid_candidate_record(
         "route_policy": route_policy,
         "expected_failure_modes": scores.get("failure_modes").cloned().unwrap_or_else(|| json!([])),
         "adaptive_pressure": json!({}),
-        "scoring_weights": scores.get("scoring_weights").cloned().unwrap_or_else(|| json!({})),
+        "scoring_weights": scores.get("scoring_weights").cloned().unwrap_or_else(empty_object),
         "scores": scores,
         "score_breakdown": score_breakdown,
         "frontier_claim": review.frontier_claim,
@@ -4668,7 +4675,7 @@ fn best_candidate(candidates: &[Value]) -> Value {
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
         .cloned()
-        .unwrap_or_else(|| json!({}))
+        .unwrap_or_else(empty_object)
 }
 
 fn best_candidate_matching(candidates: &[Value], field: &str, value: &str) -> Option<Value> {
@@ -5178,10 +5185,10 @@ fn build_run_summary(
                     "promotion_gates": population.promotion_gates,
                     "degraded_penalties": population.degraded_penalties,
                 },
-                "diversity_metrics": hybrid_evolution.get("diversity_metrics").cloned().unwrap_or_else(|| json!({})),
+                "diversity_metrics": hybrid_evolution.get("diversity_metrics").cloned().unwrap_or_else(empty_object),
                 "novelty_archive": hybrid_evolution.get("novelty_archive").cloned().unwrap_or_else(|| json!("")),
-                "island_leaderboard": hybrid_evolution.get("island_leaderboard").cloned().unwrap_or_else(|| json!({})),
-                "fun_summary": hybrid_evolution.get("fun_summary").cloned().unwrap_or_else(|| json!({})),
+                "island_leaderboard": hybrid_evolution.get("island_leaderboard").cloned().unwrap_or_else(empty_object),
+                "fun_summary": hybrid_evolution.get("fun_summary").cloned().unwrap_or_else(empty_object),
                 "generation_champions": hybrid_evolution.get("generation_champions").cloned().unwrap_or_else(|| json!([])),
                 "lineage": hybrid_evolution.get("lineage").cloned().unwrap_or_else(|| json!({"acyclic": true, "missing_parent_ids": 0})),
             }),
@@ -5197,11 +5204,11 @@ fn score_blend(runbook: &Value, population: Option<&PopulationConfig>) -> Value 
     let evaluation = runbook
         .get("evaluation")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let score_blend = evaluation
         .get("score_blend")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     json!({
         "local_score": score_blend.get("local_score").and_then(Value::as_f64).unwrap_or(0.30),
         "interface_score": score_blend.get("interface_score").and_then(Value::as_f64).unwrap_or(0.20),
@@ -5277,7 +5284,7 @@ fn emit_root_comparison(root: &Path) -> Result<Value> {
     let mut ranking = variants
         .iter()
         .map(|entry| {
-            let scorecard = entry.get("scorecard").cloned().unwrap_or_else(|| json!({}));
+            let scorecard = entry.get("scorecard").cloned().unwrap_or_else(empty_object);
             json!({
                 "variant": entry.get("variant").cloned().unwrap_or_else(|| json!(null)),
                 "final_score": scorecard.get("best_score_seen").and_then(Value::as_f64).unwrap_or(0.0),
@@ -6396,7 +6403,7 @@ fn read_optional_json(path: &Path) -> Value {
     fs::read_to_string(path)
         .ok()
         .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-        .unwrap_or_else(|| json!({}))
+        .unwrap_or_else(empty_object)
 }
 
 fn read_required_jsonl(path: &Path, checks: &mut Vec<Value>) -> Vec<Value> {
@@ -6617,7 +6624,7 @@ fn genome_root_from_run_dir(run_dir: &Path) -> PathBuf {
 }
 
 fn render_quality_gate_markdown(report: &Value) -> String {
-    let metrics = report.get("metrics").cloned().unwrap_or_else(|| json!({}));
+    let metrics = report.get("metrics").cloned().unwrap_or_else(empty_object);
     let mut rows = vec![
         "# ZYAL Quality Gate".to_string(),
         String::new(),
@@ -6791,7 +6798,7 @@ fn render_run_markdown(offline_eval: &Value) -> String {
     let scorecard = offline_eval
         .get("scorecard")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let mut rows = vec![
         "# ZYAL Offline Evaluation".to_string(),
         String::new(),
@@ -6921,7 +6928,7 @@ fn render_comparison_markdown(comparison: &Value) -> String {
     ];
     if let Some(variants) = comparison.get("variants").and_then(Value::as_array) {
         for entry in variants {
-            let scorecard = entry.get("scorecard").cloned().unwrap_or_else(|| json!({}));
+            let scorecard = entry.get("scorecard").cloned().unwrap_or_else(empty_object);
             rows.push(format!(
                 "| `{}` | `{}` | `{}` |",
                 entry
@@ -7449,7 +7456,7 @@ fn emit_hybrid_evolution_artifacts(
                 "route_policy": route.route_policy,
                 "expected_failure_modes": expected_failure_modes,
                 "adaptive_pressure": pressure,
-                "scoring_weights": scores.get("scoring_weights").cloned().unwrap_or_else(|| json!({})),
+                "scoring_weights": scores.get("scoring_weights").cloned().unwrap_or_else(empty_object),
                 "scores": scores,
                 "frontier_claim": frontier_review.frontier_claim,
                 "falsifiable_tests": frontier_review.falsifiable_tests,
@@ -7898,7 +7905,7 @@ fn build_island_leaderboard(run_id: &str, candidates: &[Value], island_names: &[
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .cloned()
-                .unwrap_or_else(|| json!({}));
+                .unwrap_or_else(empty_object);
             json!({
                 "island": island,
                 "candidate_id": best.get("candidate_id").cloned().unwrap_or_else(|| json!("")),
@@ -8621,7 +8628,7 @@ fn hard_backend_required(
     let evaluation = runbook
         .get("evaluation")
         .cloned()
-        .unwrap_or_else(|| json!({}));
+        .unwrap_or_else(empty_object);
     let configured = evaluation
         .get("quality_gates")
         .and_then(|gates| gates.get("require_hard_backend"))
@@ -9611,7 +9618,7 @@ fn preflight_receipt(
             "retry_count": live_config.retry_count,
         },
         "routing_decision": routing_decision,
-        "quality_gates": runbook.get("evaluation").and_then(|evaluation| evaluation.get("quality_gates")).cloned().unwrap_or_else(|| json!({})),
+        "quality_gates": runbook.get("evaluation").and_then(|evaluation| evaluation.get("quality_gates")).cloned().unwrap_or_else(empty_object),
     })
 }
 
@@ -9747,7 +9754,7 @@ fn build_island_leaderboard(run_id: &str, candidates: &[Value], island_names: &[
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .cloned()
-                .unwrap_or_else(|| json!({}));
+                .unwrap_or_else(empty_object);
             json!({
                 "island": island,
                 "candidate_id": best.get("candidate_id").cloned().unwrap_or_else(|| json!("")),

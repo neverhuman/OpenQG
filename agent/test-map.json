@@ -187,6 +187,9 @@
     "data/fixtures/smoke/": {
       "command": "just data-verify"
     },
+    "data/fixtures/tension/": {
+      "command": "just zyal-test"
+    },
     "benchmarks/suites/": {
       "command": "just bench-smoke"
     },
@@ -255,6 +258,24 @@
     },
     "tools/": {
       "command": "just fast"
+    },
+    "ops/ci/": {
+      "command": "bash scripts/ci-doctor.sh"
+    },
+    "ops/git-hooks/": {
+      "command": "bash scripts/ci-doctor.sh"
+    },
+    "ops/deploy/": {
+      "command": "just fast"
+    },
+    "scripts/": {
+      "command": "bash scripts/ci-doctor.sh"
+    },
+    "agent/jankurai-badge.json": {
+      "command": "just score"
+    },
+    "agent/jankurai-badge.svg": {
+      "command": "just score"
     }
   }
 }

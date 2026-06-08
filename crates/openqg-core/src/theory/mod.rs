@@ -14,6 +14,7 @@
 pub mod assessment;
 pub mod evaluate;
 pub mod evolve;
+pub mod holdout;
 pub mod mutation;
 pub mod pareto;
 pub mod robustness;
@@ -23,6 +24,7 @@ pub mod vetoes;
 pub use assessment::{assess, CandidateAssessment};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evolve::{evolve, Cell, Champion, EvolutionResult};
+pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use pareto::{dominates, objectives, pareto_front, Objectives};
 pub use robustness::perturbation_robustness;

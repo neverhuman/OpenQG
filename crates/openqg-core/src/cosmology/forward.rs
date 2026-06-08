@@ -91,6 +91,11 @@ impl BackgroundForwardModel {
             // Compressed CMB distance priors (computable from the background alone).
             "cmb_R" => Some((c.cmb_shift_r(), 0.001, "dimensionless")),
             "cmb_lA" => Some((c.cmb_acoustic_scale(), 0.01, "dimensionless")),
+            // The third Planck-2018 compressed-CMB prior (Chen, Huang & Wang 2019,
+            // arXiv:1808.05724): the baryon density ω_b h². It is a background parameter, so the
+            // model just reports it; the `cmb_` alias lets the 3×3 (R, ℓ_A, ω_b h²) covariance
+            // block (`scoring/covariance.rs`) name a single ordered observable set.
+            "cmb_omega_b_h2" => Some((c.omega_b_h2, 1e-9, "dimensionless")),
             // Growth-of-structure observables (Tier-1): linear growth integrated from the
             // background + the late-time μ0 modified-gravity handle.
             "s8" | "S8" => Some((c.s8(), 1e-4, "dimensionless")),
@@ -195,7 +200,10 @@ mod tests {
             .collect();
         let preds = model.predict(&c, &ids).unwrap();
         assert_eq!(preds.len(), 3);
-        let fs8 = preds.iter().find(|p| p.observable_id == "fsigma8@0.5").unwrap();
+        let fs8 = preds
+            .iter()
+            .find(|p| p.observable_id == "fsigma8@0.5")
+            .unwrap();
         assert!(fs8.value > 0.40 && fs8.value < 0.50, "fσ8 = {}", fs8.value);
     }
 

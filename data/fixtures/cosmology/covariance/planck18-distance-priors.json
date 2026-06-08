@@ -1,0 +1,12 @@
+{
+  "id": "planck18_distance_priors_chen2019",
+  "source": "Chen, Huang & Wang 2019, JCAP 02 (2019) 028 (arXiv:1808.05724), Table I (base LCDM, Planck 2018 TT,TE,EE+lowE) + Appendix A inverse-covariance file Distance_invcov.txt",
+  "description": "Planck 2018 compressed CMB distance priors covariance for (R, l_A, omega_b h^2). The covariance below was obtained by inverting the EXACT published inverse-covariance matrix (Appendix A, Distance_invcov.txt) for the base-LCDM TT,TE,EE+lowE chain; its implied 1-sigma errors (0.00462, 0.0889, 0.000149) and correlations (rho_R,lA=+0.463, rho_R,wb=-0.660, rho_lA,wb=-0.327) reproduce Table I (0.0046, 0.090, 0.00015; +0.46, -0.66, -0.33). Mean values: R=1.750235, l_A=301.4707, omega_b h^2=0.02235976.",
+  "observable_ids": ["cmb_R", "cmb_lA", "cmb_omega_b_h2"],
+  "units": ["dimensionless", "dimensionless", "dimensionless"],
+  "matrix": [
+    [2.135375011015e-05, 1.902983999039e-04, -4.546257021884e-07],
+    [1.902983999039e-04, 7.896826818661e-03, -4.337087985366e-06],
+    [-4.546257021884e-07, -4.337087985366e-06, 2.223626004259e-08]
+  ]
+}

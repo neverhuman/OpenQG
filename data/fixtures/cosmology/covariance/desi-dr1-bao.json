@@ -1,0 +1,77 @@
+{
+  "id": "desi_dr1_bao_intratracer_2024vi",
+  "source": "DESI Collaboration 2024, DESI 2024 VI: Cosmological Constraints from the Measurements of Baryon Acoustic Oscillations, JCAP 02 (2025) 021 (arXiv:2404.03002), Table 1.",
+  "description": "DESI DR1 intra-tracer BAO covariance blocks: for each anisotropic-fit tracer, D_M/r_d and D_H/r_d are correlated with the published coefficient r (Table 1). Inter-tracer correlations are negligible (disjoint redshift bins; the paper states BGS/LRG overlap is small and not modelled), so each tracer is a self-contained 2x2 block C = [[sm^2, r*sm*sh],[r*sm*sh, sh^2]] built from the published 1-sigma errors sm (D_M/r_d), sh (D_H/r_d) and r. BGS (z=0.295) and QSO (z=1.491) are isotropic D_V/r_d-only measurements with no intra-tracer covariance, so they carry no block.",
+  "blocks": [
+    {
+      "tracer": "LRG1",
+      "z_eff": 0.510,
+      "r": -0.445,
+      "dm_over_rd": 13.62,
+      "dh_over_rd": 20.98,
+      "sigma_dm": 0.25,
+      "sigma_dh": 0.61,
+      "observable_ids": ["dm_over_rd@0.510", "dh_over_rd@0.510"],
+      "matrix": [
+        [6.250000000000e-02, -6.786250000000e-02],
+        [-6.786250000000e-02, 3.721000000000e-01]
+      ]
+    },
+    {
+      "tracer": "LRG2",
+      "z_eff": 0.706,
+      "r": -0.420,
+      "dm_over_rd": 16.85,
+      "dh_over_rd": 20.08,
+      "sigma_dm": 0.32,
+      "sigma_dh": 0.60,
+      "observable_ids": ["dm_over_rd@0.706", "dh_over_rd@0.706"],
+      "matrix": [
+        [1.024000000000e-01, -8.064000000000e-02],
+        [-8.064000000000e-02, 3.600000000000e-01]
+      ]
+    },
+    {
+      "tracer": "LRG3+ELG1",
+      "z_eff": 0.930,
+      "r": -0.389,
+      "dm_over_rd": 21.71,
+      "dh_over_rd": 17.88,
+      "sigma_dm": 0.28,
+      "sigma_dh": 0.35,
+      "observable_ids": ["dm_over_rd@0.930", "dh_over_rd@0.930"],
+      "matrix": [
+        [7.840000000000e-02, -3.812200000000e-02],
+        [-3.812200000000e-02, 1.225000000000e-01]
+      ]
+    },
+    {
+      "tracer": "ELG2",
+      "z_eff": 1.317,
+      "r": -0.444,
+      "dm_over_rd": 27.79,
+      "dh_over_rd": 13.82,
+      "sigma_dm": 0.69,
+      "sigma_dh": 0.42,
+      "observable_ids": ["dm_over_rd@1.317", "dh_over_rd@1.317"],
+      "matrix": [
+        [4.761000000000e-01, -1.286712000000e-01],
+        [-1.286712000000e-01, 1.764000000000e-01]
+      ]
+    },
+    {
+      "tracer": "Lya QSO",
+      "z_eff": 2.330,
+      "r": -0.477,
+      "dm_over_rd": 39.71,
+      "dh_over_rd": 8.52,
+      "sigma_dm": 0.94,
+      "sigma_dh": 0.17,
+      "observable_ids": ["dm_over_rd@2.330", "dh_over_rd@2.330"],
+      "matrix": [
+        [8.836000000000e-01, -7.622460000000e-02],
+        [-7.622460000000e-02, 2.890000000000e-02]
+      ]
+    }
+  ]
+}

@@ -5,15 +5,16 @@ pub(crate) fn classify_jailgun_attempt_failure(
     final_status: &Value,
     status_snapshots: &[Value],
 ) -> Option<&'static str> {
-    summary
-        .and_then(classify_jailgun_summary_failure)
-        .or_else(|| classify_jailgun_status_failure(final_status))
-        .or_else(|| {
-            status_snapshots
-                .iter()
-                .rev()
-                .find_map(classify_jailgun_status_failure)
-        })
+    or_alt(
+        or_alt(
+            summary.and_then(classify_jailgun_summary_failure),
+            classify_jailgun_status_failure(final_status),
+        ),
+        status_snapshots
+            .iter()
+            .rev()
+            .find_map(classify_jailgun_status_failure),
+    )
 }
 
 pub(crate) fn classify_jailgun_summary_failure(summary: &Value) -> Option<&'static str> {

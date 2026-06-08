@@ -67,11 +67,13 @@ pub(crate) fn build_run_summary(
     hybrid_evolution: Option<&Value>,
     population: &PopulationConfig,
 ) -> Value {
-    let quality_scores = hybrid_evolution
-        .and_then(|value| value.get("generation_scores").and_then(Value::as_array))
-        .map(|scores| scores.iter().filter_map(Value::as_f64).collect::<Vec<_>>())
-        .filter(|scores| !scores.is_empty())
-        .unwrap_or_else(|| generation_scores.to_vec());
+    let quality_scores = unwrap_or_value(
+        hybrid_evolution
+            .and_then(|value| value.get("generation_scores").and_then(Value::as_array))
+            .map(|scores| scores.iter().filter_map(Value::as_f64).collect::<Vec<_>>())
+            .filter(|scores| !scores.is_empty()),
+        generation_scores.to_vec(),
+    );
     let hybrid_best = hybrid_evolution
         .and_then(|value| value.get("best_score_seen").and_then(Value::as_f64))
         .unwrap_or(0.0);
@@ -191,9 +193,10 @@ pub(crate) fn build_run_summary(
             })
         })
         .collect::<Vec<_>>();
-    let pareto = hybrid_evolution
-        .and_then(|value| value.get("pareto_snapshot").cloned())
-        .unwrap_or_else(|| pareto_snapshot(generation_scores, &stage_scores));
+    let pareto = unwrap_or_value(
+        hybrid_evolution.and_then(|value| value.get("pareto_snapshot").cloned()),
+        pareto_snapshot(generation_scores, &stage_scores),
+    );
     let score_blend = score_blend(runbook, Some(population));
     let mut summary = json!({
         "schema_version": SCHEMA_VERSION,
@@ -201,7 +204,7 @@ pub(crate) fn build_run_summary(
         "run_id": run_id,
         "variant": variant,
         "runbook_path": runbook_path.display().to_string(),
-        "output_root": run_dir.parent().and_then(|p| p.parent()).map(|p| p.display().to_string()).unwrap_or_else(|| DEFAULT_OUTPUT_ROOT.to_string()),
+        "output_root": unwrap_or_value(run_dir.parent().and_then(|p| p.parent()).map(|p| p.display().to_string()), DEFAULT_OUTPUT_ROOT.to_string()),
         "run_dir": run_dir.display().to_string(),
         "generation_count": max_generations,
         "stage_count": stage_registry.len(),

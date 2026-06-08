@@ -109,7 +109,7 @@ pub(crate) fn stage_ledger_record(
     artifact_paths: Value,
     scores: &Value,
 ) -> Value {
-    let parent_generation_id = parent_generation_id.unwrap_or_else(|| "root".to_string());
+    let parent_generation_id = unwrap_or_value(parent_generation_id, "root".to_string());
     json!({
         "schema_version": SCHEMA_VERSION,
         "record_kind": "stage_ledger",

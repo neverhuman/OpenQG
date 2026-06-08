@@ -67,12 +67,14 @@ pub(crate) fn push_unique_candidate(promoted: &mut Vec<Value>, candidate: &Value
 }
 
 pub(crate) fn candidate_score(candidate: &Value) -> f64 {
-    candidate
-        .get("scores")
-        .and_then(|scores| scores.get("final_score"))
-        .and_then(Value::as_f64)
-        .or_else(|| candidate.get("final_score").and_then(Value::as_f64))
-        .unwrap_or(0.0)
+    or_alt(
+        candidate
+            .get("scores")
+            .and_then(|scores| scores.get("final_score"))
+            .and_then(Value::as_f64),
+        candidate.get("final_score").and_then(Value::as_f64),
+    )
+    .unwrap_or(0.0)
 }
 
 pub(crate) fn select_balanced_champion(

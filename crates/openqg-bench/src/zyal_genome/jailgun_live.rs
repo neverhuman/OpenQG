@@ -59,11 +59,12 @@ pub(crate) fn jailgun_prompt_file_path(prompt_path: &Path) -> String {
     if prompt_path.is_absolute() {
         return prompt_path.display().to_string();
     }
-    env::current_dir()
-        .map(|cwd| cwd.join(prompt_path))
-        .unwrap_or_else(|_| prompt_path.to_path_buf())
-        .display()
-        .to_string()
+    ok_or_value(
+        env::current_dir().map(|cwd| cwd.join(prompt_path)),
+        prompt_path.to_path_buf(),
+    )
+    .display()
+    .to_string()
 }
 
 pub(crate) fn run_live_call_attempt(
@@ -127,10 +128,14 @@ pub(crate) fn run_live_call_attempt(
     } else {
         Duration::from_secs(5)
     };
-    let stdout = collect_pipe(stdout_rx, pipe_wait)
-        .unwrap_or_else(|| "[stdout unavailable after timeout]\n".to_string());
-    let stderr = collect_pipe(stderr_rx, pipe_wait)
-        .unwrap_or_else(|| "[stderr unavailable after timeout]\n".to_string());
+    let stdout = unwrap_or_value(
+        collect_pipe(stdout_rx, pipe_wait),
+        "[stdout unavailable after timeout]\n".to_string(),
+    );
+    let stderr = unwrap_or_value(
+        collect_pipe(stderr_rx, pipe_wait),
+        "[stderr unavailable after timeout]\n".to_string(),
+    );
     Ok(LiveAttempt {
         status,
         exit_code,
@@ -352,8 +357,10 @@ pub(crate) fn run_jailgun_live_call_attempt_with_config(
     metadata["jailgun_summary_status"] = json!(summary_status);
     metadata["jailgun_effective_status"] = json!(effective_status);
     let redacted_summary = redact_jailgun_token_in_value(&summary, token.value.as_str());
-    let stdout = serde_json::to_string_pretty(&redacted_summary)
-        .unwrap_or_else(|_| redacted_summary.to_string());
+    let stdout = ok_or_value(
+        serde_json::to_string_pretty(&redacted_summary),
+        redacted_summary.to_string(),
+    );
     let status = match effective_status.as_str() {
         "succeeded" => "ok",
         "timed-out" => "timeout",
@@ -512,7 +519,7 @@ pub(crate) fn run_jailgun_artifact_smoke_with_config(
         "raw_stderr_path": stderr_path.display().to_string(),
         "receipt_path": receipt_path.display().to_string(),
         "download_target_name": download_target_name,
-        "artifact_extension": safe_artifact_extension(extension).unwrap_or_else(|| "json".to_string()),
+        "artifact_extension": unwrap_or_value(safe_artifact_extension(extension), "json".to_string()),
         "error": attempt.error,
     });
     merge_object(&mut receipt, &attempt.metadata);
@@ -560,7 +567,7 @@ pub(crate) fn jailgun_download_target_name_with_extension(
     call_id: &str,
     extension: &str,
 ) -> String {
-    let extension = safe_artifact_extension(extension).unwrap_or_else(|| "json".to_string());
+    let extension = unwrap_or_value(safe_artifact_extension(extension), "json".to_string());
     let stem = format!("openqg-{run_id}-{call_id}");
     let safe_stem = stem
         .chars()
@@ -590,9 +597,13 @@ pub(crate) fn jailgun_artifact_extension(
     purpose: &str,
     prompt: &str,
 ) -> String {
-    artifact_extension_from_items(&stage.outputs)
-        .or_else(|| artifact_extension_from_text(prompt))
-        .unwrap_or_else(|| default_jailgun_artifact_extension(purpose).to_string())
+    unwrap_or_value(
+        or_alt(
+            artifact_extension_from_items(&stage.outputs),
+            artifact_extension_from_text(prompt),
+        ),
+        default_jailgun_artifact_extension(purpose).to_string(),
+    )
 }
 
 pub(crate) fn artifact_extension_from_items(items: &[String]) -> Option<String> {
@@ -679,16 +690,20 @@ pub(crate) fn jailgun_attempt_metadata(
         .map(|snapshot| redact_jailgun_token_in_value(snapshot, token))
         .collect::<Vec<_>>();
     let summary = summary.map(|value| redact_jailgun_token_in_value(value, token));
-    let summary_path = summary
-        .as_ref()
-        .and_then(|value| value.get("summary_json").and_then(Value::as_str))
-        .or_else(|| accepted.get("summary_json").and_then(Value::as_str))
-        .map(ToString::to_string);
-    let events_path = summary
-        .as_ref()
-        .and_then(|value| value.get("events_jsonl").and_then(Value::as_str))
-        .or_else(|| accepted.get("events_jsonl").and_then(Value::as_str))
-        .map(ToString::to_string);
+    let summary_path = or_alt(
+        summary
+            .as_ref()
+            .and_then(|value| value.get("summary_json").and_then(Value::as_str)),
+        accepted.get("summary_json").and_then(Value::as_str),
+    )
+    .map(ToString::to_string);
+    let events_path = or_alt(
+        summary
+            .as_ref()
+            .and_then(|value| value.get("events_jsonl").and_then(Value::as_str)),
+        accepted.get("events_jsonl").and_then(Value::as_str),
+    )
+    .map(ToString::to_string);
     let jailgun_status = jailgun_effective_status(summary.as_ref(), &final_status);
     let event_failure_kind = events_path
         .as_deref()
@@ -737,13 +752,14 @@ pub(crate) fn jailgun_attempt_metadata(
 pub(crate) fn jailgun_effective_status(summary: Option<&Value>, final_status: &Value) -> String {
     let summary_status = summary.and_then(|value| value.get("status").and_then(Value::as_str));
     let final_status = final_status.get("status").and_then(Value::as_str);
-    summary_status
-        .filter(|status| jailgun_terminal_status(status))
-        .or_else(|| final_status.filter(|status| jailgun_terminal_status(status)))
-        .or(summary_status)
-        .or(final_status)
-        .unwrap_or("unknown")
-        .to_string()
+    or_alt(
+        summary_status.filter(|status| jailgun_terminal_status(status)),
+        final_status.filter(|status| jailgun_terminal_status(status)),
+    )
+    .or(summary_status)
+    .or(final_status)
+    .unwrap_or("unknown")
+    .to_string()
 }
 
 pub(crate) fn jailgun_terminal_status(status: &str) -> bool {

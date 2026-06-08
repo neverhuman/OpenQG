@@ -274,11 +274,13 @@ pub(crate) fn hybrid_candidate_record(
         mode,
         research_refs,
         stage_concepts,
-        scores
-            .get("failure_modes")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_else(Vec::new),
+        unwrap_or_value(
+            scores
+                .get("failure_modes")
+                .and_then(Value::as_array)
+                .cloned(),
+            Vec::new(),
+        ),
         scores,
     );
     json!({

@@ -45,7 +45,7 @@ pub(crate) fn read_required_jsonl(path: &Path, checks: &mut Vec<Value>) -> Vec<V
 }
 
 pub(crate) fn read_optional_jsonl(path: &Path) -> Vec<Value> {
-    read_jsonl::<Value>(path).unwrap_or_else(|_| Vec::new())
+    ok_or_value(read_jsonl::<Value>(path), Vec::new())
 }
 
 pub(crate) fn add_check(
@@ -84,11 +84,12 @@ pub(crate) fn timeout_overrun_count(record: &Value) -> usize {
         .get("elapsed_seconds")
         .and_then(Value::as_f64)
         .unwrap_or(0.0);
-    let timeout = record
-        .get("configured_timeout_seconds")
-        .or_else(|| record.get("timeout_seconds"))
-        .and_then(Value::as_f64)
-        .unwrap_or(0.0);
+    let timeout = or_alt(
+        record.get("configured_timeout_seconds"),
+        record.get("timeout_seconds"),
+    )
+    .and_then(Value::as_f64)
+    .unwrap_or(0.0);
     usize::from(timeout > 0.0 && elapsed > timeout + 5.0)
 }
 
@@ -177,25 +178,24 @@ pub(crate) fn hybrid_quality_rollup_series(records: &[Value]) -> Vec<f64> {
     generations
         .into_iter()
         .filter_map(|generation| {
-            champions
-                .get(&generation)
-                .or_else(|| deterministic.get(&generation))
-                .copied()
+            or_alt(champions.get(&generation), deterministic.get(&generation)).copied()
         })
         .collect()
 }
 
 pub(crate) fn champion_scores(summary: &Value, generation_records: &[Value]) -> Vec<f64> {
-    let from_summary = summary
-        .get("generation_champions")
-        .and_then(Value::as_array)
-        .map(|champions| {
-            champions
-                .iter()
-                .filter_map(|champion| champion.get("final_score").and_then(Value::as_f64))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_else(Vec::new);
+    let from_summary = unwrap_or_value(
+        summary
+            .get("generation_champions")
+            .and_then(Value::as_array)
+            .map(|champions| {
+                champions
+                    .iter()
+                    .filter_map(|champion| champion.get("final_score").and_then(Value::as_f64))
+                    .collect::<Vec<_>>()
+            }),
+        Vec::new(),
+    );
     if from_summary.is_empty() {
         metric_values(generation_records, "hybrid_champion_score")
     } else {
@@ -233,11 +233,13 @@ pub(crate) fn jailgun_live_call_has_proof(record: &Value) -> bool {
             .map(|run_id| !run_id.trim().is_empty())
             .unwrap_or(false)
         && record.get("status").and_then(Value::as_str) == Some("ok")
-        && record
-            .get("jailgun_summary_status")
-            .and_then(Value::as_str)
-            .map(|status| status == "succeeded")
-            .unwrap_or_else(|| record.get("jailgun_summary").is_some())
+        && unwrap_or_value(
+            record
+                .get("jailgun_summary_status")
+                .and_then(Value::as_str)
+                .map(|status| status == "succeeded"),
+            record.get("jailgun_summary").is_some(),
+        )
 }
 
 pub(crate) fn count_string_field(records: &[Value], field: &str) -> BTreeMap<String, usize> {

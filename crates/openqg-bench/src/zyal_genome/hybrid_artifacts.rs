@@ -37,8 +37,10 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
     let mut previous_stage_signature: BTreeMap<String, String> = BTreeMap::new();
     let mut newest_source_influence = None;
     let deterministic_rollups = metric_values(
-        &read_jsonl::<Value>(&run_dir.join("generation-ledger.jsonl"))
-            .unwrap_or_else(|_| Vec::new()),
+        &ok_or_value(
+            read_jsonl::<Value>(&run_dir.join("generation-ledger.jsonl")),
+            Vec::new(),
+        ),
         "deterministic_rollup_score",
     );
     let cap_candidate_scores =
@@ -49,9 +51,10 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
     // score on the selection path. Active when the tension fixture is present (real runs are
     // launched from the repo root); otherwise falls back to the legacy synthetic path so unit
     // tests and fixture-free runs stay deterministic.
-    let robustness_obs =
-        crate::zyal_robustness::load_tension_observables(std::path::Path::new("."))
-            .unwrap_or_else(|_| Vec::new());
+    let robustness_obs = ok_or_value(
+        crate::zyal_robustness::load_tension_observables(std::path::Path::new(".")),
+        Vec::new(),
+    );
     let robustness_active = !robustness_obs.is_empty();
     let robustness_baseline_ll = if robustness_active {
         crate::zyal_robustness::baseline_log_likelihood(&robustness_obs)
@@ -263,11 +266,13 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 scores["physics"] = outcome.physics_block();
                 scores["judge"] = verdict.judge_block();
                 if !verdict.survived {
-                    let mut modes = scores
-                        .get("failure_modes")
-                        .and_then(Value::as_array)
-                        .cloned()
-                        .unwrap_or_else(Vec::new);
+                    let mut modes = unwrap_or_value(
+                        scores
+                            .get("failure_modes")
+                            .and_then(Value::as_array)
+                            .cloned(),
+                        Vec::new(),
+                    );
                     modes.push(json!("judge_killed"));
                     scores["failure_modes"] = json!(modes);
                 }
@@ -332,12 +337,13 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 "known_failure_modes": frontier_review.known_failure_modes,
                 "review_priority": frontier_review.review_priority,
             });
-            for parent_id in candidate
-                .get("parent_candidate_ids")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_else(Vec::new)
-            {
+            for parent_id in unwrap_or_value(
+                candidate
+                    .get("parent_candidate_ids")
+                    .and_then(Value::as_array)
+                    .cloned(),
+                Vec::new(),
+            ) {
                 lineage_ledger.write(&lineage_edge_record(
                     run_id,
                     &generation_id,
@@ -704,11 +710,13 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
         &generation_champions,
         &accepted_cards,
         newest_source_influence.as_ref(),
-        island_leaderboard
-            .get("leaders")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_else(Vec::new),
+        unwrap_or_value(
+            island_leaderboard
+                .get("leaders")
+                .and_then(Value::as_array)
+                .cloned(),
+            Vec::new(),
+        ),
     );
     let pareto = candidate_pareto_snapshot(&all_candidates);
     let lineage = lineage_invariant_summary(&all_candidates, &lineage_edges);

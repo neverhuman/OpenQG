@@ -5,15 +5,14 @@ pub(crate) fn resolve_generation_count(
     max_generations: Option<usize>,
     evaluation: &Value,
 ) -> Result<usize> {
-    let count = generations
-        .or(max_generations)
-        .or_else(|| {
-            evaluation
-                .get("max_generations_default")
-                .and_then(Value::as_u64)
-                .map(|v| v as usize)
-        })
-        .unwrap_or(1);
+    let count = or_alt(
+        generations.or(max_generations),
+        evaluation
+            .get("max_generations_default")
+            .and_then(Value::as_u64)
+            .map(|v| v as usize),
+    )
+    .unwrap_or(1);
     if count < 1 {
         bail!("--max-generations/--generations must be at least 1");
     }
@@ -28,33 +27,35 @@ pub(crate) fn resolve_population_config(
     evaluation: &Value,
 ) -> Result<PopulationConfig> {
     let evolution = field_or(evaluation, "evolution", empty_object);
-    let population_size = population_size
-        .or_else(|| {
-            evolution
-                .get("population_size")
-                .and_then(Value::as_u64)
-                .map(|v| v as usize)
-        })
-        .unwrap_or(24);
-    let islands = islands
-        .or_else(|| {
-            evolution
-                .get("islands")
-                .and_then(Value::as_u64)
-                .map(|v| v as usize)
-        })
-        .unwrap_or(6);
-    let novelty_weight = novelty_weight
-        .or_else(|| evolution.get("novelty_weight").and_then(Value::as_f64))
-        .unwrap_or(0.13);
-    let new_info_refresh = new_info_refresh
-        .or_else(|| {
-            evolution
-                .get("new_info_refresh")
-                .and_then(Value::as_u64)
-                .map(|v| v as usize)
-        })
-        .unwrap_or(4);
+    let population_size = or_alt(
+        population_size,
+        evolution
+            .get("population_size")
+            .and_then(Value::as_u64)
+            .map(|v| v as usize),
+    )
+    .unwrap_or(24);
+    let islands = or_alt(
+        islands,
+        evolution
+            .get("islands")
+            .and_then(Value::as_u64)
+            .map(|v| v as usize),
+    )
+    .unwrap_or(6);
+    let novelty_weight = or_alt(
+        novelty_weight,
+        evolution.get("novelty_weight").and_then(Value::as_f64),
+    )
+    .unwrap_or(0.13);
+    let new_info_refresh = or_alt(
+        new_info_refresh,
+        evolution
+            .get("new_info_refresh")
+            .and_then(Value::as_u64)
+            .map(|v| v as usize),
+    )
+    .unwrap_or(4);
     if population_size < 1 {
         bail!("--population-size must be at least 1");
     }
@@ -64,17 +65,19 @@ pub(crate) fn resolve_population_config(
     if new_info_refresh < 1 {
         bail!("--new-info-refresh must be at least 1");
     }
-    let mut island_names = evolution
-        .get("island_names")
-        .and_then(Value::as_array)
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(Value::as_str)
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_else(|| DEFAULT_ISLANDS.iter().map(|s| s.to_string()).collect());
+    let mut island_names = unwrap_or_value(
+        evolution
+            .get("island_names")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+            }),
+        DEFAULT_ISLANDS.iter().map(|s| s.to_string()).collect(),
+    );
     while island_names.len() < islands {
         island_names.push(format!("island-{}", island_names.len() + 1));
     }
@@ -85,34 +88,32 @@ pub(crate) fn resolve_population_config(
         island_names,
         new_info_refresh,
         novelty_weight,
-        diversity_targets: evolution
-            .get("diversity_targets")
-            .cloned()
-            .unwrap_or_else(|| {
-                json!({
-                    "concept_entropy_min": 2.2,
-                    "island_balance_min": 0.70,
-                    "source_diversity_min": 0.35
-                })
+        diversity_targets: unwrap_or_value(
+            evolution.get("diversity_targets").cloned(),
+            json!({
+                "concept_entropy_min": 2.2,
+                "island_balance_min": 0.70,
+                "source_diversity_min": 0.35
             }),
-        promotion_gates: evolution
-            .get("promotion_gates")
-            .and_then(Value::as_array)
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .map(ToString::to_string)
-                    .collect()
-            })
-            .unwrap_or_else(|| {
-                vec![
-                    "final_score".to_string(),
-                    "novelty_score".to_string(),
-                    "interface_score".to_string(),
-                    "failure_understanding".to_string(),
-                ]
-            }),
+        ),
+        promotion_gates: unwrap_or_value(
+            evolution
+                .get("promotion_gates")
+                .and_then(Value::as_array)
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(ToString::to_string)
+                        .collect()
+                }),
+            vec![
+                "final_score".to_string(),
+                "novelty_score".to_string(),
+                "interface_score".to_string(),
+                "failure_understanding".to_string(),
+            ],
+        ),
         degraded_penalties: field_or(&evolution, "degraded_penalties", default_degraded_penalties),
     })
 }
@@ -167,17 +168,19 @@ pub(crate) fn resolve_live_config(live_selective: bool, runbook: &Value) -> Live
             .get("promotion_judging")
             .and_then(Value::as_bool)
             .unwrap_or(true),
-        command: merged
-            .get("command")
-            .and_then(Value::as_array)
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .map(ToString::to_string)
-                    .collect()
-            })
-            .unwrap_or_else(|| JEKKO_LIVE_COMMAND.iter().map(|s| s.to_string()).collect()),
+        command: unwrap_or_value(
+            merged
+                .get("command")
+                .and_then(Value::as_array)
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(ToString::to_string)
+                        .collect()
+                }),
+            JEKKO_LIVE_COMMAND.iter().map(|s| s.to_string()).collect(),
+        ),
     }
 }
 
@@ -212,14 +215,14 @@ pub(crate) fn resolve_checkpoint_every(
     checkpoint_every: Option<usize>,
     evaluation: &Value,
 ) -> Result<usize> {
-    let value = checkpoint_every
-        .or_else(|| {
-            evaluation
-                .get("checkpoint_every")
-                .and_then(Value::as_u64)
-                .map(|v| v as usize)
-        })
-        .unwrap_or(0);
+    let value = or_alt(
+        checkpoint_every,
+        evaluation
+            .get("checkpoint_every")
+            .and_then(Value::as_u64)
+            .map(|v| v as usize),
+    )
+    .unwrap_or(0);
     Ok(value)
 }
 
@@ -230,16 +233,16 @@ pub(crate) fn resolve_research_cache_path(
     if research_cache.is_some() {
         return research_cache;
     }
-    let configured = runbook
-        .get("evaluation")
-        .and_then(|evaluation| evaluation.get("research_cache"))
-        .and_then(Value::as_str)
-        .or_else(|| {
-            runbook
-                .get("context")
-                .and_then(|context| context.get("research_cache"))
-                .and_then(Value::as_str)
-        });
+    let configured = or_alt(
+        runbook
+            .get("evaluation")
+            .and_then(|evaluation| evaluation.get("research_cache"))
+            .and_then(Value::as_str),
+        runbook
+            .get("context")
+            .and_then(|context| context.get("research_cache"))
+            .and_then(Value::as_str),
+    );
     if let Some(configured) = configured {
         return Some(PathBuf::from(configured));
     }

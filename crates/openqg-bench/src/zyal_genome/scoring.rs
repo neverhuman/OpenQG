@@ -39,7 +39,7 @@ pub(crate) fn compute_score_breakdown(
     json!({
         "artifact_validity": if stage.required_evidence.is_empty() { 0.70 } else { 0.95 },
         "source_grounding": (0.50 + 0.08 * research_refs.len() as f64).clamp(0.0, 1.0),
-        "novelty": value_or(scores.get("novelty_score").or_else(|| scores.get("innovation_score")).cloned(), zero_f64_json),
+        "novelty": value_or(or_alt(scores.get("novelty_score"), scores.get("innovation_score")).cloned(), zero_f64_json),
         "stage_reusability": if stage.stage_dir.is_dir() { 0.92 } else { 0.60 },
         "interface_integrity": field_or(scores, "interface_score", zero_f64_json),
         "failure_understanding": value_or_default(

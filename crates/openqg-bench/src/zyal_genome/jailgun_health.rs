@@ -51,17 +51,17 @@ pub(crate) fn hard_backend_required(
         return false;
     }
     let evaluation = field_or(runbook, "evaluation", empty_object);
-    let configured = evaluation
-        .get("quality_gates")
-        .and_then(|gates| gates.get("require_hard_backend"))
-        .and_then(Value::as_bool)
-        .or_else(|| {
-            evaluation
-                .get("routing")
-                .and_then(|routing| routing.get("require_hard_backend"))
-                .and_then(Value::as_bool)
-        })
-        .unwrap_or(false);
+    let configured = or_alt(
+        evaluation
+            .get("quality_gates")
+            .and_then(|gates| gates.get("require_hard_backend"))
+            .and_then(Value::as_bool),
+        evaluation
+            .get("routing")
+            .and_then(|routing| routing.get("require_hard_backend"))
+            .and_then(Value::as_bool),
+    )
+    .unwrap_or(false);
     configured
         || run_id == "hybrid-1000"
         || (run_id.starts_with("hybrid-v2") && max_generations >= 10)
@@ -267,25 +267,27 @@ pub(crate) fn check_jailgun_browser_accounts(
 }
 
 pub(crate) fn jailgun_accounts_from_response(value: &Value) -> Vec<Value> {
-    value
-        .as_array()
-        .cloned()
-        .or_else(|| value.get("accounts").and_then(Value::as_array).cloned())
-        .or_else(|| {
-            value
-                .get("data")
-                .and_then(|data| data.get("accounts"))
-                .and_then(Value::as_array)
-                .cloned()
-        })
-        .or_else(|| {
+    unwrap_or_value(
+        or_alt(
+            or_alt(
+                or_alt(
+                    value.as_array().cloned(),
+                    value.get("accounts").and_then(Value::as_array).cloned(),
+                ),
+                value
+                    .get("data")
+                    .and_then(|data| data.get("accounts"))
+                    .and_then(Value::as_array)
+                    .cloned(),
+            ),
             value
                 .get("browser")
                 .and_then(|browser| browser.get("accounts"))
                 .and_then(Value::as_array)
-                .cloned()
-        })
-        .unwrap_or_else(Vec::new)
+                .cloned(),
+        ),
+        Vec::new(),
+    )
 }
 
 pub(crate) fn ready_jailgun_account_ids(accounts: &[Value]) -> Vec<String> {
@@ -297,12 +299,12 @@ pub(crate) fn ready_jailgun_account_ids(accounts: &[Value]) -> Vec<String> {
 }
 
 pub(crate) fn jailgun_account_id(account: &Value) -> Option<String> {
-    account
-        .get("id")
-        .or_else(|| account.get("account_id"))
-        .or_else(|| account.get("accountId"))
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
+    or_alt(
+        or_alt(account.get("id"), account.get("account_id")),
+        account.get("accountId"),
+    )
+    .and_then(Value::as_str)
+    .map(ToString::to_string)
 }
 
 pub(crate) fn jailgun_account_ready(account: &Value) -> bool {
@@ -388,15 +390,14 @@ pub(crate) fn check_jailgun_tools_list(
 }
 
 pub(crate) fn jailgun_tool_names_from_list_response(value: &Value) -> Vec<String> {
-    value
-        .get("result")
-        .and_then(|result| result.get("tools"))
-        .or_else(|| {
+    unwrap_or_value(
+        or_alt(
+            value.get("result").and_then(|result| result.get("tools")),
             value
                 .get("result")
                 .and_then(|result| result.get("structuredContent"))
-                .and_then(|content| content.get("tools"))
-        })
+                .and_then(|content| content.get("tools")),
+        )
         .and_then(Value::as_array)
         .map(|tools| {
             tools
@@ -404,8 +405,9 @@ pub(crate) fn jailgun_tool_names_from_list_response(value: &Value) -> Vec<String
                 .filter_map(|tool| tool.get("name").and_then(Value::as_str))
                 .map(ToString::to_string)
                 .collect()
-        })
-        .unwrap_or_else(Vec::new)
+        }),
+        Vec::new(),
+    )
 }
 
 pub(crate) fn jailgun_tool_available(tools: &[String], name: &str) -> bool {

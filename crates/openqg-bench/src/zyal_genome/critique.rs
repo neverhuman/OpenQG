@@ -15,32 +15,34 @@ pub(crate) fn env_usize(key: &str, default: usize) -> usize {
 }
 
 pub(crate) fn build_critique_prompt(candidate: &Value) -> String {
-    let pillars = candidate
-        .get("scores")
-        .and_then(|s| s.get("physics"))
-        .and_then(|p| p.get("genes"))
-        .and_then(crate::zyal_robustness::genes_from_json)
-        .map(|genes| {
-            genes
-                .to_artifact("candidate")
-                .pillars
-                .iter()
-                .map(|p| {
-                    let params = p
-                        .parameters
-                        .iter()
-                        .map(|pm| format!("{} [{}]", pm.symbol, pm.kind))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    format!(
-                        "- {}: {} (mechanism: {}; parameters: {})",
-                        p.name, p.claim, p.mechanism, params
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-        })
-        .unwrap_or_else(|| "(no structured theory available)".to_string());
+    let pillars = unwrap_or_value(
+        candidate
+            .get("scores")
+            .and_then(|s| s.get("physics"))
+            .and_then(|p| p.get("genes"))
+            .and_then(crate::zyal_robustness::genes_from_json)
+            .map(|genes| {
+                genes
+                    .to_artifact("candidate")
+                    .pillars
+                    .iter()
+                    .map(|p| {
+                        let params = p
+                            .parameters
+                            .iter()
+                            .map(|pm| format!("{} [{}]", pm.symbol, pm.kind))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        format!(
+                            "- {}: {} (mechanism: {}; parameters: {})",
+                            p.name, p.claim, p.mechanism, params
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }),
+        "(no structured theory available)".to_string(),
+    );
     format!(
         "You are an adversarial physics referee judging a candidate cosmological theory. It must be \
 WHITEBOX: meaningful parameters (named constants/derived quantities), real mechanisms, NOT \

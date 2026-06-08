@@ -318,15 +318,14 @@ pub(crate) fn live_prompt(
     retrieval_packet: &Value,
     jailgun_download_target_name: Option<&str>,
 ) -> Result<String> {
-    let artifact_instruction = jailgun_download_target_name
-        .map(|name| {
+    let artifact_instruction = unwrap_or_value(
+        jailgun_download_target_name.map(|name| {
             format!(
                 "Create a fresh downloadable artifact named exactly `{name}` now. The filename and extension are authoritative. Do not answer with a plan, acknowledgement, or prose outside the artifact. Do not recover or reuse an artifact from another conversation. Keep the content concise and match the file type requested by the filename and stage prompt."
             )
-        })
-        .unwrap_or_else(|| {
-            "Return concise JSON-like notes with risks, repairs, and audit concerns.".to_string()
-        });
+        }),
+        "Return concise JSON-like notes with risks, repairs, and audit concerns.".to_string(),
+    );
     Ok([
         "# ZYAL Selective Live Call",
         "",

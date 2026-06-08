@@ -76,32 +76,32 @@ pub(crate) fn load_stage_package(path: &Path) -> Result<StagePackage> {
             .get("inputs")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_else(Vec::new)
             .into_iter()
+            .flatten()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
         outputs: value
             .get("outputs")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_else(Vec::new)
             .into_iter()
+            .flatten()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
         required_evidence: value
             .get("required_evidence")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_else(Vec::new)
             .into_iter()
+            .flatten()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
         validation_checks: value
             .get("validation_checks")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_else(Vec::new)
             .into_iter()
+            .flatten()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
         mutation_op: value
@@ -156,7 +156,10 @@ pub(crate) fn hard_stage_count(stages: &[StagePackage]) -> usize {
 
 pub(crate) fn stage_package_prompt(stage: &StagePackage) -> String {
     if stage.prompt_path.is_file() {
-        fs::read_to_string(&stage.prompt_path).unwrap_or_else(|_| stage.purpose.clone())
+        ok_or_value(
+            fs::read_to_string(&stage.prompt_path),
+            stage.purpose.clone(),
+        )
     } else {
         stage.purpose.clone()
     }

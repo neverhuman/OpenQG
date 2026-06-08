@@ -75,23 +75,25 @@ pub(crate) fn load_research_cache_cards(path: Option<&Path>, run_id: &str) -> Re
                 string_or_default(&entry, "url").as_str(),
                 source_text.as_str(),
             );
-            let source_hash = entry
-                .get("hash")
-                .and_then(Value::as_str)
-                .map(ToString::to_string)
-                .unwrap_or_else(|| stable_hash(&source_text));
+            let source_hash = unwrap_or_value(
+                entry
+                    .get("hash")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string),
+                stable_hash(&source_text),
+            );
             cards.push(json!({
                 "schema_version": SCHEMA_VERSION,
                 "record_kind": "research_card",
                 "run_id": run_id,
-                "research_card_id": entry.get("research_card_id").and_then(Value::as_str).map(ToString::to_string).unwrap_or_else(|| format!("research-{}-{index:03}", short_hash(&source_hash, 12))),
+                "research_card_id": unwrap_or_value(entry.get("research_card_id").and_then(Value::as_str).map(ToString::to_string), format!("research-{}-{index:03}", short_hash(&source_hash, 12))),
                 "source_type": string_or_default(&entry, "source_type"),
                 "url": string_or_default(&entry, "url"),
                 "title": entry.get("title").and_then(Value::as_str).unwrap_or("source"),
                 "date": string_or_default(&entry, "date"),
                 "source_hash": source_hash,
-                "citation": entry.get("citation").and_then(Value::as_str).or_else(|| entry.get("title").and_then(Value::as_str)).unwrap_or("source"),
-                "summary": entry.get("summary").and_then(Value::as_str).or_else(|| entry.get("claim").and_then(Value::as_str)).unwrap_or("").chars().take(1000).collect::<String>(),
+                "citation": or_alt(entry.get("citation").and_then(Value::as_str), entry.get("title").and_then(Value::as_str)).unwrap_or("source"),
+                "summary": or_alt(entry.get("summary").and_then(Value::as_str), entry.get("claim").and_then(Value::as_str)).unwrap_or("").chars().take(1000).collect::<String>(),
                 "cache_path": path.display().to_string(),
                 "accepted": rejection_reason.is_none(),
                 "rejection_reason": rejection_reason,
@@ -118,13 +120,16 @@ pub(crate) fn load_research_cache_entries(path: &Path) -> Result<Vec<Value>> {
                 .into_iter()
                 .filter(|entry| entry.is_object())
                 .collect(),
-            Value::Object(map) => map
-                .get("cards")
-                .and_then(Value::as_array)
-                .cloned()
-                .or_else(|| map.get("sources").and_then(Value::as_array).cloned())
-                .or_else(|| map.get("research").and_then(Value::as_array).cloned())
-                .unwrap_or_else(|| vec![Value::Object(map.clone())]),
+            Value::Object(map) => unwrap_or_value(
+                or_alt(
+                    or_alt(
+                        map.get("cards").and_then(Value::as_array).cloned(),
+                        map.get("sources").and_then(Value::as_array).cloned(),
+                    ),
+                    map.get("research").and_then(Value::as_array).cloned(),
+                ),
+                vec![Value::Object(map.clone())],
+            ),
             _ => Vec::new(),
         })
     } else {
@@ -136,13 +141,16 @@ pub(crate) fn load_research_cache_entries(path: &Path) -> Result<Vec<Value>> {
                 .into_iter()
                 .filter(|entry| entry.is_object())
                 .collect(),
-            Value::Object(map) => map
-                .get("cards")
-                .and_then(Value::as_array)
-                .cloned()
-                .or_else(|| map.get("sources").and_then(Value::as_array).cloned())
-                .or_else(|| map.get("research").and_then(Value::as_array).cloned())
-                .unwrap_or_else(|| vec![Value::Object(map.clone())]),
+            Value::Object(map) => unwrap_or_value(
+                or_alt(
+                    or_alt(
+                        map.get("cards").and_then(Value::as_array).cloned(),
+                        map.get("sources").and_then(Value::as_array).cloned(),
+                    ),
+                    map.get("research").and_then(Value::as_array).cloned(),
+                ),
+                vec![Value::Object(map.clone())],
+            ),
             _ => Vec::new(),
         })
     }
@@ -306,16 +314,20 @@ pub(crate) fn extract_information_card(
 }
 
 pub(crate) fn memory_refs_for_stage(stage: &StagePackage) -> Vec<String> {
-    stage
-        .memory
-        .get("memory_refs")
-        .and_then(Value::as_array)
-        .cloned()
-        .or_else(|| stage.memory.get("refs").and_then(Value::as_array).cloned())
-        .unwrap_or_else(Vec::new)
-        .into_iter()
-        .filter_map(|value| value.as_str().map(ToString::to_string))
-        .collect()
+    unwrap_or_value(
+        or_alt(
+            stage
+                .memory
+                .get("memory_refs")
+                .and_then(Value::as_array)
+                .cloned(),
+            stage.memory.get("refs").and_then(Value::as_array).cloned(),
+        ),
+        Vec::new(),
+    )
+    .into_iter()
+    .filter_map(|value| value.as_str().map(ToString::to_string))
+    .collect()
 }
 
 pub(crate) fn novelty_terms_from_text(text: &str) -> Vec<String> {

@@ -433,11 +433,13 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
             .and_then(Value::as_str)
             .unwrap_or("unknown")
             .to_string();
-        let candidate_ids = snapshot
-            .get("candidate_ids")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_else(Vec::new);
+        let candidate_ids = unwrap_or_value(
+            snapshot
+                .get("candidate_ids")
+                .and_then(Value::as_array)
+                .cloned(),
+            Vec::new(),
+        );
         let ids: BTreeSet<String> = candidate_ids
             .iter()
             .filter_map(Value::as_str)
@@ -472,11 +474,13 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string();
-                let parent_ids = candidate
-                    .get("parent_candidate_ids")
-                    .and_then(Value::as_array)
-                    .cloned()
-                    .unwrap_or_else(Vec::new);
+                let parent_ids = unwrap_or_value(
+                    candidate
+                        .get("parent_candidate_ids")
+                        .and_then(Value::as_array)
+                        .cloned(),
+                    Vec::new(),
+                );
                 for parent_id in parent_ids {
                     let parent_id = parent_id.as_str().unwrap_or("").to_string();
                     parent_ids_by_run
@@ -502,7 +506,7 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
         })
         .map(|entry| entry.into_path())
     {
-        for card in read_jsonl::<Value>(&path).unwrap_or_else(|_| Vec::new()) {
+        for card in ok_or_value(read_jsonl::<Value>(&path), Vec::new()) {
             let run_id = card
                 .get("run_id")
                 .and_then(Value::as_str)

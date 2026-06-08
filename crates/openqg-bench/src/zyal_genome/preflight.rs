@@ -14,40 +14,44 @@ pub fn preflight(
     jailgun_artifact_smoke_extension: String,
 ) -> Result<()> {
     let runbook = load_runbook(&runbook_path)?;
-    let variant = variant
-        .or_else(|| variant_from_runbook(&runbook))
-        .unwrap_or(GenomeVariant::Hybrid);
+    let variant = or_alt(variant, variant_from_runbook(&runbook)).unwrap_or(GenomeVariant::Hybrid);
     let evaluation = field_or(&runbook, "evaluation", empty_object);
     let output_root = if output_root != PathBuf::from(DEFAULT_OUTPUT_ROOT) {
         output_root
     } else {
-        evaluation
-            .get("output_root")
-            .and_then(Value::as_str)
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(DEFAULT_OUTPUT_ROOT))
+        unwrap_or_value(
+            evaluation
+                .get("output_root")
+                .and_then(Value::as_str)
+                .map(PathBuf::from),
+            PathBuf::from(DEFAULT_OUTPUT_ROOT),
+        )
     };
     let max_generations = resolve_generation_count(None, None, &evaluation)?;
-    let run_id = run_id
-        .or_else(|| {
+    let run_id = unwrap_or_value(
+        or_alt(
+            run_id,
             evaluation
                 .get("run_id")
                 .and_then(Value::as_str)
-                .map(ToString::to_string)
-        })
-        .unwrap_or_else(|| default_run_id(variant.as_str(), DEFAULT_SEED, max_generations));
+                .map(ToString::to_string),
+        ),
+        default_run_id(variant.as_str(), DEFAULT_SEED, max_generations),
+    );
     let run_dir = output_root.join("runs").join(&run_id);
     fs::create_dir_all(&run_dir)?;
     let output_guard = OutputPathGuard::new(&output_root)?;
-    let stage_root = stage_root
-        .or_else(|| {
+    let stage_root = unwrap_or_value(
+        or_alt(
+            stage_root,
             runbook
                 .get("context")
                 .and_then(|context| context.get("stage_root"))
                 .and_then(Value::as_str)
-                .map(PathBuf::from)
-        })
-        .unwrap_or_else(|| PathBuf::from(DEFAULT_STAGE_ROOT));
+                .map(PathBuf::from),
+        ),
+        PathBuf::from(DEFAULT_STAGE_ROOT),
+    );
     let stage_registry = load_stage_registry(&stage_root)?;
     validate_stage_registry(&stage_registry)?;
     let live_config = resolve_live_config(live_selective, &runbook);

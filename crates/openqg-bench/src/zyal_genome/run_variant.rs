@@ -20,8 +20,10 @@ pub fn run_variant(
     jailgun_available: bool,
     dry_run: bool,
 ) -> Result<()> {
-    let runbook_path =
-        runbook.unwrap_or_else(|| PathBuf::from(DEFAULT_RUNBOOK_ROOT).join(variant.runbook_name()));
+    let runbook_path = unwrap_or_value(
+        runbook,
+        PathBuf::from(DEFAULT_RUNBOOK_ROOT).join(variant.runbook_name()),
+    );
     let runbook = load_runbook(&runbook_path)?;
     let evaluation = field_or(&runbook, "evaluation", empty_object);
     let jailgun_available = jailgun_available || jailgun_available_from_environment();
@@ -34,32 +36,38 @@ pub fn run_variant(
         new_info_refresh,
         &evaluation,
     )?;
-    let stage_root = stage_root
-        .or_else(|| {
+    let stage_root = unwrap_or_value(
+        or_alt(
+            stage_root,
             runbook
                 .get("context")
                 .and_then(|context| context.get("stage_root"))
                 .and_then(Value::as_str)
-                .map(PathBuf::from)
-        })
-        .unwrap_or_else(|| PathBuf::from(DEFAULT_STAGE_ROOT));
+                .map(PathBuf::from),
+        ),
+        PathBuf::from(DEFAULT_STAGE_ROOT),
+    );
     let output_root = if output_root != PathBuf::from(DEFAULT_OUTPUT_ROOT) {
         output_root
     } else {
-        evaluation
-            .get("output_root")
-            .and_then(Value::as_str)
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(DEFAULT_OUTPUT_ROOT))
+        unwrap_or_value(
+            evaluation
+                .get("output_root")
+                .and_then(Value::as_str)
+                .map(PathBuf::from),
+            PathBuf::from(DEFAULT_OUTPUT_ROOT),
+        )
     };
-    let run_id = run_id
-        .or_else(|| {
+    let run_id = unwrap_or_value(
+        or_alt(
+            run_id,
             evaluation
                 .get("run_id")
                 .and_then(Value::as_str)
-                .map(ToString::to_string)
-        })
-        .unwrap_or_else(|| default_run_id(variant.as_str(), seed, max_generations));
+                .map(ToString::to_string),
+        ),
+        default_run_id(variant.as_str(), seed, max_generations),
+    );
     let run_dir = output_root.join("runs").join(&run_id);
     if run_dir.exists() && run_dir.read_dir()?.next().is_some() && !resume {
         bail!(
@@ -489,11 +497,13 @@ pub fn run_variant(
                         .get("time_seconds")
                         .and_then(Value::as_f64)
                         .unwrap_or(0.0),
-                    scores
-                        .get("failure_modes")
-                        .and_then(Value::as_array)
-                        .cloned()
-                        .unwrap_or_else(Vec::new),
+                    unwrap_or_value(
+                        scores
+                            .get("failure_modes")
+                            .and_then(Value::as_array)
+                            .cloned(),
+                        Vec::new(),
+                    ),
                     artifact_paths_block.clone(),
                     &scores,
                 );

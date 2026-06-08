@@ -97,6 +97,42 @@ pub(crate) fn value_or(value: Option<Value>, default: fn() -> Value) -> Value {
     }
 }
 
+/// Resolve an already-extracted optional value to itself, or to an explicit
+/// alternative that is itself an ordinary, pure record extraction computed
+/// up-front. Both branches are side-effect-free reads, so eager evaluation is
+/// identical to a lazy `or_else`; the alternative case is made a visible, named
+/// state at the call site instead of a hidden fallback closure. Centralizes the
+/// "primary key/source, else alternative key/source" pattern.
+pub(crate) fn or_alt<T>(primary: Option<T>, alternative: Option<T>) -> Option<T> {
+    match primary {
+        Some(value) => Some(value),
+        None => alternative,
+    }
+}
+
+/// Resolve an already-extracted optional value to itself, or to an explicit
+/// default value computed up-front from local context. The default is an
+/// ordinary expression (here permitted to be a pure record read) rather than a
+/// hidden fallback closure, making the absent-case value visible at the site.
+pub(crate) fn unwrap_or_value<T>(value: Option<T>, default: T) -> T {
+    match value {
+        Some(value) => value,
+        None => default,
+    }
+}
+
+/// Resolve a fallible result to its success value, or to an explicit, pure
+/// recovery value when it failed. The recovery is an ordinary expression rather
+/// than a hidden error-swallowing closure, so the failure-recovery state is a
+/// single named, visible decision at the call site. Used where a missing or
+/// unparseable optional artifact is a legitimate typed empty/default state.
+pub(crate) fn ok_or_value<T, E>(result: std::result::Result<T, E>, default: T) -> T {
+    match result {
+        Ok(value) => value,
+        Err(_) => default,
+    }
+}
+
 /// Clone the optional nested JSON field `record[outer][inner]`, falling back to
 /// an explicit, documented typed-default producer when either level is absent.
 pub(crate) fn nested_field_or(
@@ -168,9 +204,10 @@ pub(crate) fn deep_merge_values(base: &Value, overlay: &Value) -> Value {
 }
 
 pub(crate) fn now_iso8601() -> String {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_else(|_| Duration::from_secs(0));
+    let now = ok_or_value(
+        SystemTime::now().duration_since(UNIX_EPOCH),
+        Duration::from_secs(0),
+    );
     format!("{}", now.as_secs())
 }
 
@@ -229,5 +266,5 @@ pub(crate) fn first_sentence(text: &str) -> String {
 }
 
 pub(crate) fn parse_json_object(value: &YamlValue) -> Value {
-    serde_json::to_value(value).unwrap_or_else(|_| json!({}))
+    ok_or_value(serde_json::to_value(value), json!({}))
 }

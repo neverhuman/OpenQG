@@ -50,17 +50,26 @@ pub(crate) fn parse_bridge_command(value: &str) -> Vec<String> {
 }
 
 pub(crate) fn jailgun_server_url() -> String {
-    env_string("JAILGUN_SERVER_URL").unwrap_or_else(|| DEFAULT_JAILGUN_SERVER_URL.to_string())
+    unwrap_or_value(
+        env_string("JAILGUN_SERVER_URL"),
+        DEFAULT_JAILGUN_SERVER_URL.to_string(),
+    )
 }
 
 pub(crate) fn jailgun_account_ids_override() -> Vec<String> {
-    env_string("JAILGUN_ACCOUNT_IDS")
-        .map(|value| parse_account_ids(&value))
-        .unwrap_or_else(Vec::new)
+    unwrap_or_value(
+        env_string("JAILGUN_ACCOUNT_IDS").map(|value| parse_account_ids(&value)),
+        Vec::new(),
+    )
 }
 
 pub(crate) fn resolve_jailgun_token(server_url: &str) -> Option<JailgunToken> {
-    jailgun_token_from_env().or_else(|| jailgun_token_from_proc(server_url))
+    // Explicit precedence so the proc scan (filesystem read) is only performed
+    // when the environment did not already supply a token.
+    match jailgun_token_from_env() {
+        Some(token) => Some(token),
+        None => jailgun_token_from_proc(server_url),
+    }
 }
 
 pub(crate) fn jailgun_token_from_env() -> Option<JailgunToken> {
@@ -71,17 +80,18 @@ pub(crate) fn jailgun_token_from_env_lookup<F>(mut lookup: F) -> Option<JailgunT
 where
     F: FnMut(&str) -> Option<String>,
 {
-    lookup("JAILGUN_INGEST_TOKEN")
-        .map(|value| JailgunToken {
+    // Explicit precedence so the secondary env var is only consulted when the
+    // primary one is absent.
+    match lookup("JAILGUN_INGEST_TOKEN").map(|value| JailgunToken {
+        value,
+        source: "env:JAILGUN_INGEST_TOKEN".to_string(),
+    }) {
+        Some(token) => Some(token),
+        None => lookup("JAILGUN_TOKEN").map(|value| JailgunToken {
             value,
-            source: "env:JAILGUN_INGEST_TOKEN".to_string(),
-        })
-        .or_else(|| {
-            lookup("JAILGUN_TOKEN").map(|value| JailgunToken {
-                value,
-                source: "env:JAILGUN_TOKEN".to_string(),
-            })
-        })
+            source: "env:JAILGUN_TOKEN".to_string(),
+        }),
+    }
 }
 
 pub(crate) fn jailgun_token_from_proc(server_url: &str) -> Option<JailgunToken> {
@@ -154,11 +164,13 @@ pub(crate) fn jailgun_process_matches_server(cmdline: &[String], server_url: &st
         return false;
     }
     let looks_like_jailgun = cmdline.iter().any(|arg| {
-        Path::new(arg)
-            .file_name()
-            .and_then(|name| name.to_str())
-            .map(|name| name.contains("jailgun"))
-            .unwrap_or_else(|| arg.contains("jailgun"))
+        unwrap_or_value(
+            Path::new(arg)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| name.contains("jailgun")),
+            arg.contains("jailgun"),
+        )
     });
     if !looks_like_jailgun || !cmdline.iter().any(|arg| arg == "serve") {
         return false;
@@ -181,11 +193,10 @@ pub(crate) fn jailgun_process_matches_server(cmdline: &[String], server_url: &st
 }
 
 pub(crate) fn jailgun_server_addr(server_url: &str) -> Option<String> {
-    let without_scheme = server_url
-        .trim()
-        .split_once("://")
-        .map(|(_, rest)| rest)
-        .unwrap_or_else(|| server_url.trim());
+    let without_scheme = unwrap_or_value(
+        server_url.trim().split_once("://").map(|(_, rest)| rest),
+        server_url.trim(),
+    );
     without_scheme
         .split('/')
         .next()

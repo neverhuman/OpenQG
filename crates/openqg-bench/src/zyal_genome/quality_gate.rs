@@ -58,11 +58,11 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         .get("complete_generation")
         .and_then(Value::as_u64)
         .unwrap_or(0) as usize;
-    let target_generation = checkpoint
-        .get("target_generation")
-        .and_then(Value::as_u64)
-        .or_else(|| summary.get("generation_count").and_then(Value::as_u64))
-        .unwrap_or(complete_generation as u64) as usize;
+    let target_generation = or_alt(
+        checkpoint.get("target_generation").and_then(Value::as_u64),
+        summary.get("generation_count").and_then(Value::as_u64),
+    )
+    .unwrap_or(complete_generation as u64) as usize;
     let tier = if target_generation >= 1000 {
         "full"
     } else if target_generation >= 50 {
@@ -70,11 +70,13 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
     } else {
         "smoke"
     };
-    let report_run_id = summary
-        .get("run_id")
-        .and_then(Value::as_str)
-        .map(ToString::to_string)
-        .unwrap_or_else(|| infer_run_id_from_path(run_dir));
+    let report_run_id = unwrap_or_value(
+        summary
+            .get("run_id")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        infer_run_id_from_path(run_dir),
+    );
     let live_total = live_records.len();
     let live_timeout_count = live_records
         .iter()
@@ -99,11 +101,13 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         .iter()
         .map(timeout_overrun_count)
         .sum::<usize>();
-    let degraded_route_count = summary
-        .get("degraded_route_count")
-        .and_then(Value::as_u64)
-        .map(|value| value as usize)
-        .unwrap_or_else(|| degraded_route_count_from_ledgers(&stage_ledgers, &run_events));
+    let degraded_route_count = unwrap_or_value(
+        summary
+            .get("degraded_route_count")
+            .and_then(Value::as_u64)
+            .map(|value| value as usize),
+        degraded_route_count_from_ledgers(&stage_ledgers, &run_events),
+    );
     let decoy_failures = summary
         .get("decoy_failures")
         .and_then(Value::as_u64)
@@ -122,11 +126,13 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
     } else {
         perfect_champions as f64 / champion_scores.len() as f64
     };
-    let champions = summary
-        .get("generation_champions")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_else(Vec::new);
+    let champions = unwrap_or_value(
+        summary
+            .get("generation_champions")
+            .and_then(Value::as_array)
+            .cloned(),
+        Vec::new(),
+    );
     let champion_islands = champions
         .iter()
         .filter_map(|champion| champion.get("island").and_then(Value::as_str))
@@ -161,15 +167,15 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         .and_then(Value::as_str)
         .map(|status| status == "ok")
         .unwrap_or(true);
-    let hard_backend_required = preflight
-        .get("backend_health")
-        .and_then(|health| health.get("require_hard_backend"))
-        .and_then(Value::as_bool)
-        .unwrap_or_else(|| {
-            summary.get("variant").and_then(Value::as_str) == Some("hybrid")
-                && report_run_id.starts_with("hybrid-v2")
-                && target_generation >= 10
-        });
+    let hard_backend_required = unwrap_or_value(
+        preflight
+            .get("backend_health")
+            .and_then(|health| health.get("require_hard_backend"))
+            .and_then(Value::as_bool),
+        summary.get("variant").and_then(Value::as_str) == Some("hybrid")
+            && report_run_id.starts_with("hybrid-v2")
+            && target_generation >= 10,
+    );
     let jailgun_proof_required = hard_backend_required
         && summary.get("variant").and_then(Value::as_str) == Some("hybrid")
         && target_generation >= 10;
@@ -443,10 +449,12 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
 }
 
 pub(crate) fn genome_root_from_run_dir(run_dir: &Path) -> PathBuf {
-    run_dir
-        .parent()
-        .and_then(Path::parent)
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from(DEFAULT_OUTPUT_ROOT))
+    unwrap_or_value(
+        run_dir
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .map(Path::to_path_buf),
+        PathBuf::from(DEFAULT_OUTPUT_ROOT),
+    )
 }

@@ -171,10 +171,7 @@ pub fn score_metrics_cov(
 
     for block in &data.blocks {
         if !block.is_well_formed() {
-            findings.push(format!(
-                "malformed covariance block over {:?}",
-                block.ids
-            ));
+            findings.push(format!("malformed covariance block over {:?}", block.ids));
             continue;
         }
         // Members present in BOTH the data and the predictions; marginalize over the rest.
@@ -259,6 +256,297 @@ pub fn score_metrics_cov(
         invalid_prediction_count: findings.len(),
     };
     (metrics, findings)
+}
+
+// ===========================================================================================
+// v3.0.0 M2: the covariance registry
+// -------------------------------------------------------------------------------------------
+// Real correlated-data covariances are kept as cited JSON fixtures under
+// `data/fixtures/cosmology/covariance/`, and loaded into a [`CovarianceRegistry`] that gives
+// every block a provenance receipt: an `id`, a literature `source`, the *ordered* observable id
+// set the matrix is over, a content hash (sha256 of the canonical bytes), and a numerical health
+// check (symmetric positive-definite + condition number). A block that fails the PD check is a
+// data error and is *rejected* — the engine refuses to score against a malformed covariance, the
+// same fail-closed stance as [`score_metrics_cov`].
+// ===========================================================================================
+
+/// Symmetric Jacobi eigenvalue iteration for a small dense symmetric matrix. Deterministic
+/// (no RNG), returns the eigenvalues sorted ascending, or `None` if it fails to converge. Used
+/// only for the condition-number diagnostic on registry blocks (n ≤ a few), never on the hot
+/// scoring path (which uses Cholesky). Reference: Golub & Van Loan, *Matrix Computations*, the
+/// cyclic-Jacobi method for the symmetric eigenproblem.
+// The coupled row/column rotations index two arrays at once; explicit index loops keep the
+// linear-algebra readable (the iterator rewrite would alias the matrix being updated in place).
+#[allow(clippy::needless_range_loop)]
+fn symmetric_eigenvalues(matrix: &[Vec<f64>]) -> Option<Vec<f64>> {
+    let n = matrix.len();
+    if n == 0 || matrix.iter().any(|row| row.len() != n) {
+        return None;
+    }
+    if n == 1 {
+        return Some(vec![matrix[0][0]]);
+    }
+    let mut a: Vec<Vec<f64>> = matrix.to_vec();
+    // Sweep until all off-diagonal entries are negligible relative to the diagonal scale.
+    for _sweep in 0..100 {
+        // Largest off-diagonal magnitude.
+        let mut off = 0.0;
+        for i in 0..n {
+            for j in (i + 1)..n {
+                off += a[i][j] * a[i][j];
+            }
+        }
+        if off.sqrt() <= 1e-18 {
+            break;
+        }
+        for p in 0..n {
+            for q in (p + 1)..n {
+                if a[p][q].abs() <= f64::EPSILON * (a[p][p].abs() + a[q][q].abs()).max(1e-300) {
+                    continue;
+                }
+                // Jacobi rotation zeroing a[p][q].
+                let theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q]);
+                let t = theta.signum() / (theta.abs() + (theta * theta + 1.0).sqrt());
+                let c = 1.0 / (t * t + 1.0).sqrt();
+                let s = t * c;
+                for k in 0..n {
+                    let akp = a[k][p];
+                    let akq = a[k][q];
+                    a[k][p] = c * akp - s * akq;
+                    a[k][q] = s * akp + c * akq;
+                }
+                for k in 0..n {
+                    let apk = a[p][k];
+                    let aqk = a[q][k];
+                    a[p][k] = c * apk - s * aqk;
+                    a[q][k] = s * apk + c * aqk;
+                }
+            }
+        }
+    }
+    let mut eig: Vec<f64> = (0..n).map(|i| a[i][i]).collect();
+    eig.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
+    Some(eig)
+}
+
+/// A single registered covariance block with full provenance: id, literature source, the ordered
+/// observable id set, the dense covariance, and the numerical health summary.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RegisteredCovariance {
+    /// Stable identifier (e.g. `planck18_distance_priors_chen2019`).
+    pub id: String,
+    /// Literature source string (citation), copied verbatim from the fixture.
+    pub source: String,
+    /// The covariance block (ids define the row/column order of `matrix`).
+    pub block: CovarianceBlock,
+    /// sha256 of the canonical block bytes (ids + matrix), so a covariance change is visible.
+    pub hash: String,
+    /// True iff the covariance is symmetric positive-definite (Cholesky succeeds).
+    pub positive_definite: bool,
+    /// Condition number κ = λ_max / λ_min (∞ if not positive-definite). A large κ flags an
+    /// ill-conditioned block whose inverse amplifies noise.
+    pub condition_number: f64,
+}
+
+impl RegisteredCovariance {
+    /// Build a registered covariance from an id, source, and block, computing the hash and the
+    /// PD / condition-number diagnostics. Returns `Err` if the block is not well-formed.
+    pub fn new(id: String, source: String, block: CovarianceBlock) -> Result<Self, String> {
+        if !block.is_well_formed() {
+            return Err(format!(
+                "covariance block '{id}' is not well-formed (square, ids-sized)"
+            ));
+        }
+        // Symmetry check (within a tight tolerance) — a covariance must be symmetric.
+        let n = block.matrix.len();
+        for i in 0..n {
+            for j in 0..n {
+                let d = (block.matrix[i][j] - block.matrix[j][i]).abs();
+                let scale = block.matrix[i][j]
+                    .abs()
+                    .max(block.matrix[j][i].abs())
+                    .max(1e-300);
+                if d > 1e-9 * scale {
+                    return Err(format!(
+                        "covariance block '{id}' is not symmetric at ({i},{j})"
+                    ));
+                }
+            }
+        }
+        let positive_definite = cholesky(&block.matrix).is_some();
+        let condition_number = match symmetric_eigenvalues(&block.matrix) {
+            Some(eig) => {
+                let lmin = eig.first().copied().unwrap_or(0.0);
+                let lmax = eig.last().copied().unwrap_or(0.0);
+                if lmin > 0.0 {
+                    lmax / lmin
+                } else {
+                    f64::INFINITY
+                }
+            }
+            None => f64::INFINITY,
+        };
+        // Canonical bytes for the hash: the id, the ordered observable ids, and the matrix, in a
+        // stable textual form (so the same block always hashes the same, independent of source
+        // whitespace).
+        let mut canonical = String::new();
+        canonical.push_str(&id);
+        canonical.push('\n');
+        for obs_id in &block.ids {
+            canonical.push_str(obs_id);
+            canonical.push('|');
+        }
+        canonical.push('\n');
+        for row in &block.matrix {
+            for v in row {
+                // 17 sig figs round-trips an f64 exactly.
+                canonical.push_str(&format!("{v:.17e},"));
+            }
+            canonical.push(';');
+        }
+        let hash = crate::validation::sha256_digest(canonical.as_bytes());
+        Ok(RegisteredCovariance {
+            id,
+            source,
+            block,
+            hash,
+            positive_definite,
+            condition_number,
+        })
+    }
+}
+
+/// A registry of named, provenance-stamped covariance blocks. Lookups are by observable id (every
+/// id appears in at most one block) so the scorer can ask "is this observable in a registered
+/// block?" and assemble a [`LikelihoodData`] with the real correlations attached.
+#[derive(Debug, Clone, Default)]
+pub struct CovarianceRegistry {
+    blocks: Vec<RegisteredCovariance>,
+}
+
+impl CovarianceRegistry {
+    pub fn new() -> Self {
+        CovarianceRegistry { blocks: Vec::new() }
+    }
+
+    /// Register a block. Returns `Err` if the block is malformed, not symmetric, or **not
+    /// positive-definite** (a non-PD covariance is a hard data error we refuse to admit), or if
+    /// any of its observable ids is already claimed by another registered block.
+    pub fn register(&mut self, reg: RegisteredCovariance) -> Result<(), String> {
+        if !reg.positive_definite {
+            return Err(format!(
+                "covariance block '{}' is not positive-definite (rejected)",
+                reg.id
+            ));
+        }
+        for obs_id in &reg.block.ids {
+            if self.find_block(obs_id).is_some() {
+                return Err(format!(
+                    "observable '{obs_id}' is already covered by a registered covariance block"
+                ));
+            }
+        }
+        self.blocks.push(reg);
+        Ok(())
+    }
+
+    /// All registered blocks (in registration order).
+    pub fn blocks(&self) -> &[RegisteredCovariance] {
+        &self.blocks
+    }
+
+    /// The registered block that contains `observable_id`, if any.
+    pub fn find_block(&self, observable_id: &str) -> Option<&RegisteredCovariance> {
+        self.blocks
+            .iter()
+            .find(|b| b.block.ids.iter().any(|id| id == observable_id))
+    }
+
+    /// Look up a registered block by its id.
+    pub fn by_id(&self, id: &str) -> Option<&RegisteredCovariance> {
+        self.blocks.iter().find(|b| b.id == id)
+    }
+
+    /// Attach every registered block to a [`LikelihoodData`] whose observables it covers. Only a
+    /// block all of whose ids appear among the data's observables is attached (a partially-covered
+    /// block would silently change which points are correlated). Returns the data with the
+    /// matching covariance blocks added.
+    pub fn apply_to(&self, mut data: LikelihoodData) -> LikelihoodData {
+        let have: std::collections::BTreeSet<&str> = data
+            .observables
+            .iter()
+            .map(|o| o.observable_id.as_str())
+            .collect();
+        for reg in &self.blocks {
+            if reg.block.ids.iter().all(|id| have.contains(id.as_str())) {
+                data.blocks.push(reg.block.clone());
+            }
+        }
+        data
+    }
+}
+
+/// JSON shape of a single-block covariance fixture (e.g. the Planck distance-priors file).
+#[derive(Debug, Clone, Deserialize)]
+pub struct CovarianceFixture {
+    pub id: String,
+    pub source: String,
+    pub observable_ids: Vec<String>,
+    pub matrix: Vec<Vec<f64>>,
+}
+
+impl CovarianceFixture {
+    /// Convert the fixture into a [`RegisteredCovariance`] (computing hash + diagnostics).
+    pub fn into_registered(self) -> Result<RegisteredCovariance, String> {
+        let block = CovarianceBlock {
+            ids: self.observable_ids,
+            matrix: self.matrix,
+        };
+        RegisteredCovariance::new(self.id, self.source, block)
+    }
+}
+
+/// JSON shape of a multi-block covariance fixture (e.g. the DESI per-tracer file): a shared
+/// `id`/`source` and a list of named 2×2 (or n×n) tracer blocks.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MultiBlockFixture {
+    pub id: String,
+    pub source: String,
+    pub blocks: Vec<MultiBlockEntry>,
+}
+
+/// One entry of a [`MultiBlockFixture`]: a tracer's ordered observable ids and its covariance.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MultiBlockEntry {
+    #[serde(default)]
+    pub tracer: String,
+    pub observable_ids: Vec<String>,
+    pub matrix: Vec<Vec<f64>>,
+}
+
+impl MultiBlockFixture {
+    /// Convert every entry into a [`RegisteredCovariance`]; each entry's registry id is
+    /// `<fixture id>::<tracer-or-index>` so per-tracer blocks stay distinct.
+    pub fn into_registered(self) -> Result<Vec<RegisteredCovariance>, String> {
+        let mut out = Vec::with_capacity(self.blocks.len());
+        for (i, entry) in self.blocks.into_iter().enumerate() {
+            let tag = if entry.tracer.is_empty() {
+                i.to_string()
+            } else {
+                entry.tracer.clone()
+            };
+            let block = CovarianceBlock {
+                ids: entry.observable_ids,
+                matrix: entry.matrix,
+            };
+            out.push(RegisteredCovariance::new(
+                format!("{}::{tag}", self.id),
+                self.source.clone(),
+                block,
+            )?);
+        }
+        Ok(out)
+    }
 }
 
 #[cfg(test)]
@@ -367,7 +655,9 @@ mod tests {
         let (m, findings) = score_metrics_cov(&data, &preds, 2, 0.0);
         // chi2 on "a" alone: (0.5)^2 / 1.0 = 0.25 -> log-L = -0.125.
         assert!((m.log_likelihood + 0.125).abs() < 1e-12);
-        assert!(findings.iter().any(|f| f.contains("missing prediction for b")));
+        assert!(findings
+            .iter()
+            .any(|f| f.contains("missing prediction for b")));
         assert!((m.coverage - 0.5).abs() < 1e-12);
     }
 
@@ -385,5 +675,146 @@ mod tests {
         };
         let (m, _) = score_metrics_cov(&data, &preds, 2, 0.0);
         assert!(m.log_likelihood.is_infinite() && m.log_likelihood < 0.0);
+    }
+
+    // --- v3.0.0 M2: covariance registry ---
+
+    fn fixtures_dir() -> std::path::PathBuf {
+        std::path::PathBuf::from(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../data/fixtures/cosmology/covariance"
+        ))
+    }
+
+    #[test]
+    fn symmetric_eigenvalues_match_a_known_2x2() {
+        // [[2,1],[1,2]] has eigenvalues 1 and 3.
+        let eig = symmetric_eigenvalues(&[vec![2.0, 1.0], vec![1.0, 2.0]]).unwrap();
+        assert!((eig[0] - 1.0).abs() < 1e-10, "{eig:?}");
+        assert!((eig[1] - 3.0).abs() < 1e-10, "{eig:?}");
+        // Diagonal block: eigenvalues are the diagonal entries.
+        let eig2 = symmetric_eigenvalues(&[vec![4.0, 0.0], vec![0.0, 9.0]]).unwrap();
+        assert!((eig2[0] - 4.0).abs() < 1e-10 && (eig2[1] - 9.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn registry_rejects_non_pd_block() {
+        let block = CovarianceBlock {
+            ids: vec!["a".into(), "b".into()],
+            matrix: vec![vec![1.0, 2.0], vec![2.0, 1.0]], // indefinite
+        };
+        let reg = RegisteredCovariance::new("indef".into(), "test".into(), block).unwrap();
+        assert!(!reg.positive_definite);
+        let mut registry = CovarianceRegistry::new();
+        assert!(registry.register(reg).is_err(), "non-PD must be rejected");
+    }
+
+    #[test]
+    fn registry_hash_is_stable_and_diagonal_block_quad_form_equals_diagonal_sum() {
+        // A diagonal block C = diag(sigma^2): r^T C^-1 r must equal sum (r_i/sigma_i)^2.
+        let block = CovarianceBlock::from_sigmas(vec!["a".into(), "b".into()], &[0.5, 0.25]);
+        let reg = RegisteredCovariance::new("diag".into(), "test".into(), block.clone()).unwrap();
+        assert!(reg.positive_definite);
+        // Condition number of diag(0.25, 0.0625) is 0.25/0.0625 = 4.
+        assert!(
+            (reg.condition_number - 4.0).abs() < 1e-9,
+            "cond {}",
+            reg.condition_number
+        );
+        // Hash is deterministic.
+        let reg2 = RegisteredCovariance::new("diag".into(), "other source".into(), block).unwrap();
+        assert_eq!(reg.hash, reg2.hash, "hash must depend only on id + matrix");
+
+        // r^T C^-1 r on the diagonal block == diagonal sum.
+        let residual = [0.3, 0.1];
+        let q = chi2_quadratic_form(&residual, &reg.block.matrix).unwrap();
+        let diag_sum: f64 = [(0.3_f64, 0.5_f64), (0.1, 0.25)]
+            .iter()
+            .map(|(r, s)| (r / s).powi(2))
+            .sum();
+        assert!((q - diag_sum).abs() < 1e-12, "quad {q} vs diag {diag_sum}");
+    }
+
+    #[test]
+    fn planck_distance_prior_fixture_loads_is_pd_and_is_well_conditioned_against_diag() {
+        let path = fixtures_dir().join("planck18-distance-priors.json");
+        let bytes = std::fs::read(&path).expect("planck fixture");
+        let fixture: CovarianceFixture = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            fixture.observable_ids,
+            vec!["cmb_R", "cmb_lA", "cmb_omega_b_h2"]
+        );
+        let reg = fixture.into_registered().unwrap();
+        assert!(
+            reg.positive_definite,
+            "Planck distance-prior cov must be PD"
+        );
+        assert!(reg.condition_number.is_finite() && reg.condition_number > 1.0);
+
+        // Implied 1-sigma errors reproduce Chen, Huang & Wang 2019 Table I (0.0046, 0.090,
+        // 0.00015) — a sanity check that the matrix is the published covariance, not garbage.
+        let sig_r = reg.block.matrix[0][0].sqrt();
+        let sig_la = reg.block.matrix[1][1].sqrt();
+        let sig_wb = reg.block.matrix[2][2].sqrt();
+        assert!((sig_r - 0.0046).abs() < 5e-5, "sigma_R={sig_r}");
+        assert!((sig_la - 0.090).abs() < 2e-3, "sigma_lA={sig_la}");
+        assert!((sig_wb - 0.00015).abs() < 2e-6, "sigma_wb={sig_wb}");
+
+        let mut registry = CovarianceRegistry::new();
+        registry.register(reg).unwrap();
+        assert!(registry.find_block("cmb_R").is_some());
+        assert!(registry
+            .by_id("planck18_distance_priors_chen2019")
+            .is_some());
+    }
+
+    #[test]
+    fn desi_dr1_fixture_loads_all_tracer_blocks_pd_with_published_correlation() {
+        let path = fixtures_dir().join("desi-dr1-bao.json");
+        let bytes = std::fs::read(&path).expect("desi fixture");
+        let fixture: MultiBlockFixture = serde_json::from_slice(&bytes).unwrap();
+        let regs = fixture.into_registered().unwrap();
+        assert_eq!(regs.len(), 5, "five anisotropic DESI DR1 tracers");
+        let mut registry = CovarianceRegistry::new();
+        for reg in regs {
+            assert!(reg.positive_definite, "{} must be PD", reg.id);
+            registry.register(reg).unwrap();
+        }
+        // The LRG1 block at z=0.510: published r = -0.445, sigmas 0.25 / 0.61.
+        let lrg1 = registry.find_block("dm_over_rd@0.510").expect("LRG1 block");
+        let c = &lrg1.block.matrix;
+        let r = c[0][1] / (c[0][0].sqrt() * c[1][1].sqrt());
+        assert!((r + 0.445).abs() < 1e-6, "recovered DESI LRG1 r = {r}");
+        assert!((c[0][0].sqrt() - 0.25).abs() < 1e-9);
+        assert!((c[1][1].sqrt() - 0.61).abs() < 1e-9);
+        // Every BAO id is covered by exactly one block.
+        assert!(registry.find_block("dh_over_rd@2.330").is_some());
+    }
+
+    #[test]
+    fn registry_apply_to_attaches_only_fully_covered_blocks() {
+        let path = fixtures_dir().join("desi-dr1-bao.json");
+        let fixture: MultiBlockFixture =
+            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let mut registry = CovarianceRegistry::new();
+        for reg in fixture.into_registered().unwrap() {
+            registry.register(reg).unwrap();
+        }
+        // Data that has the LRG1 pair but only the D_M of LRG2 (so LRG2's block must NOT attach).
+        let observables = vec![
+            obs("dm_over_rd@0.510", 13.62, 0.25),
+            obs("dh_over_rd@0.510", 20.98, 0.61),
+            obs("dm_over_rd@0.706", 16.85, 0.32),
+        ];
+        let data = registry.apply_to(LikelihoodData::diagonal(observables));
+        assert_eq!(
+            data.blocks.len(),
+            1,
+            "only the fully-covered LRG1 block attaches"
+        );
+        assert_eq!(
+            data.blocks[0].ids,
+            vec!["dm_over_rd@0.510", "dh_over_rd@0.510"]
+        );
     }
 }

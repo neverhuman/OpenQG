@@ -34,12 +34,7 @@ pub struct FreeParam {
 
 impl FreeParam {
     pub fn new(name: &'static str, init: f64, lo: f64, hi: f64) -> Self {
-        FreeParam {
-            name,
-            init,
-            lo,
-            hi,
-        }
+        FreeParam { name, init, lo, hi }
     }
 }
 
@@ -148,8 +143,8 @@ impl ModelClass {
     pub fn screened_mg() -> Self {
         ModelClass {
             id: "screened_mg".into(),
-            description: "GR-Λ background + modified growth μ(a)=1+μ0 ρ_DE(a)/ρ_DE0 (screened, α_T=0)"
-                .into(),
+            description:
+                "GR-Λ background + modified growth μ(a)=1+μ0 ρ_DE(a)/ρ_DE0 (screened, α_T=0)".into(),
             base: CosmologyParams::planck_lcdm(),
             free: vec![
                 FreeParam::new("h", 0.674, 0.55, 0.80),
@@ -198,6 +193,12 @@ pub struct FitResult {
     pub bic: f64,
     /// Coverage (fraction of observables the model could predict).
     pub coverage: f64,
+    /// True if any best-fit parameter sits at (within a small tolerance of) its prior bound — a
+    /// diagnostic that the optimum is *prior-limited*, so its interval / evidence are
+    /// untrustworthy and the bound should be revisited. v3.0.0 M2 addition; defaults false (an
+    /// interior optimum). Computed by [`fit_model`].
+    #[serde(default)]
+    pub boundary_hit: bool,
 }
 
 /// Profile-fit a model class to the data: optimize its free parameters to the maximum
@@ -232,12 +233,25 @@ where
         .iter()
         .map(|p| 0.05 * (p.hi - p.lo).abs().max(1e-3))
         .collect();
+    // Multistart (v3.0.0 M2): Nelder–Mead is a *local* method, so a single start can stall in a
+    // secondary basin and quote a too-poor maximum likelihood, which silently distorts the
+    // ΔAIC/Δln Z comparison. We run a few DETERMINISTIC restarts — the first from each parameter's
+    // declared `init`, the rest from seeded offsets spread across the prior box (a fixed
+    // splitmix64 stream, so a fit still reproduces bit-for-bit) — and keep the best. This can only
+    // improve (never worsen) the fit, so it is strictly additive to the existing single-start
+    // behaviour and every prior fit-quality test still holds.
     let best_x = if k == 0 {
         x0
     } else {
-        nelder_mead(&neg2_loglik, &x0, &steps, 4000, 1e-10)
+        multistart_nelder_mead(&neg2_loglik, model, &x0, &steps, NELDER_MEAD_RESTARTS)
     };
     let best = model.params_for(&best_x);
+    // Boundary-hit diagnostic: did any best-fit parameter land on its prior bound?
+    let boundary_hit = model.free.iter().zip(&best_x).any(|(p, &v)| {
+        let span = (p.hi - p.lo).abs().max(1e-12);
+        let vc = v.clamp(p.lo, p.hi);
+        (vc - p.lo).abs() <= 1e-6 * span || (p.hi - vc).abs() <= 1e-6 * span
+    });
 
     let preds = fwd.predict(&best, &ids).unwrap_or_default();
     let (metrics, _) = score_metrics_cov(data, &preds, k.max(1), 0.0);
@@ -262,7 +276,54 @@ where
         aic: 2.0 * kf - 2.0 * log_likelihood,
         bic: kf * nf.ln() - 2.0 * log_likelihood,
         coverage: metrics.coverage,
+        boundary_hit,
     }
+}
+
+/// Number of deterministic Nelder–Mead starts in [`fit_model`]: the declared `init` plus
+/// `NELDER_MEAD_RESTARTS − 1` seeded offsets spread across the prior box.
+pub const NELDER_MEAD_RESTARTS: usize = 5;
+
+/// Run [`nelder_mead`] from several deterministic starting points and return the argmin over all
+/// of them. The first start is `x0` (the declared `init`); the remaining starts are drawn from a
+/// fixed splitmix64 stream seeded by the model id, each component uniform in its `[lo, hi]` box —
+/// so the set of starts is identical on every run and across platforms. Keeping the best can only
+/// match or beat the single start.
+fn multistart_nelder_mead<F: Fn(&[f64]) -> f64>(
+    f: &F,
+    model: &ModelClass,
+    x0: &[f64],
+    steps: &[f64],
+    restarts: usize,
+) -> Vec<f64> {
+    // Seed deterministically from the model id so different model classes get different (but
+    // reproducible) start sets, and the same model always gets the same ones.
+    let seed = model.id.bytes().fold(0xD1B5_4A32_D192_ED03_u64, |acc, b| {
+        acc.wrapping_mul(0x0100_0000_01B3).wrapping_add(b as u64)
+    });
+    let mut rng = crate::theory::Rng::new(seed);
+
+    let mut best_x = nelder_mead(f, x0, steps, 4000, 1e-10);
+    let mut best_f = f(&best_x);
+
+    for _ in 1..restarts.max(1) {
+        // A start uniformly spread across the box (so basins away from `init` are probed).
+        let start: Vec<f64> = model
+            .free
+            .iter()
+            .map(|p| {
+                let u = rng.unit();
+                p.lo + u * (p.hi - p.lo)
+            })
+            .collect();
+        let cand = nelder_mead(f, &start, steps, 4000, 1e-10);
+        let cf = f(&cand);
+        if cf < best_f {
+            best_f = cf;
+            best_x = cand;
+        }
+    }
+    best_x
 }
 
 /// Minimum coverage for a model to be *promotable* (rank-eligible). A model that cannot predict
@@ -327,9 +388,12 @@ where
     // Eligible (full-coverage) models rank first; within each group, by AIC ascending. This is the
     // fail-closed coverage gate: an incomplete model can never sit above a complete one.
     rows.sort_by(|a, b| {
-        b.eligible
-            .cmp(&a.eligible)
-            .then(a.fit.aic.partial_cmp(&b.fit.aic).unwrap_or(std::cmp::Ordering::Equal))
+        b.eligible.cmp(&a.eligible).then(
+            a.fit
+                .aic
+                .partial_cmp(&b.fit.aic)
+                .unwrap_or(std::cmp::Ordering::Equal),
+        )
     });
     rows
 }
@@ -359,7 +423,11 @@ fn nelder_mead<F: Fn(&[f64]) -> f64>(
     while iters < max_iter {
         // Order by function value (best first).
         let mut order: Vec<usize> = (0..=n).collect();
-        order.sort_by(|&a, &b| fvals[a].partial_cmp(&fvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+        order.sort_by(|&a, &b| {
+            fvals[a]
+                .partial_cmp(&fvals[b])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         let best = order[0];
         let worst = order[n];
         let second_worst = order[n - 1];
@@ -487,7 +555,12 @@ mod tests {
         let data = tier0();
         let fit = fit_model(&ModelClass::lcdm(), &data, &BackgroundForwardModel);
         let h = fit.best_params.iter().find(|(n, _)| n == "h").unwrap().1;
-        let om = fit.best_params.iter().find(|(n, _)| n == "omega_m").unwrap().1;
+        let om = fit
+            .best_params
+            .iter()
+            .find(|(n, _)| n == "omega_m")
+            .unwrap()
+            .1;
         // DESI+CMB-prior best-fit ΛCDM sits near Planck/DESI values.
         assert!(h > 0.64 && h < 0.71, "h = {h}");
         assert!(om > 0.27 && om < 0.34, "omega_m = {om}");
@@ -548,10 +621,16 @@ mod tests {
     fn synth_growth(truth: &CosmologyParams, sigma: f64) -> LikelihoodData {
         // fσ8 over a range of z (low z = large Ω_DE(a), high z = small) plus S8, computed from
         // `truth`, with uncertainty `sigma`. Multiple redshifts let the fit distinguish amplitude.
-        let ids: Vec<String> = ["fsigma8@0.1", "fsigma8@0.4", "fsigma8@0.7", "fsigma8@1.1", "s8"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        let ids: Vec<String> = [
+            "fsigma8@0.1",
+            "fsigma8@0.4",
+            "fsigma8@0.7",
+            "fsigma8@1.1",
+            "s8",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
         let preds = BackgroundForwardModel.predict(truth, &ids).unwrap();
         let observables = preds
             .iter()
@@ -580,7 +659,12 @@ mod tests {
             unit: "uK^2".into(),
             source: None,
         });
-        let rows = model_league(&[ModelClass::lcdm()], &data, &BackgroundForwardModel, "lcdm");
+        let rows = model_league(
+            &[ModelClass::lcdm()],
+            &data,
+            &BackgroundForwardModel,
+            "lcdm",
+        );
         assert!(rows[0].fit.coverage < 1.0, "coverage should be partial");
         assert!(
             !rows[0].eligible,
@@ -607,8 +691,16 @@ mod tests {
         truth.sigma8 = 0.74;
         let data = synth_growth(&truth, 0.005);
         let fit = fit_model(&ModelClass::lcdm_growth(), &data, &BackgroundForwardModel);
-        let s8 = fit.best_params.iter().find(|(n, _)| n == "sigma8").unwrap().1;
-        assert!((s8 - 0.74).abs() < 0.03, "recovered sigma8={s8}, truth 0.74");
+        let s8 = fit
+            .best_params
+            .iter()
+            .find(|(n, _)| n == "sigma8")
+            .unwrap()
+            .1;
+        assert!(
+            (s8 - 0.74).abs() < 0.03,
+            "recovered sigma8={s8}, truth 0.74"
+        );
     }
 
     #[test]
@@ -620,14 +712,113 @@ mod tests {
         let data = synth_growth(&truth, 0.005);
         let fit = fit_model(&ModelClass::screened_mg(), &data, &BackgroundForwardModel);
         // It can fit the suppressed growth (chi2 small) — impossible if mu0 and sigma8 were both frozen.
-        assert!(fit.chi2 < 5.0, "screened_mg chi2={} on its own data", fit.chi2);
+        assert!(
+            fit.chi2 < 5.0,
+            "screened_mg chi2={} on its own data",
+            fit.chi2
+        );
         // mu0 is reported as a fitted parameter (degenerate with sigma8, so we only assert it is a
         // genuine d.o.f. that moved off the 0.0 init OR sigma8 absorbed it — either proves it's live).
         let mu0 = fit.best_params.iter().find(|(n, _)| n == "mu0").unwrap().1;
-        let s8 = fit.best_params.iter().find(|(n, _)| n == "sigma8").unwrap().1;
+        let s8 = fit
+            .best_params
+            .iter()
+            .find(|(n, _)| n == "sigma8")
+            .unwrap()
+            .1;
         assert!(
             mu0 < -0.05 || s8 < 0.78,
             "neither mu0 ({mu0}) nor sigma8 ({s8}) absorbed the suppressed growth"
+        );
+    }
+
+    // --- v3.0.0 M2: multistart optimizer + boundary-hit diagnostic ---
+
+    #[test]
+    fn multistart_never_worsens_a_single_start_fit() {
+        // The multistart fit's log-L must be >= what a single Nelder-Mead start from `init`
+        // achieves (keeping the best across restarts can only help).
+        let data = tier0();
+        let model = ModelClass::w0wa_cdm();
+        let fit = fit_model(&model, &data, &BackgroundForwardModel);
+
+        // Reproduce the single-start path exactly.
+        let ids: Vec<String> = data
+            .observables
+            .iter()
+            .map(|o| o.observable_id.clone())
+            .collect();
+        let k = model.free.len();
+        let neg2 = |x: &[f64]| -> f64 {
+            let c = model.params_for(x);
+            match BackgroundForwardModel.predict(&c, &ids) {
+                Ok(preds) => {
+                    let (m, _) = score_metrics_cov(&data, &preds, k.max(1), 0.0);
+                    -2.0 * m.log_likelihood
+                }
+                Err(_) => f64::INFINITY,
+            }
+        };
+        let x0: Vec<f64> = model.free.iter().map(|p| p.init).collect();
+        let steps: Vec<f64> = model
+            .free
+            .iter()
+            .map(|p| 0.05 * (p.hi - p.lo).abs().max(1e-3))
+            .collect();
+        let single = nelder_mead(&neg2, &x0, &steps, 4000, 1e-10);
+        let single_chi2 = neg2(&single);
+
+        assert!(
+            fit.chi2 <= single_chi2 + 1e-9,
+            "multistart chi2 {} must not exceed single-start chi2 {}",
+            fit.chi2,
+            single_chi2
+        );
+    }
+
+    #[test]
+    fn multistart_is_deterministic() {
+        let data = tier0();
+        let a = fit_model(&ModelClass::w0wa_cdm(), &data, &BackgroundForwardModel);
+        let b = fit_model(&ModelClass::w0wa_cdm(), &data, &BackgroundForwardModel);
+        assert_eq!(a.log_likelihood.to_bits(), b.log_likelihood.to_bits());
+        assert_eq!(a.best_params, b.best_params);
+    }
+
+    #[test]
+    fn boundary_hit_flags_a_parameter_pinned_to_its_prior_bound() {
+        // A model whose only free parameter has a box that EXCLUDES the true optimum must converge
+        // to the nearest bound and set boundary_hit; an interior optimum must not.
+        // Interior case: standard ΛCDM on tier0 sits well inside its h/Ω_m box.
+        let data = tier0();
+        let interior = fit_model(&ModelClass::lcdm(), &data, &BackgroundForwardModel);
+        assert!(
+            !interior.boundary_hit,
+            "interior optimum must not flag boundary_hit"
+        );
+
+        // Pinned case: force Ω_m's lower bound above the data-preferred value so the fit pins it.
+        let mut pinned = ModelClass::lcdm();
+        // Replace omega_m's box with one whose minimum (0.40) is far above the ~0.30 optimum.
+        for p in pinned.free.iter_mut() {
+            if p.name == "omega_m" {
+                *p = FreeParam::new("omega_m", 0.42, 0.40, 0.45);
+            }
+        }
+        let fit = fit_model(&pinned, &data, &BackgroundForwardModel);
+        let om = fit
+            .best_params
+            .iter()
+            .find(|(n, _)| n == "omega_m")
+            .unwrap()
+            .1;
+        assert!(
+            (om - 0.40).abs() < 1e-3,
+            "omega_m should pin at lower bound, got {om}"
+        );
+        assert!(
+            fit.boundary_hit,
+            "a parameter pinned to its bound must set boundary_hit"
         );
     }
 }
@@ -663,7 +854,11 @@ mod tier0_honest_number {
     fn evolving_de_is_not_favored_once_lcdm_is_refit_and_params_penalized() {
         let data = real_tier0();
         assert_eq!(data.observables.len(), 15);
-        let models = vec![ModelClass::lcdm(), ModelClass::w_cdm(), ModelClass::w0wa_cdm()];
+        let models = vec![
+            ModelClass::lcdm(),
+            ModelClass::w_cdm(),
+            ModelClass::w0wa_cdm(),
+        ];
         let rows = model_league(&models, &data, &BackgroundForwardModel, "lcdm");
 
         let lcdm = rows.iter().find(|r| r.fit.model_id == "lcdm").unwrap();

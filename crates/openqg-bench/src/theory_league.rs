@@ -82,6 +82,8 @@ fn row_json(r: &LeagueRow) -> Value {
         "aic": r.fit.aic,
         "bic": r.fit.bic,
         "coverage": r.fit.coverage,
+        // v3.0.0 M2: a best-fit parameter pinned to its prior bound (interval/evidence suspect).
+        "boundary_hit": r.fit.boundary_hit,
         "eligible": r.eligible,
         "delta_aic": r.delta_aic,
         "delta_bic": r.delta_bic,

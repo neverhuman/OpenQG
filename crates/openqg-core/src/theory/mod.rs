@@ -13,10 +13,12 @@
 
 pub mod evaluate;
 pub mod mutation;
+pub mod unification;
 pub mod vetoes;
 
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
+pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{run_veto_cascade, VetoReason};
 
 use crate::cosmology::CosmologyParams;

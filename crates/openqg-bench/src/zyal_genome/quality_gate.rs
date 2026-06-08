@@ -126,7 +126,7 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         .get("generation_champions")
         .and_then(Value::as_array)
         .cloned()
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     let champion_islands = champions
         .iter()
         .filter_map(|champion| champion.get("island").and_then(Value::as_str))
@@ -209,10 +209,7 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         &mut checks,
         "preflight_status",
         preflight_ok,
-        preflight
-            .get("status")
-            .cloned()
-            .unwrap_or_else(|| json!("missing_allowed")),
+        field_or(&preflight, "status", missing_allowed_status),
         json!("ok"),
     );
     add_check(
@@ -391,7 +388,7 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         "schema_version": SCHEMA_VERSION,
         "record_kind": "quality_gate",
         "run_id": report_run_id,
-        "variant": summary.get("variant").cloned().unwrap_or_else(|| json!(null)),
+        "variant": field_or(&summary, "variant", null_json),
         "run_dir": run_dir.display().to_string(),
         "generated_at": now_iso8601(),
         "tier": tier,
@@ -441,7 +438,7 @@ pub(crate) fn build_quality_gate_report(run_dir: &Path) -> Result<Value> {
         },
         "checks": checks,
         "artifact_checks": artifact_checks,
-        "offline_eval_warnings": offline_eval.get("warnings").cloned().unwrap_or_else(|| json!([])),
+        "offline_eval_warnings": field_or(&offline_eval, "warnings", empty_array_json),
     }))
 }
 

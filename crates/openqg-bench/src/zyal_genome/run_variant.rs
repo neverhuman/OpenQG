@@ -23,10 +23,7 @@ pub fn run_variant(
     let runbook_path =
         runbook.unwrap_or_else(|| PathBuf::from(DEFAULT_RUNBOOK_ROOT).join(variant.runbook_name()));
     let runbook = load_runbook(&runbook_path)?;
-    let evaluation = runbook
-        .get("evaluation")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let evaluation = field_or(&runbook, "evaluation", empty_object);
     let jailgun_available = jailgun_available || jailgun_available_from_environment();
 
     let max_generations = resolve_generation_count(generations, max_generations, &evaluation)?;
@@ -496,7 +493,7 @@ pub fn run_variant(
                         .get("failure_modes")
                         .and_then(Value::as_array)
                         .cloned()
-                        .unwrap_or_default(),
+                        .unwrap_or_else(Vec::new),
                     artifact_paths_block.clone(),
                     &scores,
                 );
@@ -588,10 +585,7 @@ pub fn run_variant(
                                 &run_id,
                                 &generation_id,
                                 json!(parent_id),
-                                candidate
-                                    .get("candidate_id")
-                                    .cloned()
-                                    .unwrap_or_else(|| json!("")),
+                                field_or(&candidate, "candidate_id", empty_string_json),
                                 stage.mutation_op.clone(),
                                 stage.track.clone(),
                             ))?;
@@ -601,10 +595,7 @@ pub fn run_variant(
                                 &run_id,
                                 &generation_id,
                                 Value::Null,
-                                candidate
-                                    .get("candidate_id")
-                                    .cloned()
-                                    .unwrap_or_else(|| json!("")),
+                                field_or(&candidate, "candidate_id", empty_string_json),
                                 stage.mutation_op.clone(),
                                 stage.track.clone(),
                             ))?;

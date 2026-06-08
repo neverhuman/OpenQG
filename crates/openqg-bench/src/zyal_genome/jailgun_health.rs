@@ -50,10 +50,7 @@ pub(crate) fn hard_backend_required(
     if !matches!(variant, GenomeVariant::Hybrid) {
         return false;
     }
-    let evaluation = runbook
-        .get("evaluation")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let evaluation = field_or(runbook, "evaluation", empty_object);
     let configured = evaluation
         .get("quality_gates")
         .and_then(|gates| gates.get("require_hard_backend"))
@@ -288,7 +285,7 @@ pub(crate) fn jailgun_accounts_from_response(value: &Value) -> Vec<Value> {
                 .and_then(Value::as_array)
                 .cloned()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 pub(crate) fn ready_jailgun_account_ids(accounts: &[Value]) -> Vec<String> {
@@ -408,7 +405,7 @@ pub(crate) fn jailgun_tool_names_from_list_response(value: &Value) -> Vec<String
                 .map(ToString::to_string)
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 pub(crate) fn jailgun_tool_available(tools: &[String], name: &str) -> bool {

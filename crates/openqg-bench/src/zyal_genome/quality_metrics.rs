@@ -22,10 +22,12 @@ pub(crate) fn read_required_json(path: &Path, checks: &mut Vec<Value>) -> Value 
 }
 
 pub(crate) fn read_optional_json(path: &Path) -> Value {
-    fs::read_to_string(path)
-        .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-        .unwrap_or_else(empty_object)
+    value_or(
+        fs::read_to_string(path)
+            .ok()
+            .and_then(|text| serde_json::from_str::<Value>(&text).ok()),
+        empty_object,
+    )
 }
 
 pub(crate) fn read_required_jsonl(path: &Path, checks: &mut Vec<Value>) -> Vec<Value> {
@@ -43,7 +45,7 @@ pub(crate) fn read_required_jsonl(path: &Path, checks: &mut Vec<Value>) -> Vec<V
 }
 
 pub(crate) fn read_optional_jsonl(path: &Path) -> Vec<Value> {
-    read_jsonl::<Value>(path).unwrap_or_default()
+    read_jsonl::<Value>(path).unwrap_or_else(|_| Vec::new())
 }
 
 pub(crate) fn add_check(
@@ -193,7 +195,7 @@ pub(crate) fn champion_scores(summary: &Value, generation_records: &[Value]) -> 
                 .filter_map(|champion| champion.get("final_score").and_then(Value::as_f64))
                 .collect::<Vec<_>>()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     if from_summary.is_empty() {
         metric_values(generation_records, "hybrid_champion_score")
     } else {

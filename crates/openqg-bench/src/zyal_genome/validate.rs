@@ -437,7 +437,7 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
             .get("candidate_ids")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         let ids: BTreeSet<String> = candidate_ids
             .iter()
             .filter_map(Value::as_str)
@@ -476,7 +476,7 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
                     .get("parent_candidate_ids")
                     .and_then(Value::as_array)
                     .cloned()
-                    .unwrap_or_default();
+                    .unwrap_or_else(Vec::new);
                 for parent_id in parent_ids {
                     let parent_id = parent_id.as_str().unwrap_or("").to_string();
                     parent_ids_by_run
@@ -502,7 +502,7 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
         })
         .map(|entry| entry.into_path())
     {
-        for card in read_jsonl::<Value>(&path).unwrap_or_default() {
+        for card in read_jsonl::<Value>(&path).unwrap_or_else(|_| Vec::new()) {
             let run_id = card
                 .get("run_id")
                 .and_then(Value::as_str)
@@ -522,10 +522,7 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
         }
     }
     for (run_id, candidate_ids) in candidate_ids_by_run {
-        let missing_parents = parent_ids_by_run
-            .get(&run_id)
-            .cloned()
-            .unwrap_or_default()
+        let missing_parents = set_or_empty(parent_ids_by_run.get(&run_id).cloned())
             .difference(&candidate_ids)
             .cloned()
             .collect::<Vec<_>>();
@@ -536,10 +533,7 @@ pub(crate) fn validate_hybrid_invariants(root: &Path) -> Result<()> {
                 &missing_parents[..missing_parents.len().min(5)]
             );
         }
-        let orphan_promoted = promoted_ids_by_run
-            .get(&run_id)
-            .cloned()
-            .unwrap_or_default()
+        let orphan_promoted = set_or_empty(promoted_ids_by_run.get(&run_id).cloned())
             .difference(&candidate_ids)
             .cloned()
             .collect::<Vec<_>>();

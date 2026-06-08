@@ -710,10 +710,12 @@ pub(crate) fn jailgun_attempt_metadata(
     } else {
         classified_failure_kind.unwrap_or("none")
     };
-    let receipt_paths = summary
-        .as_ref()
-        .and_then(|value| value.get("receipt_paths").cloned())
-        .unwrap_or_else(|| json!([]));
+    let receipt_paths = value_or(
+        summary
+            .as_ref()
+            .and_then(|value| value.get("receipt_paths").cloned()),
+        empty_array_json,
+    );
     json!({
         "jailgun_server_url": server_url,
         "jailgun_run_id": jailgun_run_id,

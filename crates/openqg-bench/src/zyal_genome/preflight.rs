@@ -17,10 +17,7 @@ pub fn preflight(
     let variant = variant
         .or_else(|| variant_from_runbook(&runbook))
         .unwrap_or(GenomeVariant::Hybrid);
-    let evaluation = runbook
-        .get("evaluation")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let evaluation = field_or(&runbook, "evaluation", empty_object);
     let output_root = if output_root != PathBuf::from(DEFAULT_OUTPUT_ROOT) {
         output_root
     } else {
@@ -183,7 +180,7 @@ pub(crate) fn preflight_receipt(
             "retry_count": live_config.retry_count,
         },
         "routing_decision": routing_decision,
-        "quality_gates": runbook.get("evaluation").and_then(|evaluation| evaluation.get("quality_gates")).cloned().unwrap_or_else(empty_object),
+        "quality_gates": nested_field_or(runbook, "evaluation", "quality_gates", empty_object),
     })
 }
 

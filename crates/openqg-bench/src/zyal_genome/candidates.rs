@@ -278,7 +278,7 @@ pub(crate) fn hybrid_candidate_record(
             .get("failure_modes")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default(),
+            .unwrap_or_else(Vec::new),
         scores,
     );
     json!({
@@ -294,9 +294,9 @@ pub(crate) fn hybrid_candidate_record(
         "source_card_ids": research_refs,
         "stage_concepts": stage_concepts,
         "route_policy": route_policy,
-        "expected_failure_modes": scores.get("failure_modes").cloned().unwrap_or_else(|| json!([])),
+        "expected_failure_modes": field_or(scores, "failure_modes", empty_array_json),
         "adaptive_pressure": json!({}),
-        "scoring_weights": scores.get("scoring_weights").cloned().unwrap_or_else(empty_object),
+        "scoring_weights": field_or(scores, "scoring_weights", empty_object),
         "scores": scores,
         "score_breakdown": score_breakdown,
         "frontier_claim": review.frontier_claim,

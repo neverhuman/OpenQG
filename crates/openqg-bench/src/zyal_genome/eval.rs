@@ -43,8 +43,11 @@ pub(crate) fn emit_run_offline_eval(run_dir: &Path) -> Result<Value> {
     let offline_eval = json!({
         "schema_version": SCHEMA_VERSION,
         "record_kind": "offline_eval",
-        "run_id": summary.get("run_id").cloned().unwrap_or_else(|| json!(infer_run_id_from_path(run_dir))),
-        "variant": summary.get("variant").cloned().unwrap_or_else(|| json!(null)),
+        "run_id": value_or_default(
+            summary.get("run_id").cloned(),
+            json!(infer_run_id_from_path(run_dir)),
+        ),
+        "variant": field_or(&summary, "variant", null_json),
         "scorecard": summary,
         "stage_rankings": stage_rankings,
         "warnings": warnings,
@@ -77,7 +80,7 @@ pub(crate) fn emit_root_comparison(root: &Path) -> Result<Value> {
             let summary: Value = serde_json::from_str(&fs::read_to_string(path)?)
                 .with_context(|| format!("parse {}", path.display()))?;
             variants.push(json!({
-                "variant": summary.get("variant").cloned().unwrap_or_else(|| json!(null)),
+                "variant": field_or(&summary, "variant", null_json),
                 "scorecard": summary,
             }));
         }
@@ -85,9 +88,9 @@ pub(crate) fn emit_root_comparison(root: &Path) -> Result<Value> {
     let mut ranking = variants
         .iter()
         .map(|entry| {
-            let scorecard = entry.get("scorecard").cloned().unwrap_or_else(empty_object);
+            let scorecard = field_or(entry, "scorecard", empty_object);
             json!({
-                "variant": entry.get("variant").cloned().unwrap_or_else(|| json!(null)),
+                "variant": field_or(entry, "variant", null_json),
                 "final_score": scorecard.get("best_score_seen").and_then(Value::as_f64).unwrap_or(0.0),
             })
         })
@@ -164,8 +167,11 @@ pub(crate) fn emit_run_plot_index(run_dir: &Path) -> Result<PathBuf> {
     let index = json!({
         "schema_version": SCHEMA_VERSION,
         "record_kind": "plot_index",
-        "run_id": summary.get("run_id").cloned().unwrap_or_else(|| json!(infer_run_id_from_path(run_dir))),
-        "variant": summary.get("variant").cloned().unwrap_or_else(|| json!(null)),
+        "run_id": value_or_default(
+            summary.get("run_id").cloned(),
+            json!(infer_run_id_from_path(run_dir)),
+        ),
+        "variant": field_or(&summary, "variant", null_json),
         "run_dir": run_dir.display().to_string(),
         "generation_count": summary.get("generation_count").cloned(),
         "ledgers": ledgers,

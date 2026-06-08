@@ -232,7 +232,7 @@ pub(crate) fn run_live_call(
         "parsed_summary_path": parsed_summary_path.display().to_string(),
         "receipt_path": receipt_path.display().to_string(),
         "token_usage": token_usage,
-        "summary": parsed.get("summary").cloned().unwrap_or_else(|| json!("")),
+        "summary": field_or(&parsed, "summary", empty_string_json),
         "error": error,
     });
     merge_object(&mut record, &final_metadata);

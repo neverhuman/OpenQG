@@ -23,23 +23,32 @@ pub(crate) fn build_island_leaderboard(
     let leaders = island_names
         .iter()
         .map(|island| {
-            let best = candidates
-                .iter()
-                .filter(|candidate| candidate.get("island").and_then(Value::as_str) == Some(island.as_str()))
-                .max_by(|a, b| {
-                    a.get("scores")
-                        .and_then(|scores| scores.get("final_score"))
-                        .and_then(Value::as_f64)
-                        .unwrap_or(0.0)
-                        .partial_cmp(&b.get("scores").and_then(|scores| scores.get("final_score")).and_then(Value::as_f64).unwrap_or(0.0))
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-                .cloned()
-                .unwrap_or_else(empty_object);
+            let best = value_or(
+                candidates
+                    .iter()
+                    .filter(|candidate| {
+                        candidate.get("island").and_then(Value::as_str) == Some(island.as_str())
+                    })
+                    .max_by(|a, b| {
+                        a.get("scores")
+                            .and_then(|scores| scores.get("final_score"))
+                            .and_then(Value::as_f64)
+                            .unwrap_or(0.0)
+                            .partial_cmp(
+                                &b.get("scores")
+                                    .and_then(|scores| scores.get("final_score"))
+                                    .and_then(Value::as_f64)
+                                    .unwrap_or(0.0),
+                            )
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    })
+                    .cloned(),
+                empty_object,
+            );
             json!({
                 "island": island,
-                "candidate_id": best.get("candidate_id").cloned().unwrap_or_else(|| json!("")),
-                "final_score": best.get("scores").and_then(|scores| scores.get("final_score")).cloned().unwrap_or_else(|| json!(0.0)),
+                "candidate_id": field_or(&best, "candidate_id", empty_string_json),
+                "final_score": nested_field_or(&best, "scores", "final_score", zero_f64_json),
             })
         })
         .collect::<Vec<_>>();
@@ -89,8 +98,8 @@ pub(crate) fn candidate_pareto_snapshot(candidates: &[Value]) -> Value {
     json!({
         "frontier_size": candidates.len().min(5),
         "points": candidates.iter().take(5).map(|candidate| json!({
-            "candidate_id": candidate.get("candidate_id").cloned().unwrap_or_else(|| json!("")),
-            "final_score": candidate.get("scores").and_then(|scores| scores.get("final_score")).cloned().unwrap_or_else(|| json!(0.0)),
+            "candidate_id": field_or(candidate, "candidate_id", empty_string_json),
+            "final_score": nested_field_or(candidate, "scores", "final_score", zero_f64_json),
         })).collect::<Vec<_>>(),
     })
 }

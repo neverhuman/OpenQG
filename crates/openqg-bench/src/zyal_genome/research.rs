@@ -108,7 +108,7 @@ pub(crate) fn load_research_cache_entries(path: &Path) -> Result<Vec<Value>> {
         Ok(text
             .lines()
             .filter(|line| !line.trim().is_empty())
-            .map(|line| serde_json::from_str::<Value>(line).unwrap_or_else(|_| json!({})))
+            .map(|line| value_or(serde_json::from_str::<Value>(line).ok(), empty_object))
             .collect())
     } else if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
         let value: Value =
@@ -312,7 +312,7 @@ pub(crate) fn memory_refs_for_stage(stage: &StagePackage) -> Vec<String> {
         .and_then(Value::as_array)
         .cloned()
         .or_else(|| stage.memory.get("refs").and_then(Value::as_array).cloned())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
         .into_iter()
         .filter_map(|value| value.as_str().map(ToString::to_string))
         .collect()
@@ -369,8 +369,8 @@ pub(crate) fn concept_gene_from_card(card: &Value) -> Value {
         "constraint": "cached research only; no uncached web state inside scoring",
         "failure_risk": "cached source may be outdated or too broad for the target stage",
         "stage_concept_hint": card.get("stage_concept_hint").and_then(Value::as_str).unwrap_or("concept").to_string(),
-        "source_card_ids": [card.get("research_card_id").cloned().unwrap_or_else(|| json!(""))],
-        "source_path": card.get("source_path").cloned().unwrap_or_else(|| json!("")),
+        "source_card_ids": [field_or(card, "research_card_id", empty_string_json)],
+        "source_path": field_or(card, "source_path", empty_string_json),
         "provenance_hash": source_hash,
         "novelty_terms": novelty_terms_from_text(card.get("summary").and_then(Value::as_str).unwrap_or("")),
     })

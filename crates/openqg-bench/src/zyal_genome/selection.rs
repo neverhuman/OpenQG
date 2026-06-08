@@ -176,25 +176,24 @@ pub(crate) fn select_balanced_champion(
 
 pub(crate) fn retain_elite_champion(previous_elite: &Value, generation_index: usize) -> Value {
     let mut elite = previous_elite.clone();
-    let retained_from_generation_id = elite
-        .get("generation_id")
-        .cloned()
-        .unwrap_or_else(|| json!(""));
+    let retained_from_generation_id = field_or(&elite, "generation_id", empty_string_json);
     elite["retained_from_generation_id"] = retained_from_generation_id;
     elite["selection_generation_id"] = json!(format!("g{generation_index:04}"));
     elite
 }
 
 pub(crate) fn best_candidate(candidates: &[Value]) -> Value {
-    candidates
-        .iter()
-        .max_by(|a, b| {
-            candidate_score(a)
-                .partial_cmp(&candidate_score(b))
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .cloned()
-        .unwrap_or_else(empty_object)
+    value_or(
+        candidates
+            .iter()
+            .max_by(|a, b| {
+                candidate_score(a)
+                    .partial_cmp(&candidate_score(b))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .cloned(),
+        empty_object,
+    )
 }
 
 pub(crate) fn best_candidate_matching(

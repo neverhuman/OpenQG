@@ -99,9 +99,9 @@ pub(crate) fn read_stage_rankings(run_dir: &Path) -> Vec<Value> {
         if let Ok(text) = fs::read_to_string(&path) {
             if let Ok(summary) = serde_json::from_str::<Value>(&text) {
                 rows.push(json!({
-                    "stage_id": summary.get("stage_id").cloned().unwrap_or_else(|| json!("")),
-                    "final_score": summary.get("best_final_score").cloned().unwrap_or_else(|| json!(0.0)),
-                    "delta_score": summary.get("mean_final_score").cloned().unwrap_or_else(|| json!(0.0)),
+                    "stage_id": field_or(&summary, "stage_id", empty_string_json),
+                    "final_score": field_or(&summary, "best_final_score", zero_f64_json),
+                    "delta_score": field_or(&summary, "mean_final_score", zero_f64_json),
                     "route": "jnoccio/standard",
                 }));
             }
@@ -130,9 +130,9 @@ pub(crate) fn parse_zyal_header(header: &str, path: &Path) -> Result<String> {
 
 pub(crate) fn load_zyal_document(text: &str, path: &Path) -> Result<Value> {
     let mut lines = text.lines();
-    let header = lines
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("empty ZYAL document: {}", path.display()))?;
+    let Some(header) = lines.next() else {
+        anyhow::bail!("empty ZYAL document: {}", path.display());
+    };
     let id = parse_zyal_header(header, path)?;
     let end_line = format!("<<<END_ZYAL id={id}>>>");
     let arm_line = format!("ZYAL_ARM RUN_FOREVER id={id}");

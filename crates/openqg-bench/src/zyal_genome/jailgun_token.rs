@@ -56,7 +56,7 @@ pub(crate) fn jailgun_server_url() -> String {
 pub(crate) fn jailgun_account_ids_override() -> Vec<String> {
     env_string("JAILGUN_ACCOUNT_IDS")
         .map(|value| parse_account_ids(&value))
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 pub(crate) fn resolve_jailgun_token(server_url: &str) -> Option<JailgunToken> {

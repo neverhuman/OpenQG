@@ -39,13 +39,16 @@ pub(crate) fn compute_score_breakdown(
     json!({
         "artifact_validity": if stage.required_evidence.is_empty() { 0.70 } else { 0.95 },
         "source_grounding": (0.50 + 0.08 * research_refs.len() as f64).clamp(0.0, 1.0),
-        "novelty": scores.get("novelty_score").or_else(|| scores.get("innovation_score")).cloned().unwrap_or_else(|| json!(0.0)),
+        "novelty": value_or(scores.get("novelty_score").or_else(|| scores.get("innovation_score")).cloned(), zero_f64_json),
         "stage_reusability": if stage.stage_dir.is_dir() { 0.92 } else { 0.60 },
-        "interface_integrity": scores.get("interface_score").cloned().unwrap_or_else(|| json!(0.0)),
-        "failure_understanding": scores.get("failure_understanding").cloned().unwrap_or_else(|| json!(1.0 - scores.get("failure_penalty").and_then(Value::as_f64).unwrap_or(0.0))),
+        "interface_integrity": field_or(scores, "interface_score", zero_f64_json),
+        "failure_understanding": value_or_default(
+            scores.get("failure_understanding").cloned(),
+            json!(1.0 - scores.get("failure_penalty").and_then(Value::as_f64).unwrap_or(0.0)),
+        ),
         "live_reasoning_quality": live_quality,
         "benchmark_safety": benchmark_safety.max(0.0),
-        "promotion_confidence": scores.get("final_score").cloned().unwrap_or_else(|| json!(0.0)),
+        "promotion_confidence": field_or(scores, "final_score", zero_f64_json),
         "penalties": penalties,
     })
 }

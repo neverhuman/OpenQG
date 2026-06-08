@@ -76,7 +76,7 @@ pub(crate) fn load_stage_package(path: &Path) -> Result<StagePackage> {
             .get("inputs")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
@@ -84,7 +84,7 @@ pub(crate) fn load_stage_package(path: &Path) -> Result<StagePackage> {
             .get("outputs")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
@@ -92,7 +92,7 @@ pub(crate) fn load_stage_package(path: &Path) -> Result<StagePackage> {
             .get("required_evidence")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),
@@ -100,7 +100,7 @@ pub(crate) fn load_stage_package(path: &Path) -> Result<StagePackage> {
             .get("validation_checks")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .filter_map(|v| v.as_str().map(ToString::to_string))
             .collect(),

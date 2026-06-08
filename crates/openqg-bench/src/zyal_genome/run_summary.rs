@@ -38,13 +38,13 @@ pub(crate) fn run_event(
         "router_state": router_state,
         "artifact_paths": artifact_paths,
         "judge": judge,
-        "local_score": scores.get("local_score").cloned().unwrap_or_else(|| json!(0.0)),
-        "interface_score": scores.get("interface_score").cloned().unwrap_or_else(|| json!(0.0)),
-        "macro_score": scores.get("macro_score").cloned().unwrap_or_else(|| json!(0.0)),
-        "innovation_score": scores.get("innovation_score").cloned().unwrap_or_else(|| json!(0.0)),
-        "novelty_score": scores.get("novelty_score").cloned().unwrap_or_else(|| json!(0.0)),
-        "failure_penalty": scores.get("failure_penalty").cloned().unwrap_or_else(|| json!(0.0)),
-        "final_score": scores.get("final_score").cloned().unwrap_or_else(|| json!(0.0)),
+        "local_score": field_or(&scores, "local_score", zero_f64_json),
+        "interface_score": field_or(&scores, "interface_score", zero_f64_json),
+        "macro_score": field_or(&scores, "macro_score", zero_f64_json),
+        "innovation_score": field_or(&scores, "innovation_score", zero_f64_json),
+        "novelty_score": field_or(&scores, "novelty_score", zero_f64_json),
+        "failure_penalty": field_or(&scores, "failure_penalty", zero_f64_json),
+        "final_score": field_or(&scores, "final_score", zero_f64_json),
     })
 }
 
@@ -248,12 +248,12 @@ pub(crate) fn build_run_summary(
                     "promotion_gates": population.promotion_gates,
                     "degraded_penalties": population.degraded_penalties,
                 },
-                "diversity_metrics": hybrid_evolution.get("diversity_metrics").cloned().unwrap_or_else(empty_object),
-                "novelty_archive": hybrid_evolution.get("novelty_archive").cloned().unwrap_or_else(|| json!("")),
-                "island_leaderboard": hybrid_evolution.get("island_leaderboard").cloned().unwrap_or_else(empty_object),
-                "fun_summary": hybrid_evolution.get("fun_summary").cloned().unwrap_or_else(empty_object),
-                "generation_champions": hybrid_evolution.get("generation_champions").cloned().unwrap_or_else(|| json!([])),
-                "lineage": hybrid_evolution.get("lineage").cloned().unwrap_or_else(|| json!({"acyclic": true, "missing_parent_ids": 0})),
+                "diversity_metrics": field_or(hybrid_evolution, "diversity_metrics", empty_object),
+                "novelty_archive": field_or(hybrid_evolution, "novelty_archive", empty_string_json),
+                "island_leaderboard": field_or(hybrid_evolution, "island_leaderboard", empty_object),
+                "fun_summary": field_or(hybrid_evolution, "fun_summary", empty_object),
+                "generation_champions": field_or(hybrid_evolution, "generation_champions", empty_array_json),
+                "lineage": field_or(hybrid_evolution, "lineage", default_lineage_summary),
             }),
         );
     }
@@ -264,14 +264,8 @@ pub(crate) fn score_blend(runbook: &Value, population: Option<&PopulationConfig>
     let novelty_default = population
         .map(|population| population.novelty_weight)
         .unwrap_or(0.0);
-    let evaluation = runbook
-        .get("evaluation")
-        .cloned()
-        .unwrap_or_else(empty_object);
-    let score_blend = evaluation
-        .get("score_blend")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let evaluation = field_or(runbook, "evaluation", empty_object);
+    let score_blend = field_or(&evaluation, "score_blend", empty_object);
     json!({
         "local_score": score_blend.get("local_score").and_then(Value::as_f64).unwrap_or(0.30),
         "interface_score": score_blend.get("interface_score").and_then(Value::as_f64).unwrap_or(0.20),

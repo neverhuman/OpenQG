@@ -27,10 +27,7 @@ pub(crate) fn resolve_population_config(
     new_info_refresh: Option<usize>,
     evaluation: &Value,
 ) -> Result<PopulationConfig> {
-    let evolution = evaluation
-        .get("evolution")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let evolution = field_or(evaluation, "evolution", empty_object);
     let population_size = population_size
         .or_else(|| {
             evolution
@@ -116,21 +113,15 @@ pub(crate) fn resolve_population_config(
                     "failure_understanding".to_string(),
                 ]
             }),
-        degraded_penalties: evolution
-            .get("degraded_penalties")
-            .cloned()
-            .unwrap_or_else(|| json!({"degraded_router_penalty": 0.08})),
+        degraded_penalties: field_or(&evolution, "degraded_penalties", default_degraded_penalties),
     })
 }
 
 pub(crate) fn resolve_live_config(live_selective: bool, runbook: &Value) -> LiveConfig {
-    let evaluation = runbook
-        .get("evaluation")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let evaluation = field_or(runbook, "evaluation", empty_object);
     let merged = deep_merge_values(
-        &evaluation.get("live").cloned().unwrap_or_else(empty_object),
-        &runbook.get("live").cloned().unwrap_or_else(empty_object),
+        &field_or(&evaluation, "live", empty_object),
+        &field_or(runbook, "live", empty_object),
     );
     let enabled = live_selective
         || merged

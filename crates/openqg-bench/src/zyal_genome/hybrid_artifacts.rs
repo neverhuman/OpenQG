@@ -37,7 +37,8 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
     let mut previous_stage_signature: BTreeMap<String, String> = BTreeMap::new();
     let mut newest_source_influence = None;
     let deterministic_rollups = metric_values(
-        &read_jsonl::<Value>(&run_dir.join("generation-ledger.jsonl")).unwrap_or_default(),
+        &read_jsonl::<Value>(&run_dir.join("generation-ledger.jsonl"))
+            .unwrap_or_else(|_| Vec::new()),
         "deterministic_rollup_score",
     );
     let cap_candidate_scores =
@@ -50,7 +51,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
     // tests and fixture-free runs stay deterministic.
     let robustness_obs =
         crate::zyal_robustness::load_tension_observables(std::path::Path::new("."))
-            .unwrap_or_default();
+            .unwrap_or_else(|_| Vec::new());
     let robustness_active = !robustness_obs.is_empty();
     let robustness_baseline_ll = if robustness_active {
         crate::zyal_robustness::baseline_log_likelihood(&robustness_obs)
@@ -129,9 +130,9 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                     accepted_cards.push(card.clone());
                     fresh_cards.push(card.clone());
                     newest_source_influence = Some(json!({
-                        "information_card_id": card.get("information_card_id").cloned().unwrap_or_else(|| json!("")),
-                        "source_path": card.get("source_path").cloned().unwrap_or_else(|| json!("")),
-                        "stage_concept_hint": card.get("stage_concept_hint").cloned().unwrap_or_else(|| json!("")),
+                        "information_card_id": field_or(&card, "information_card_id", empty_string_json),
+                        "source_path": field_or(&card, "source_path", empty_string_json),
+                        "stage_concept_hint": field_or(&card, "stage_concept_hint", empty_string_json),
                     }));
                     information_ledger.write(&card)?;
                     let concept = concept_gene_from_card(&card);
@@ -266,7 +267,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                         .get("failure_modes")
                         .and_then(Value::as_array)
                         .cloned()
-                        .unwrap_or_default();
+                        .unwrap_or_else(Vec::new);
                     modes.push(json!("judge_killed"));
                     scores["failure_modes"] = json!(modes);
                 }
@@ -324,7 +325,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 "route_policy": route.route_policy,
                 "expected_failure_modes": expected_failure_modes,
                 "adaptive_pressure": pressure,
-                "scoring_weights": scores.get("scoring_weights").cloned().unwrap_or_else(empty_object),
+                "scoring_weights": field_or(&scores, "scoring_weights", empty_object),
                 "scores": scores,
                 "frontier_claim": frontier_review.frontier_claim,
                 "falsifiable_tests": frontier_review.falsifiable_tests,
@@ -335,16 +336,13 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 .get("parent_candidate_ids")
                 .and_then(Value::as_array)
                 .cloned()
-                .unwrap_or_default()
+                .unwrap_or_else(Vec::new)
             {
                 lineage_ledger.write(&lineage_edge_record(
                     run_id,
                     &generation_id,
                     parent_id,
-                    candidate
-                        .get("candidate_id")
-                        .cloned()
-                        .unwrap_or_else(|| json!("")),
+                    field_or(&candidate, "candidate_id", empty_string_json),
                     mutation_op.clone(),
                     island.clone(),
                 ))?;
@@ -359,10 +357,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                     run_id,
                     &generation_id,
                     Value::Null,
-                    candidate
-                        .get("candidate_id")
-                        .cloned()
-                        .unwrap_or_else(|| json!("")),
+                    field_or(&candidate, "candidate_id", empty_string_json),
                     mutation_op.clone(),
                     island.clone(),
                 ))?;
@@ -543,7 +538,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
             &promoted,
             &generation_dir.join("population-snapshot.json"),
             promotion_reason,
-            json!({ "promotion_confidence": champion.get("scores").and_then(|scores| scores.get("final_score")).cloned().unwrap_or_else(|| json!(0.0)) }),
+            json!({ "promotion_confidence": nested_field_or(&champion, "scores", "final_score", zero_f64_json) }),
         );
         promotion_ledger.write(&promotion_decision)?;
         let hybrid_metric = metrics_point(
@@ -565,21 +560,17 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                     .unwrap_or(""),
             ),
             json!({
-                "island": champion.get("island").cloned().unwrap_or_else(|| json!("")),
-                "mode": champion.get("mode").cloned().unwrap_or_else(|| json!("")),
-                "novelty_score": champion.get("scores").and_then(|scores| scores.get("novelty_score")).cloned().unwrap_or_else(|| json!(0.0)),
-                "promotion_confidence": promotion_decision.get("score_breakdown").and_then(|value| value.get("promotion_confidence")).cloned().unwrap_or_else(|| json!(0.0)),
+                "island": field_or(&champion, "island", empty_string_json),
+                "mode": field_or(&champion, "mode", empty_string_json),
+                "novelty_score": nested_field_or(&champion, "scores", "novelty_score", zero_f64_json),
+                "promotion_confidence": nested_field_or(&promotion_decision, "score_breakdown", "promotion_confidence", zero_f64_json),
                 "promotion_reason": promotion_reason.as_str(),
                 "live_selective": live_config.enabled,
             }),
         );
         generation_ledger.write(&hybrid_metric)?;
         metrics_ledger.write(&hybrid_metric)?;
-        let champion_stage_signature = champion
-            .get("stage_concepts")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or_default();
+        let champion_stage_signature = object_or_empty(&champion, "stage_concepts");
         let champion_stage_signature_map: BTreeMap<String, String> = champion_stage_signature
             .iter()
             .filter_map(|(k, v)| v.as_str().map(|value| (k.clone(), value.to_string())))
@@ -594,23 +585,18 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 1.0 - (used_parent_ids.len() as f64 / previous_generation.len().max(1) as f64),
             );
         }
-        for (stage_id, concept_id) in champion
-            .get("stage_concepts")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or_default()
-        {
+        for (stage_id, concept_id) in object_or_empty(&champion, "stage_concepts") {
             let stage_concept = json!({
                 "schema_version": SCHEMA_VERSION,
                 "record_kind": "stage_concept",
                 "run_id": run_id,
                 "generation_id": generation_id,
                 "stage_id": stage_id,
-                "candidate_id": champion.get("candidate_id").cloned().unwrap_or_else(|| json!("")),
+                "candidate_id": field_or(&champion, "candidate_id", empty_string_json),
                 "concept_id": concept_id,
                 "family": concept_id.as_str().unwrap_or(&stage_id).to_string(),
-                "source_card_ids": champion.get("source_card_ids").cloned().unwrap_or_else(|| json!([])),
-                "mutation_op": champion.get("mutation_ops").and_then(Value::as_array).and_then(|items| items.first()).cloned().unwrap_or_else(|| json!("")),
+                "source_card_ids": field_or(&champion, "source_card_ids", empty_array_json),
+                "mutation_op": value_or(champion.get("mutation_ops").and_then(Value::as_array).and_then(|items| items.first()).cloned(), empty_string_json),
             });
             stage_concept_ledger.write(&stage_concept)?;
         }
@@ -702,7 +688,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 "record_kind": "robustness_quality_gate",
                 "run_id": run_id,
                 "passed": passed,
-                "checks": serde_json::to_value(&checks).unwrap_or_else(|_| json!([])),
+                "checks": value_or(serde_json::to_value(&checks).ok(), empty_array_json),
                 "attack_archive": attack_archive.to_json(),
             }),
         )?;
@@ -722,7 +708,7 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
             .get("leaders")
             .and_then(Value::as_array)
             .cloned()
-            .unwrap_or_default(),
+            .unwrap_or_else(Vec::new),
     );
     let pareto = candidate_pareto_snapshot(&all_candidates);
     let lineage = lineage_invariant_summary(&all_candidates, &lineage_edges);

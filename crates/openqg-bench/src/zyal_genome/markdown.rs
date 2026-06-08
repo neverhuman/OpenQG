@@ -1,7 +1,7 @@
 use super::*;
 
 pub(crate) fn render_quality_gate_markdown(report: &Value) -> String {
-    let metrics = report.get("metrics").cloned().unwrap_or_else(empty_object);
+    let metrics = field_or(report, "metrics", empty_object);
     let mut rows = vec![
         "# ZYAL Quality Gate".to_string(),
         String::new(),
@@ -172,10 +172,7 @@ pub(crate) fn warnings_from_summary(summary: &Value) -> Vec<String> {
 }
 
 pub(crate) fn render_run_markdown(offline_eval: &Value) -> String {
-    let scorecard = offline_eval
-        .get("scorecard")
-        .cloned()
-        .unwrap_or_else(empty_object);
+    let scorecard = field_or(offline_eval, "scorecard", empty_object);
     let mut rows = vec![
         "# ZYAL Offline Evaluation".to_string(),
         String::new(),
@@ -305,7 +302,7 @@ pub(crate) fn render_comparison_markdown(comparison: &Value) -> String {
     ];
     if let Some(variants) = comparison.get("variants").and_then(Value::as_array) {
         for entry in variants {
-            let scorecard = entry.get("scorecard").cloned().unwrap_or_else(empty_object);
+            let scorecard = field_or(entry, "scorecard", empty_object);
             rows.push(format!(
                 "| `{}` | `{}` | `{}` |",
                 entry
@@ -341,7 +338,7 @@ pub(crate) fn write_stage_summaries(
         let scores = stage_score_history
             .get(&stage.stage_id)
             .cloned()
-            .unwrap_or_default();
+            .unwrap_or_else(Vec::new);
         let entries: Vec<&Value> = stage_ledgers
             .iter()
             .filter(|entry| {
@@ -360,7 +357,7 @@ pub(crate) fn write_stage_summaries(
             "best_final_score": scores.iter().copied().fold(0.0, f64::max),
             "pass_rate": if entries.is_empty() { 0.0 } else { entries.iter().map(|entry| entry.get("pass_rate").and_then(Value::as_f64).unwrap_or(0.0)).sum::<f64>() / entries.len() as f64 },
             "route_backends": entries.iter().filter_map(|entry| entry.get("route_backend").and_then(Value::as_str)).collect::<BTreeSet<_>>().into_iter().map(ToString::to_string).collect::<Vec<_>>(),
-            "failure_modes": entries.iter().flat_map(|entry| entry.get("failure_modes").and_then(Value::as_array).cloned().unwrap_or_default()).filter_map(|mode| mode.as_str().map(ToString::to_string)).collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>(),
+            "failure_modes": entries.iter().flat_map(|entry| entry.get("failure_modes").and_then(Value::as_array).cloned().unwrap_or_else(Vec::new)).filter_map(|mode| mode.as_str().map(ToString::to_string)).collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>(),
             "mutation_ops": entries.iter().filter_map(|entry| entry.get("mutation_op").and_then(Value::as_str).map(ToString::to_string)).collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>(),
         });
         let path = stage_dir.join("stage-summary.json");

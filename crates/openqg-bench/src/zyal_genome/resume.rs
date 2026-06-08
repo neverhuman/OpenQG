@@ -23,9 +23,9 @@ pub(crate) fn load_resume_state(
     let mut state = empty_resume_state(stage_registry);
     state.completed_generation = read_completed_generation(run_dir)?;
     state.stage_ledgers =
-        read_jsonl::<Value>(&run_dir.join("stage-ledger.jsonl")).unwrap_or_default();
+        read_jsonl::<Value>(&run_dir.join("stage-ledger.jsonl")).unwrap_or_else(|_| Vec::new());
     state.event_count = read_jsonl::<Value>(&run_dir.join("run-events.jsonl"))
-        .unwrap_or_default()
+        .unwrap_or_else(|_| Vec::new())
         .len();
     state.generation_scores = read_generation_scores(&run_dir.join("generation-ledger.jsonl"));
     if state.generation_scores.is_empty() {
@@ -65,7 +65,8 @@ pub(crate) fn read_completed_generation(run_dir: &Path) -> Result<usize> {
             .unwrap_or(0) as usize);
     }
     let mut generation_ids = Vec::new();
-    for record in read_jsonl::<Value>(&run_dir.join("generation-ledger.jsonl")).unwrap_or_default()
+    for record in
+        read_jsonl::<Value>(&run_dir.join("generation-ledger.jsonl")).unwrap_or_else(|_| Vec::new())
     {
         if record.get("metric_name").and_then(Value::as_str) == Some("deterministic_rollup_score") {
             if let Some(generation_id) = record.get("generation_id").and_then(Value::as_str) {
@@ -76,7 +77,9 @@ pub(crate) fn read_completed_generation(run_dir: &Path) -> Result<usize> {
     if !generation_ids.is_empty() {
         return Ok(*generation_ids.iter().max().unwrap());
     }
-    for record in read_jsonl::<Value>(&run_dir.join("run-events.jsonl")).unwrap_or_default() {
+    for record in
+        read_jsonl::<Value>(&run_dir.join("run-events.jsonl")).unwrap_or_else(|_| Vec::new())
+    {
         if record.get("event_type").and_then(Value::as_str) == Some("generation_end") {
             if let Some(generation_id) = record.get("generation_id").and_then(Value::as_str) {
                 generation_ids.push(generation_index_from_id(generation_id));
@@ -94,12 +97,12 @@ pub(crate) fn generation_index_from_id(generation_id: &str) -> usize {
 }
 
 pub(crate) fn read_generation_scores(path: &Path) -> Vec<f64> {
-    let records = read_jsonl::<Value>(path).unwrap_or_default();
+    let records = read_jsonl::<Value>(path).unwrap_or_else(|_| Vec::new());
     hybrid_quality_rollup_series(&records)
 }
 
 pub(crate) fn generation_scores_from_events(path: &Path) -> Vec<f64> {
-    let mut records = read_jsonl::<Value>(path).unwrap_or_default();
+    let mut records = read_jsonl::<Value>(path).unwrap_or_else(|_| Vec::new());
     records.sort_by_key(|record| {
         generation_index_from_id(
             record
@@ -138,7 +141,7 @@ pub(crate) fn stage_score_history_from_ledgers(
 
 pub(crate) fn latest_router_state(path: &Path) -> String {
     let mut state = "nominal".to_string();
-    for record in read_jsonl::<Value>(path).unwrap_or_default() {
+    for record in read_jsonl::<Value>(path).unwrap_or_else(|_| Vec::new()) {
         if let Some(router_state) = record.get("router_state").and_then(Value::as_str) {
             state = router_state.to_string();
         }
@@ -148,7 +151,7 @@ pub(crate) fn latest_router_state(path: &Path) -> String {
 
 pub(crate) fn latest_population_candidates(path: &Path) -> Vec<String> {
     let mut candidates = Vec::new();
-    for record in read_jsonl::<Value>(path).unwrap_or_default() {
+    for record in read_jsonl::<Value>(path).unwrap_or_else(|_| Vec::new()) {
         if let Some(candidate_id) = record.get("candidate_id").and_then(Value::as_str) {
             candidates.push(candidate_id.to_string());
         }

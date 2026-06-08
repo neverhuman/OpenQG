@@ -7,9 +7,9 @@
 - Target stack ID: `openqg-rust-bench-physics`
 - Target stack: `Rust core + TypeScript/React/Vite + PostgreSQL + generated contracts + exception-only Python AI/data service`
 - Repo: `.`
-- Run ID: `1780898504`
-- Started at: `1780898504`
-- Elapsed: `2806` ms
+- Run ID: `1780909998`
+- Started at: `1780909998`
+- Elapsed: `2437` ms
 - Scope: `full`
 - Raw score: `84`
 - Final score: `84`
@@ -70,9 +70,9 @@
 
 ## Copy-Code Redundancy
 
-- Status: `review` hard=`0` warning=`7` files=`90`
+- Status: `review` hard=`0` warning=`8` files=`104`
 - Policy: min-lines=`10` min-tokens=`100` max-findings=`50` include-tests=`false` strict=`false`
-- Duplicate volume: lines=`17` tokens=`40` bytes=`384`
+- Duplicate volume: lines=`18` tokens=`43` bytes=`407`
 
 - Notes:
   - hard classes are limited to exact active-source file matches and substantial exact same-name units
@@ -84,6 +84,7 @@
 | `ExactUnitDifferentName` | `Warning` | `rust` | 5 | 13 | `crates/openqg-bench/src/zyal_genome/live_call.rs:364-369, crates/openqg-bench/src/zyal_genome/live_call.rs:378-383` | `same body appears under different names across files` |
 | `ExactUnitDifferentName` | `Warning` | `rust` | 5 | 7 | `crates/openqg-bench/src/zyal_genome/util.rs:83-88, crates/openqg-bench/src/zyal_genome/util.rs:117-122` | `same body appears under different names across files` |
 | `ExactUnitSameName` | `Warning` | `rust` | 2 | 6 | `crates/openqg-bench/src/zyal_judge.rs:35-37, crates/openqg-bench/src/zyal_robustness.rs:380-382` | `same-name semantic unit copied across multiple files` |
+| `ExactUnitDifferentName` | `Warning` | `rust` | 1 | 3 | `crates/openqg-core/src/theory/proposal.rs:241-242, crates/openqg-core/src/theory/proposal.rs:254-255, crates/openqg-core/src/theory/proposal.rs:267-268` | `same body appears under different names across files` |
 | `ExactUnitSameName` | `Warning` | `rust` | 2 | 6 | `crates/openqg-bench/src/zyal_judge.rs:32-34, crates/openqg-bench/src/zyal_robustness.rs:384-386` | `same-name semantic unit copied across multiple files` |
 | `ExactUnitDifferentName` | `Warning` | `rust` | 1 | 5 | `crates/openqg-core/src/validation/yaml.rs:107-108, crates/openqg-core/src/validation/yaml.rs:112-113` | `same body appears under different names across files` |
 | `ExactUnitDifferentName` | `Warning` | `rust` | 1 | 2 | `crates/openqg-bench/src/zyal_genome/mod.rs:496-497, crates/openqg-bench/src/zyal_genome/mod.rs:503-504` | `same body appears under different names across files` |
@@ -182,8 +183,8 @@ No audited runtime boundary reclassifications declared.
    Reason: `Code shape and semantic surface` scored 65 below the standard floor of 85
    Fix: split large or ambiguous authored code into smaller semantic modules with focused tests
    Rerun: `just fast`
-   Fingerprint: `sha256:4a8507363de9cf80684fb02a90c1fc6218947caedfb59935b6094df3c587f182`
-   Evidence: largest authored code file: crates/openqg-bench/src/zyal_robustness.rs (815 LOC), code file exceeds 500 LOC, most code files stay under 300 LOC, copy-code advisory classes found: 7 (advisory only, no score impact)
+   Fingerprint: `sha256:a24adbbb5734be274b69d7824b76faa280878842850ae64ee77dec19df03e531`
+   Evidence: largest authored code file: crates/openqg-bench/src/zyal_robustness.rs (815 LOC), code file exceeds 500 LOC, most code files stay under 300 LOC, copy-code advisory classes found: 8 (advisory only, no score impact)
 2. `medium` `security` `.github/workflows/jankurai.yml`
    Rule: `HLT-016-SUPPLY-CHAIN-DRIFT`
    Check: `HLT-016-SUPPLY-CHAIN-DRIFT:security` `soft` confidence `0.76`
@@ -224,26 +225,6 @@ No audited runtime boundary reclassifications declared.
    Rerun: `just fast`
    Fingerprint: `sha256:5d16dc47c5408e5cc58f5b3307765240a53705af82dcc237a551ff5a6f1fdcb1`
    Evidence: generated zone integrity violation
-6. `high` `proof` `agent/test-map.json`
-   Rule: `HLT-004-UNMAPPED-PROOF`
-   Check: `HLT-004-UNMAPPED-PROOF:proof` `hard` confidence `0.88`
-   Route: TLR `Verification`, lane `fast`, owner `agent`
-   Docs: `agent/JANKURAI_STANDARD.md#proof-lanes`
-   Reason: path `data/fixtures/cosmology/README.md` has no test-map proof route
-   Fix: add the narrowest stable prefix and runnable proof command to `agent/test-map.json`
-   Rerun: `just fast`
-   Fingerprint: `sha256:9d62dc19f7d089175c6940c35f8aa2b2ddae06bb7677b09bec1140c0990f182e`
-   Evidence: data/fixtures/cosmology/README.md
-7. `high` `proof` `agent/test-map.json`
-   Rule: `HLT-004-UNMAPPED-PROOF`
-   Check: `HLT-004-UNMAPPED-PROOF:proof` `hard` confidence `0.88`
-   Route: TLR `Verification`, lane `fast`, owner `agent`
-   Docs: `agent/JANKURAI_STANDARD.md#proof-lanes`
-   Reason: path `data/fixtures/cosmology/bao-desi-dr1.jsonl` has no test-map proof route
-   Fix: add the narrowest stable prefix and runnable proof command to `agent/test-map.json`
-   Rerun: `just fast`
-   Fingerprint: `sha256:151230b6437d8d363ce0969abf87c941c92658eebb1cb9d846c41876985ad9bc`
-   Evidence: data/fixtures/cosmology/bao-desi-dr1.jsonl
 
 ## Policy
 
@@ -257,11 +238,9 @@ No audited runtime boundary reclassifications declared.
    Route: `Contracts/data`/`contract`
 2. `high` `HLT-002-GENERATED-MUTATION` `agent/jankurai-badge.svg` - add a `Generated by: <tool>` / `DO NOT EDIT BY HAND` header block with source and regeneration command
    Route: `Contracts/data`/`contract`
-3. `high` `HLT-004-UNMAPPED-PROOF` `agent/test-map.json` - add the narrowest stable prefix and runnable proof command to `agent/test-map.json`
+3. `medium` `HLT-018-PERF-CONCURRENCY-DRIFT` `Justfile` - add fast deterministic build/test targets, caches, and narrow proof lanes for agent iteration
    Route: `Verification`/`fast`
-4. `medium` `HLT-018-PERF-CONCURRENCY-DRIFT` `Justfile` - add fast deterministic build/test targets, caches, and narrow proof lanes for agent iteration
-   Route: `Verification`/`fast`
-5. `medium` `HLT-001-DEAD-MARKER` `.` - split large or ambiguous authored code into smaller semantic modules with focused tests
+4. `medium` `HLT-001-DEAD-MARKER` `.` - split large or ambiguous authored code into smaller semantic modules with focused tests
    Route: `Entropy`/`fast`
-6. `medium` `HLT-016-SUPPLY-CHAIN-DRIFT` `.github/workflows/jankurai.yml` - wire secret, dependency, provenance, and workflow scans into an operational CI lane
+5. `medium` `HLT-016-SUPPLY-CHAIN-DRIFT` `.github/workflows/jankurai.yml` - wire secret, dependency, provenance, and workflow scans into an operational CI lane
    Route: `Security, secrets, agency`/`security`

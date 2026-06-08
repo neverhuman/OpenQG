@@ -1,17 +1,17 @@
 {
-  "report_fingerprint": "sha256:74115bb2f755736158f901235015b3e4e7cac2b8ce4e7dd948ab743a1ab5a7fc",
-  "input_fingerprint": "sha256:5cbd021d799ceda37c751361095e85cd4e2764417d18811870ca99f0b538d2e3",
+  "report_fingerprint": "sha256:3407cd8c553f50ca029e9e40db31ea0bf05a3b3824c52e6af43a9094c8b4d7bf",
+  "input_fingerprint": "sha256:23924febd5cf3df7e92ff6a756ff940f52907e25fc59de032c1c2a0cb72b85ce",
   "policy_fingerprint": "sha256:f87d83d3052f83578a2daeffa38a166586b5a0ab41a8c06014791f72da74101a",
   "manifest_fingerprints": {
     "owner_map": "sha256:9a338fb409ef63c177474ec2d501abb5c7d4fc609ea79c0756a5aa48fe6a6296",
-    "test_map": "sha256:a2d5fc7a933b7286018cd46daa4d2520a89c7eca7e99b5847b1047953fe947db",
+    "test_map": "sha256:41e08f6136a8e41fd09a6a8bd7bfe4aab6364a7a33b194ce78ebe8e33d10951c",
     "generated_zones": "sha256:48fcd8c96ae8b9a42e3f01ee9cab17575e44c2e5f763ca7aa501d49a2e067a65",
     "boundaries": "sha256:7cd373de06ea30f137fc1d95cc63efca5962462a47021f0a6781bede0f7f5993",
     "proof_lanes": "sha256:f8447730f82d8009309f3b78846b6a3b630d1b48727460450a82b63a570f36ad",
     "standard_version": "sha256:a4cc2223581c10812769cf5a31a0206f1b7829d10c08a8a2ea1b54d1a0496cec"
   },
   "dirty_worktree": true,
-  "generated_at": "1780898504",
+  "generated_at": "1780909998",
   "schema_url": "schemas/repo-score.schema.json",
   "standard": "jankurai",
   "standard_version": "0.8.0",
@@ -25,14 +25,12 @@
   "conformance_decision": "block",
   "conformance_blockers": [
     "HLT-002-GENERATED-MUTATION on agent/jankurai-badge.json",
-    "HLT-002-GENERATED-MUTATION on agent/jankurai-badge.svg",
-    "HLT-004-UNMAPPED-PROOF on agent/test-map.json",
-    "HLT-004-UNMAPPED-PROOF on agent/test-map.json"
+    "HLT-002-GENERATED-MUTATION on agent/jankurai-badge.svg"
   ],
   "repo": ".",
-  "run_id": "1780898504",
-  "started_at": "1780898504",
-  "elapsed_ms": 2806,
+  "run_id": "1780909998",
+  "started_at": "1780909998",
+  "elapsed_ms": 2437,
   "scope": {
     "mode": "full",
     "paths": []
@@ -44,7 +42,7 @@
     "minimum_score": 85,
     "passed": true,
     "hard_findings": 0,
-    "soft_findings": 7,
+    "soft_findings": 5,
     "ratchet": {
       "baseline_score": 84,
       "allowed_drop": 0,
@@ -59,7 +57,7 @@
     }
   },
   "git": {
-    "head": "34fd1c3",
+    "head": "d30ae73",
     "base": null,
     "changed_files": 0,
     "mode": "full",
@@ -287,6 +285,7 @@
         "reference-profile cell `ops` has local AGENTS.md guidance",
         "root `README.md` routes to workspace layout",
         "owner map covers audited paths",
+        "test map covers audited paths",
         "authored code file exceeds 500 LOC"
       ],
       "notes": []
@@ -335,7 +334,7 @@
         "security lane present",
         "canonical security lane wrapper present",
         "agent-readiness audit gate found in CI",
-        "rust bad-behavior advisory signals: 278",
+        "rust bad-behavior advisory signals: 339",
         "ci bad-behavior advisory signals: 1",
         "gittools bad-behavior advisory signals: 2"
       ],
@@ -350,8 +349,8 @@
         "largest authored code file: crates/openqg-bench/src/zyal_robustness.rs (815 LOC)",
         "code file exceeds 500 LOC",
         "most code files stay under 300 LOC",
-        "copy-code advisory classes found: 7 (advisory only, no score impact)",
-        "rust bad-behavior advisory signals: 278",
+        "copy-code advisory classes found: 8 (advisory only, no score impact)",
+        "rust bad-behavior advisory signals: 339",
         "ci bad-behavior advisory signals: 1",
         "gittools bad-behavior advisory signals: 2",
         "no hard bad-behavior findings across detector-backed language families"
@@ -456,6 +455,7 @@
     "missing_categories": [],
     "evidence": {
       "accessibility": [
+        "agent/repo-score.json",
         "agent/repo-score.md"
       ],
       "api_mocks": [],
@@ -470,7 +470,9 @@
       "geometry_runtime": [],
       "layout_stability": [],
       "playwright_visual": [],
-      "storybook": [],
+      "storybook": [
+        "agent/repo-score.json"
+      ],
       "visual_review": []
     }
   },
@@ -1023,7 +1025,7 @@
   "copy_code": {
     "schema_version": "1.1.0",
     "generated_by": "jankurai copy-code",
-    "generated_at": "2026-06-08T06:01:42.036848278+00:00",
+    "generated_at": "2026-06-08T09:13:16.114821835+00:00",
     "repo": ".",
     "auditor_version": "1.5.1",
     "status": "review",
@@ -1061,20 +1063,20 @@
       ]
     },
     "summary": {
-      "files_scanned": 367,
-      "files_considered": 90,
-      "active_files": 90,
+      "files_scanned": 389,
+      "files_considered": 104,
+      "active_files": 104,
       "exact_file_classes": 0,
       "hard_classes": 0,
-      "warning_classes": 7,
+      "warning_classes": 8,
       "hard_instances": 0,
-      "warning_instances": 14,
-      "duplicate_lines": 17,
-      "duplicate_tokens": 40,
-      "duplicate_bytes": 384,
-      "total_redundant_lines": 17,
-      "total_redundant_tokens": 40,
-      "total_redundant_bytes": 384
+      "warning_instances": 17,
+      "duplicate_lines": 18,
+      "duplicate_tokens": 43,
+      "duplicate_bytes": 407,
+      "total_redundant_lines": 19,
+      "total_redundant_tokens": 46,
+      "total_redundant_bytes": 430
     },
     "classes": [
       {
@@ -1180,6 +1182,48 @@
             "start_line": 380,
             "end_line": 382,
             "unit_name": "round6"
+          }
+        ]
+      },
+      {
+        "id": "copy-code-body-rust-c00d1f4f5b3a2d91",
+        "kind": "exact_unit_different_name",
+        "severity": "warning",
+        "confidence": "medium",
+        "language": "rust",
+        "duplicate_lines": 1,
+        "duplicate_tokens": 3,
+        "duplicate_bytes": 23,
+        "instance_count": 3,
+        "total_redundant_lines": 2,
+        "total_redundant_tokens": 6,
+        "total_redundant_bytes": 46,
+        "effective_severity": "warning",
+        "hard_fail": false,
+        "fingerprint": "b31d6257ab3a5083",
+        "reason": "same body appears under different names across files",
+        "recommended_action": "choose one owner for the shared body or intentionally differentiate the behavior",
+        "instances": [
+          {
+            "path": "crates/openqg-core/src/theory/proposal.rs",
+            "language": "rust",
+            "start_line": 241,
+            "end_line": 242,
+            "unit_name": "a_derived_param_with_empty_mechanism_is_demoted_and_killed"
+          },
+          {
+            "path": "crates/openqg-core/src/theory/proposal.rs",
+            "language": "rust",
+            "start_line": 254,
+            "end_line": 255,
+            "unit_name": "a_derived_param_referencing_an_unknown_symbol_is_demoted"
+          },
+          {
+            "path": "crates/openqg-core/src/theory/proposal.rs",
+            "language": "rust",
+            "start_line": 267,
+            "end_line": 268,
+            "unit_name": "a_well_provenanced_derived_param_survives"
           }
         ]
       },
@@ -1586,14 +1630,14 @@
         "largest authored code file: crates/openqg-bench/src/zyal_robustness.rs (815 LOC)",
         "code file exceeds 500 LOC",
         "most code files stay under 300 LOC",
-        "copy-code advisory classes found: 7 (advisory only, no score impact)"
+        "copy-code advisory classes found: 8 (advisory only, no score impact)"
       ],
       "check_id": "HLT-001-DEAD-MARKER:shape",
       "hardness": "soft",
       "confidence": 0.76,
       "evidence_kind": "repository-scan",
       "rerun_command": "just fast",
-      "fingerprint": "sha256:4a8507363de9cf80684fb02a90c1fc6218947caedfb59935b6094df3c587f182",
+      "fingerprint": "sha256:a24adbbb5734be274b69d7824b76faa280878842850ae64ee77dec19df03e531",
       "rule_id": "HLT-001-DEAD-MARKER",
       "tlr": "Entropy",
       "lane": "fast",
@@ -1691,48 +1735,6 @@
       "docs_url": "agent/JANKURAI_STANDARD.md#generated-zones",
       "owner": "agent",
       "line": 1
-    },
-    {
-      "severity": "high",
-      "category": "proof",
-      "path": "agent/test-map.json",
-      "problem": "path `data/fixtures/cosmology/README.md` has no test-map proof route",
-      "agent_fix": "add the narrowest stable prefix and runnable proof command to `agent/test-map.json`",
-      "evidence": [
-        "data/fixtures/cosmology/README.md"
-      ],
-      "check_id": "HLT-004-UNMAPPED-PROOF:proof",
-      "hardness": "hard",
-      "confidence": 0.88,
-      "evidence_kind": "policy-manifest",
-      "rerun_command": "just fast",
-      "fingerprint": "sha256:9d62dc19f7d089175c6940c35f8aa2b2ddae06bb7677b09bec1140c0990f182e",
-      "rule_id": "HLT-004-UNMAPPED-PROOF",
-      "tlr": "Verification",
-      "lane": "fast",
-      "docs_url": "agent/JANKURAI_STANDARD.md#proof-lanes",
-      "owner": "agent"
-    },
-    {
-      "severity": "high",
-      "category": "proof",
-      "path": "agent/test-map.json",
-      "problem": "path `data/fixtures/cosmology/bao-desi-dr1.jsonl` has no test-map proof route",
-      "agent_fix": "add the narrowest stable prefix and runnable proof command to `agent/test-map.json`",
-      "evidence": [
-        "data/fixtures/cosmology/bao-desi-dr1.jsonl"
-      ],
-      "check_id": "HLT-004-UNMAPPED-PROOF:proof",
-      "hardness": "hard",
-      "confidence": 0.88,
-      "evidence_kind": "policy-manifest",
-      "rerun_command": "just fast",
-      "fingerprint": "sha256:151230b6437d8d363ce0969abf87c941c92658eebb1cb9d846c41876985ad9bc",
-      "rule_id": "HLT-004-UNMAPPED-PROOF",
-      "tlr": "Verification",
-      "lane": "fast",
-      "docs_url": "agent/JANKURAI_STANDARD.md#proof-lanes",
-      "owner": "agent"
     }
   ],
   "agent_fix_queue": [
@@ -1755,16 +1757,6 @@
       "owner": "agent",
       "task": "add a `Generated by: <tool>` / `DO NOT EDIT BY HAND` header block with source and regeneration command",
       "why": "generated zone file `agent/jankurai-badge.svg` missing generated header"
-    },
-    {
-      "path": "agent/test-map.json",
-      "priority": "high",
-      "rule_id": "HLT-004-UNMAPPED-PROOF",
-      "tlr": "Verification",
-      "lane": "fast",
-      "owner": "agent",
-      "task": "add the narrowest stable prefix and runnable proof command to `agent/test-map.json`",
-      "why": "path `data/fixtures/cosmology/README.md` has no test-map proof route"
     },
     {
       "path": "Justfile",

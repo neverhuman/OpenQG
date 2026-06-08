@@ -1,0 +1,30 @@
+{
+  "schema_version": "zyal-theory-artifact.v1",
+  "id": "anchor-good-lcdm-baseline",
+  "kind": "anchor",
+  "expected_anchor_outcome": "survive",
+  "summary": "The SM+GR+LambdaCDM+massive-neutrino baseline. The judge/critic panel must never kill the reference baseline; it survives but does NOT beat itself (delta_log_likelihood == 0).",
+  "pillars": [
+    {
+      "name": "expansion-history",
+      "claim": "A single present-day expansion rate H0 governs both CMB-inferred and local-distance-ladder measurements.",
+      "mechanism": "FLRW background with Lambda + cold dark matter + minimal massive neutrinos.",
+      "assumptions": ["spatial flatness", "single global H0", "GR holds on cosmological scales"],
+      "declared_limits": [
+        {"limit_name": "newtonian", "reduces_to": "Newtonian gravity for weak fields / small velocities", "check": "phi << c^2"}
+      ],
+      "falsifiers": ["a statistically significant H0 split between CMB and local ladder (the observed Hubble tension)"]
+    }
+  ],
+  "parameter_count": 3,
+  "predictions": [
+    {"observable_id": "h0", "value": 67.4, "uncertainty": 0.5, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "omega_m", "value": 0.315, "uncertainty": 0.007, "unit": "dimensionless"},
+    {"observable_id": "sum_mnu", "value": 0.06, "uncertainty": 0.02, "unit": "eV"},
+    {"observable_id": "h0_local", "value": 67.4, "uncertainty": 0.5, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "s8", "value": 0.83, "uncertainty": 0.013, "unit": "dimensionless"},
+    {"observable_id": "n_eff", "value": 3.046, "uncertainty": 0.17, "unit": "dimensionless"},
+    {"observable_id": "omega_b_h2", "value": 0.02237, "uncertainty": 0.00015, "unit": "dimensionless"}
+  ],
+  "notes": "Reference anchor. Used to detect adversary drift: if the escalating attack archive starts killing this, the attacks have become unfair and must be pruned/recalibrated."
+}

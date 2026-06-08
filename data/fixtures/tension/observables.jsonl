@@ -1,0 +1,7 @@
+{"observable_id":"h0","kind":"cosmology","value":67.4,"uncertainty":0.5,"unit":"km s^-1 Mpc^-1","source":"planck2018_TTTEEE_lowE_lensing"}
+{"observable_id":"omega_m","kind":"cosmology","value":0.315,"uncertainty":0.007,"unit":"dimensionless","source":"planck2018"}
+{"observable_id":"sum_mnu","kind":"neutrino","value":0.06,"uncertainty":0.02,"unit":"eV","source":"cosmology_minimal_normal_ordering"}
+{"observable_id":"h0_local","kind":"cosmology","value":73.04,"uncertainty":1.04,"unit":"km s^-1 Mpc^-1","source":"sh0es_riess2022_cepheid_ladder"}
+{"observable_id":"s8","kind":"cosmology","value":0.776,"uncertainty":0.017,"unit":"dimensionless","source":"weak_lensing_kids_des_combined"}
+{"observable_id":"n_eff","kind":"cosmology","value":2.99,"uncertainty":0.17,"unit":"dimensionless","source":"planck2018"}
+{"observable_id":"omega_b_h2","kind":"cosmology","value":0.02237,"uncertainty":0.00015,"unit":"dimensionless","source":"planck2018_bbn_consistent"}

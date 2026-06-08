@@ -24,6 +24,24 @@ evaluation:
   checkpoint_every: 1
   live_selective: true
   research_cache: ZYAL/research-cache
+  robustness:
+    enabled: true
+    fitness: adversarial_robustness
+    observables: data/fixtures/tension/observables.jsonl
+    baseline_theory: sm-gr-lcdm-mnu
+    anchors: ZYAL/anchors
+    critic: deterministic        # cheap-first; swap to the live-LLM panel once the stack is provisioned
+    judge:
+      pairwise_elo: true
+      blind_inputs: true
+      subordinate_to_physics_veto: true
+    adversary:
+      co_evolving: true
+      escalation_step: 0.6
+      honesty_rollback: true
+    diversity: map_elites_qd
+    hyper_focus: true
+    require_quality_gate: true
   live:
     enabled: true
     timeout_seconds: 75
@@ -68,7 +86,7 @@ evaluation:
       champion_island_coverage_min: 4
       novelty_champion_rate_min: 0.05
       max_island_champion_share: 0.60
-    fallback_penalties:
+    degraded_penalties:
       degraded_router_penalty: 0.18
     promotion_policy:
       enforce_candidate_mix_on_survival: true

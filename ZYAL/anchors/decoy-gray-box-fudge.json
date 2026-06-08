@@ -1,0 +1,33 @@
+{
+  "schema_version": "zyal-theory-artifact.v1",
+  "id": "decoy-gray-box-fudge",
+  "kind": "decoy",
+  "expected_anchor_outcome": "die",
+  "summary": "A theory that FITS the data well but only by introducing a free fudge parameter tuned to fit, with no physical meaning or provenance. It must be killed by the whitebox gate regardless of fit quality — OpenQG only considers real whitebox theories with meaningful parameters.",
+  "pillars": [
+    {
+      "name": "free-knob-fit",
+      "claim": "An adjustable coefficient is tuned to fit the observed H0 and S8 values.",
+      "mechanism": "free parameter tuned to fit data",
+      "assumptions": ["no derivation; the coefficient is fit, not derived"],
+      "declared_limits": [
+        {"limit_name": "lcdm", "reduces_to": "LambdaCDM as the knob -> 0", "check": "k_fudge -> 0"}
+      ],
+      "falsifiers": ["any held-out observable the knob was not fit to"],
+      "parameters": [
+        {"symbol": "k_fudge", "physical_meaning": "", "provenance": "", "kind": "free"}
+      ]
+    }
+  ],
+  "parameter_count": 4,
+  "predictions": [
+    {"observable_id": "h0", "value": 67.4, "uncertainty": 0.5, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "omega_m", "value": 0.315, "uncertainty": 0.007, "unit": "dimensionless"},
+    {"observable_id": "sum_mnu", "value": 0.06, "uncertainty": 0.02, "unit": "eV"},
+    {"observable_id": "h0_local", "value": 73.0, "uncertainty": 1.0, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "s8", "value": 0.78, "uncertainty": 0.017, "unit": "dimensionless"},
+    {"observable_id": "n_eff", "value": 3.0, "uncertainty": 0.17, "unit": "dimensionless"},
+    {"observable_id": "omega_b_h2", "value": 0.02237, "uncertainty": 0.00015, "unit": "dimensionless"}
+  ],
+  "notes": "Whitebox-veto decoy: fits well but is gray-box (a free fudge parameter with no provenance + 'tuned to fit' language). Dies on the GrayBox critic, not on physics — proving the whitebox gate works."
+}

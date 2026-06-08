@@ -1,0 +1,7 @@
+{"observable_id":"h0","value":67.4,"uncertainty":0.5,"unit":"km s^-1 Mpc^-1","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"omega_m","value":0.315,"uncertainty":0.007,"unit":"dimensionless","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"sum_mnu","value":0.06,"uncertainty":0.02,"unit":"eV","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"h0_local","value":67.4,"uncertainty":0.5,"unit":"km s^-1 Mpc^-1","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"s8","value":0.83,"uncertainty":0.013,"unit":"dimensionless","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"n_eff","value":3.046,"uncertainty":0.17,"unit":"dimensionless","theory_id":"sm-gr-lcdm-mnu"}
+{"observable_id":"omega_b_h2","value":0.02237,"uncertainty":0.00015,"unit":"dimensionless","theory_id":"sm-gr-lcdm-mnu"}

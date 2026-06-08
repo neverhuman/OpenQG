@@ -48,7 +48,7 @@ evaluation:
       island_balance_min: 0.70
       source_diversity_min: 0.25
       stage_concept_churn_min: 0.20
-    fallback_penalties:
+    degraded_penalties:
       degraded_router_penalty: 0.08
     promotion_gates:
       - final_score

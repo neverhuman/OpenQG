@@ -1,0 +1,28 @@
+{
+  "schema_version": "zyal-theory-artifact.v1",
+  "id": "decoy-h0-100",
+  "kind": "decoy",
+  "expected_anchor_outcome": "die",
+  "summary": "A deliberately broken theory that predicts H0 = 100 and other wildly off values. The honesty-anchor / physics veto MUST kill it regardless of how persuasive its prose is. If a judge ever lets this survive, the judge is miscalibrated.",
+  "pillars": [
+    {
+      "name": "runaway-expansion",
+      "claim": "The present-day expansion rate is 100 km/s/Mpc.",
+      "mechanism": "unspecified",
+      "assumptions": ["ignores CMB and distance-ladder constraints"],
+      "declared_limits": [],
+      "falsifiers": ["any H0 measurement near 67-73"]
+    }
+  ],
+  "parameter_count": 3,
+  "predictions": [
+    {"observable_id": "h0", "value": 100.0, "uncertainty": 0.5, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "omega_m", "value": 0.6, "uncertainty": 0.007, "unit": "dimensionless"},
+    {"observable_id": "sum_mnu", "value": 1.0, "uncertainty": 0.02, "unit": "eV"},
+    {"observable_id": "h0_local", "value": 100.0, "uncertainty": 0.5, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "s8", "value": 1.2, "uncertainty": 0.017, "unit": "dimensionless"},
+    {"observable_id": "n_eff", "value": 6.0, "uncertainty": 0.17, "unit": "dimensionless"},
+    {"observable_id": "omega_b_h2", "value": 0.05, "uncertainty": 0.00015, "unit": "dimensionless"}
+  ],
+  "notes": "Physics-veto decoy: dies on the cheap deterministic likelihood sanity check."
+}

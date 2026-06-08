@@ -1,0 +1,40 @@
+{
+  "schema_version": "zyal-theory-artifact.v1",
+  "id": "anchor-good-h0-tension-resolver",
+  "kind": "anchor",
+  "expected_anchor_outcome": "survive",
+  "summary": "A robust candidate that reconciles the CMB and local-ladder H0 (and softens S8) with a small, declared parameter extension. Must survive critique AND beat the baseline by delta_log_likelihood > 0.",
+  "pillars": [
+    {
+      "name": "early-dark-energy-window",
+      "claim": "A brief pre-recombination energy injection raises the inferred local H0 toward 73 while leaving the CMB acoustic scale intact.",
+      "mechanism": "A scalar field contributes a small fractional energy density near matter-radiation equality, then dilutes faster than radiation.",
+      "assumptions": ["injection window is short and ends before recombination", "field is minimally coupled", "GR otherwise unmodified"],
+      "declared_limits": [
+        {"limit_name": "lcdm", "reduces_to": "standard LambdaCDM as the injected fraction -> 0", "check": "f_ede -> 0"}
+      ],
+      "falsifiers": ["no residual imprint on the CMB damping tail", "a measured H0_local consistent with 67.4 at high significance"]
+    },
+    {
+      "name": "structure-growth-suppression",
+      "claim": "A mild late-time growth suppression lowers S8 toward the weak-lensing value without spoiling the CMB.",
+      "mechanism": "Scale-dependent growth from the same sector damps sigma8 on lensing scales.",
+      "assumptions": ["suppression is late-time and scale-dependent"],
+      "declared_limits": [
+        {"limit_name": "lcdm", "reduces_to": "unsuppressed LambdaCDM growth as the coupling -> 0", "check": "g_supp -> 0"}
+      ],
+      "falsifiers": ["a measured S8 consistent with 0.83 from independent lensing surveys"]
+    }
+  ],
+  "parameter_count": 5,
+  "predictions": [
+    {"observable_id": "h0", "value": 67.4, "uncertainty": 0.5, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "omega_m", "value": 0.315, "uncertainty": 0.007, "unit": "dimensionless"},
+    {"observable_id": "sum_mnu", "value": 0.06, "uncertainty": 0.02, "unit": "eV"},
+    {"observable_id": "h0_local", "value": 73.0, "uncertainty": 1.0, "unit": "km s^-1 Mpc^-1"},
+    {"observable_id": "s8", "value": 0.78, "uncertainty": 0.017, "unit": "dimensionless"},
+    {"observable_id": "n_eff", "value": 3.0, "uncertainty": 0.17, "unit": "dimensionless"},
+    {"observable_id": "omega_b_h2", "value": 0.02237, "uncertainty": 0.00015, "unit": "dimensionless"}
+  ],
+  "notes": "Illustrative robust theory artifact in the Phase-1 schema. Uses 2 extra parameters beyond the 3-param baseline; the delta_log_likelihood gain must exceed the BIC parsimony cost."
+}

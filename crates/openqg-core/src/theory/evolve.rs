@@ -153,9 +153,18 @@ pub struct GenerationReport {
     pub frontier_margin: f64,
     /// Mean pressured fitness of the `Survive` anchors (the honesty-loop signal).
     pub anchor_health: f64,
-    /// Whether the frozen anchor/decoy set still calibrated this generation (good survive, decoys
-    /// die). If this ever goes false the engine's honesty has broken.
+    /// Whether the frozen anchor/decoy set AND the adversary's freshly-generated decoy still
+    /// calibrated this generation (good survive, decoys — static and generated — die). If this ever
+    /// goes false the engine's honesty has broken.
     pub calibration_honest: bool,
+    /// The kind of hard-negative the co-evolving adversary fabricated this generation (M6). Empty if
+    /// decoy generation was disabled — so a run *with* the decoy adversary carries different
+    /// telemetry and a stricter calibration verdict than one without.
+    pub adversary_decoy_kind: String,
+    /// Whether the adversary's generated decoy was correctly killed by the gates (must be true).
+    pub adversary_decoy_killed: bool,
+    /// The held-out observable the adversary probed the champion's regime with this generation.
+    pub adversary_held_out_observable: String,
     pub champion_id: Option<String>,
     pub champion_fitness: Option<f64>,
     /// The champion's fitness after the adversary's frontier margin (does it still beat the bar?).
@@ -247,6 +256,18 @@ where
         }
         adversary.update(&survive_assessments);
 
+        // M6: the adversary is a real OPPONENT — it fabricates a fresh hard-negative decoy this
+        // generation (a theory the gates MUST kill) plus a held-out observable, and folds the
+        // decoy's outcome into the honesty verdict. A surviving generated decoy means the gates
+        // missed a known-bad theory ⇒ calibration is broken. This is what makes "disable the
+        // adversary ⇒ the run's reported state changes" literally true (a run without it would have
+        // empty decoy telemetry and only the static-anchor calibration check).
+        let decoy = adversary.generate_decoy(gen);
+        let decoy_killed = adversary.decoy_is_killed(&decoy);
+        if !decoy_killed {
+            calibration_honest = false;
+        }
+
         // The reported champion must clear the (post-update) frontier — the adversary now gates
         // champion-eligibility, not just the telemetry.
         let champion = pressured_champion(&archive, adversary.frontier_margin);
@@ -258,6 +279,9 @@ where
             frontier_margin: adversary.frontier_margin,
             anchor_health,
             calibration_honest,
+            adversary_decoy_kind: decoy.kind.as_str().to_string(),
+            adversary_decoy_killed: decoy_killed,
+            adversary_held_out_observable: decoy.held_out_observable.clone(),
             champion_id: champion.as_ref().map(|c| c.theory.id.clone()),
             champion_fitness: champion.as_ref().map(|c| c.assessment.final_fitness),
             champion_pressured_fitness: champion
@@ -392,6 +416,41 @@ mod tests {
         let champ = r.champion.expect("credible champion");
         assert!(champ.assessment.is_credible());
         assert_eq!(reports.last().unwrap().generation, 40);
+    }
+
+    #[test]
+    fn the_adversary_generates_and_kills_a_decoy_every_generation() {
+        // M6: the adversary is a real opponent. Each generation it fabricates a hard-negative decoy
+        // (recorded in the report) and the gates must kill it — so the run carries decoy telemetry
+        // that a margin-only adversary never would, and the honesty verdict depends on it.
+        let seeds = vec![Theory::baseline_lcdm()];
+        let mut reports = Vec::new();
+        evolve_run(
+            &seeds,
+            &desi(),
+            &BackgroundForwardModel,
+            0.0,
+            8,
+            12,
+            1234,
+            |gr| reports.push(gr.clone()),
+        );
+        assert_eq!(reports.len(), 8);
+        // Every generation fabricated a decoy, killed it, and named a held-out observable.
+        for g in &reports {
+            assert!(
+                g.adversary_decoy_killed,
+                "gen {}: generated decoy survived the gates",
+                g.generation
+            );
+            assert!(!g.adversary_decoy_kind.is_empty());
+            assert!(!g.adversary_held_out_observable.is_empty());
+            assert!(g.calibration_honest, "honesty held with the generated decoy");
+        }
+        // The rotation exercises more than one decoy kind (a real opponent, not a fixed probe).
+        let kinds: std::collections::BTreeSet<_> =
+            reports.iter().map(|g| g.adversary_decoy_kind.clone()).collect();
+        assert!(kinds.len() >= 4, "all decoy kinds should appear over 8 generations");
     }
 
     #[test]

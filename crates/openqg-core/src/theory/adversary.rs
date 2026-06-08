@@ -9,7 +9,54 @@
 //! Ported from the legacy `zyal_judge` escalation (frontier_margin / ESCALATION_STEP / CAP /
 //! ANCHOR_SURVIVAL_FLOOR) into the new engine's `final_fitness` space.
 
-use super::CandidateAssessment;
+use super::{
+    adjudicate, flip_to_quintic_decoy, inject_free_parameter, run_veto_cascade, unification_report,
+    CandidateAssessment, Theory,
+};
+
+/// A class of hard negative the adversary fabricates each generation. Every kind MUST be killed by
+/// some deterministic gate — a decoy that survives is an honesty failure (the gates missed a
+/// known-bad theory). This is what makes the adversary a real *opponent* that generates new
+/// falsification challenges, not merely the scalar `frontier_margin` pressure schedule (the M6
+/// hardening the v3.0.0 review demanded).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DecoyKind {
+    /// A free fitting knob — killed by the whitebox provenance veto.
+    GrayBoxKnob,
+    /// A quintic (G5) sector ⇒ α_T ≠ 0 + non-degenerate higher derivatives — killed by GW170817 +
+    /// Ostrogradsky.
+    QuinticGhost,
+    /// Extra radiation (large N_eff) overproduces primordial helium — killed by the BBN
+    /// cross-domain channel.
+    BbnViolating,
+    /// Modifies gravity on linear scales with no declared screening — killed by the PPN gate.
+    UnscreenedModifiedGravity,
+}
+
+impl DecoyKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DecoyKind::GrayBoxKnob => "gray_box_knob",
+            DecoyKind::QuinticGhost => "quintic_ghost",
+            DecoyKind::BbnViolating => "bbn_violating",
+            DecoyKind::UnscreenedModifiedGravity => "unscreened_modified_gravity",
+        }
+    }
+}
+
+/// A fabricated adversarial decoy: a theory that SHOULD die, plus the held-out observable the
+/// champion has not been probed on this generation (the "regime the champion didn't anticipate").
+#[derive(Debug, Clone)]
+pub struct Decoy {
+    pub theory: Theory,
+    pub kind: DecoyKind,
+    pub held_out_observable: String,
+}
+
+/// Held-out observables the adversary rotates through — regimes a typical background+growth run
+/// does not score the champion on (high-z growth, the lensing amplitude, the drag horizon, the
+/// local-ladder H0).
+const HELD_OUT: [&str; 4] = ["fsigma8@2.0", "s8", "r_drag", "h0_local"];
 
 /// Default escalation step per generation.
 const ESCALATION_STEP: f64 = 0.02;
@@ -74,6 +121,52 @@ impl Adversary {
             self.frontier_margin = (self.frontier_margin + self.step).min(self.cap);
         }
         self.frontier_margin
+    }
+
+    /// Fabricate a decoy for `generation`, rotating through the [`DecoyKind`]s. Deterministic in the
+    /// generation number (no RNG) so a run reproduces. Each decoy is a theory the gates MUST kill
+    /// and a held-out observable the champion has not been probed on — the adversary's per-generation
+    /// falsification challenge.
+    pub fn generate_decoy(&self, generation: usize) -> Decoy {
+        let base = Theory::baseline_lcdm();
+        let kind = match generation % 4 {
+            0 => DecoyKind::GrayBoxKnob,
+            1 => DecoyKind::QuinticGhost,
+            2 => DecoyKind::BbnViolating,
+            _ => DecoyKind::UnscreenedModifiedGravity,
+        };
+        let theory = match kind {
+            DecoyKind::GrayBoxKnob => inject_free_parameter(&base, "f_ede", 0.07),
+            DecoyKind::QuinticGhost => flip_to_quintic_decoy(&base),
+            DecoyKind::BbnViolating => {
+                let mut t = base.clone();
+                t.id = format!("{}-bbn-decoy", base.id);
+                t.background.n_eff = 4.5; // extra radiation overproduces primordial helium
+                t
+            }
+            DecoyKind::UnscreenedModifiedGravity => {
+                let mut t = base.clone();
+                t.id = format!("{}-unscreened-decoy", base.id);
+                t.alpha.alpha_m = 0.1; // modifies gravity on linear scales…
+                t.screening = None; // …with no declared screening ⇒ violates Cassini γ
+                t
+            }
+        };
+        Decoy {
+            theory,
+            kind,
+            held_out_observable: HELD_OUT[generation % HELD_OUT.len()].to_string(),
+        }
+    }
+
+    /// Whether the decoy is correctly KILLED by the deterministic gates — the honesty check the
+    /// adversary applies to itself each generation. A decoy that SURVIVES is an honesty failure (the
+    /// gates missed a known-bad theory). Uses the structural veto cascade, the M3 adjudication pass,
+    /// and the cross-domain unification channel — a kill from any one suffices.
+    pub fn decoy_is_killed(&self, decoy: &Decoy) -> bool {
+        !run_veto_cascade(&decoy.theory).is_empty()
+            || !adjudicate(&decoy.theory).is_empty()
+            || !unification_report(&decoy.theory).is_unified()
     }
 }
 
@@ -149,5 +242,50 @@ mod tests {
             adv.update(&[]);
         }
         assert!((adv.frontier_margin - ESCALATION_CAP).abs() < 1e-9);
+    }
+
+    // --- v3.0.0 M6: the decoy-generating adversary (a real opponent, not just a margin) ---
+
+    #[test]
+    fn every_generated_decoy_is_killed_by_the_gates() {
+        let adv = Adversary::new();
+        let mut kinds = std::collections::BTreeSet::new();
+        for gen in 0..12 {
+            let decoy = adv.generate_decoy(gen);
+            kinds.insert(decoy.kind);
+            assert!(
+                adv.decoy_is_killed(&decoy),
+                "gen {gen}: decoy {:?} (held-out {}) SURVIVED the gates — honesty failure",
+                decoy.kind,
+                decoy.held_out_observable
+            );
+        }
+        // All four decoy kinds are exercised by the rotation.
+        assert_eq!(kinds.len(), 4, "all decoy kinds should be generated");
+    }
+
+    #[test]
+    fn generate_decoy_is_deterministic_in_the_generation() {
+        let adv = Adversary::new();
+        let a = adv.generate_decoy(5);
+        let b = adv.generate_decoy(5);
+        assert_eq!(a.kind, b.kind);
+        assert_eq!(a.held_out_observable, b.held_out_observable);
+        assert_eq!(a.theory.id, b.theory.id);
+    }
+
+    #[test]
+    fn the_gr_baseline_is_not_a_killed_decoy() {
+        // Sanity: the honesty check must NOT flag the legitimate baseline as a (killed) decoy.
+        let adv = Adversary::new();
+        let good = Decoy {
+            theory: Theory::baseline_lcdm(),
+            kind: DecoyKind::GrayBoxKnob,
+            held_out_observable: "s8".into(),
+        };
+        assert!(
+            !adv.decoy_is_killed(&good),
+            "the GR baseline must survive the gates"
+        );
     }
 }

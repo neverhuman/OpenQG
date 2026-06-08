@@ -28,7 +28,7 @@ pub mod unification;
 pub mod unification_data;
 pub mod vetoes;
 
-pub use adversary::Adversary;
+pub use adversary::{Adversary, Decoy, DecoyKind};
 pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
 pub use certificate::{

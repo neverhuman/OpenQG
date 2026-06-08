@@ -242,7 +242,11 @@ pub fn derive_genes(generation_index: usize, candidate_index: usize, seed: u64) 
         omega_m: lerp(unit(generation_index, candidate_index, seed, 2), 0.30, 0.33),
         sum_mnu: lerp(unit(generation_index, candidate_index, seed, 3), 0.0, 0.15),
         n_eff: lerp(unit(generation_index, candidate_index, seed, 4), 2.7, 3.3),
-        omega_b_h2: lerp(unit(generation_index, candidate_index, seed, 5), 0.0220, 0.0228),
+        omega_b_h2: lerp(
+            unit(generation_index, candidate_index, seed, 5),
+            0.0220,
+            0.0228,
+        ),
         delta_h0_local: lerp(unit(generation_index, candidate_index, seed, 6), 0.0, 7.0),
         s8_suppression: lerp(unit(generation_index, candidate_index, seed, 7), 0.0, 0.08),
     }
@@ -263,7 +267,13 @@ fn clampr(value: f64, lo: f64, hi: f64) -> f64 {
 
 /// Uniform crossover: each parameter is inherited from one parent or the other by a
 /// deterministic coin.
-fn recombine(a: &Genes, b: &Genes, generation_index: usize, candidate_index: usize, seed: u64) -> Genes {
+fn recombine(
+    a: &Genes,
+    b: &Genes,
+    generation_index: usize,
+    candidate_index: usize,
+    seed: u64,
+) -> Genes {
     let pick = |salt: u64, x: f64, y: f64| {
         if unit(generation_index, candidate_index, seed, salt) < 0.5 {
             x
@@ -297,7 +307,13 @@ pub fn mutate_genes(
     let mut g = match parents.len() {
         0 => return derive_genes(generation_index, candidate_index, seed),
         1 => parents[0].clone(),
-        _ => recombine(&parents[0], &parents[1], generation_index, candidate_index, seed),
+        _ => recombine(
+            &parents[0],
+            &parents[1],
+            generation_index,
+            candidate_index,
+            seed,
+        ),
     };
     // Step size per operator: explore widely on novelty jumps, refine on contract tightening.
     let scale = match mutation_op {
@@ -317,7 +333,11 @@ pub fn mutate_genes(
     g.s8_suppression = clampr(g.s8_suppression + scale * 0.04 * step(37), -0.2, 0.5);
     // failure_mode_invert flips the dominant extension knob to probe the opposite regime.
     if mutation_op == "failure_mode_invert" {
-        g.delta_h0_local = if g.delta_h0_local.abs() > 0.1 { 0.0 } else { 5.6 };
+        g.delta_h0_local = if g.delta_h0_local.abs() > 0.1 {
+            0.0
+        } else {
+            5.6
+        };
     }
     g
 }
@@ -384,7 +404,10 @@ pub fn score_predictions(
         veto_reasons.push(format!("incomplete_coverage:{:.3}", metrics.coverage));
     }
     if metrics.invalid_prediction_count > 0 {
-        veto_reasons.push(format!("invalid_predictions:{}", metrics.invalid_prediction_count));
+        veto_reasons.push(format!(
+            "invalid_predictions:{}",
+            metrics.invalid_prediction_count
+        ));
     }
     if metrics.log_likelihood < baseline_ll - VETO_LL_MARGIN {
         veto_reasons.push("far_worse_than_baseline".to_string());
@@ -395,7 +418,8 @@ pub fn score_predictions(
     let vetoed = !veto_reasons.is_empty();
 
     // Unbounded discovery currency, parsimony-penalized; mapped to a plateau-free [0,1].
-    let penalized = metrics.delta_log_likelihood - PARSIMONY_WEIGHT * metrics.parameter_count_penalty;
+    let penalized =
+        metrics.delta_log_likelihood - PARSIMONY_WEIGHT * metrics.parameter_count_penalty;
     let final_score = if vetoed {
         0.0
     } else {
@@ -523,8 +547,8 @@ impl TheoryArtifact {
         if self.pillars.iter().any(|p| p.claim.trim().is_empty()) {
             v.push("pillar_without_claim".to_string());
         }
-        let has_falsifier = !self.pillars.is_empty()
-            && self.pillars.iter().any(|p| !p.falsifiers.is_empty());
+        let has_falsifier =
+            !self.pillars.is_empty() && self.pillars.iter().any(|p| !p.falsifiers.is_empty());
         if !has_falsifier {
             v.push("no_falsifiable_prediction".to_string());
         }
@@ -549,8 +573,18 @@ impl TheoryArtifact {
     /// (empty == whitebox). A candidate with any violation is killed by the GrayBox critic.
     pub fn whitebox_violations(&self) -> Vec<String> {
         const MARKERS: [&str; 12] = [
-            "black box", "black-box", "gray box", "gray-box", "grey box", "grey-box", "latent",
-            "fudge", "tuned to fit", "fit to data", "curve fit", "free parameter",
+            "black box",
+            "black-box",
+            "gray box",
+            "gray-box",
+            "grey box",
+            "grey-box",
+            "latent",
+            "fudge",
+            "tuned to fit",
+            "fit to data",
+            "curve fit",
+            "free parameter",
         ];
         let flagged = |text: &str| {
             let lower = text.to_lowercase();
@@ -578,7 +612,11 @@ impl TheoryArtifact {
 
     /// Evaluate the artifact's physics against the fixture (used to calibrate anchors and to
     /// anchor the LLM judge in later phases).
-    pub fn evaluate(&self, observables: &[ObservableRecord], baseline_ll: f64) -> RobustnessOutcome {
+    pub fn evaluate(
+        &self,
+        observables: &[ObservableRecord],
+        baseline_ll: f64,
+    ) -> RobustnessOutcome {
         score_predictions(
             &self.predictions,
             self.parameter_count,
@@ -603,16 +641,18 @@ mod tests {
     fn baseline_has_headroom_but_is_not_vetoed() {
         let obs = observables();
         let baseline_ll = baseline_log_likelihood(&obs);
-        assert!(baseline_ll < 0.0, "baseline must not perfectly fit the tension data");
-        // Scoring the baseline against itself: delta == 0, survives the veto.
-        let outcome = score_predictions(
-            &Genes::baseline().forward_map(),
-            3,
-            &obs,
-            baseline_ll,
-            true,
+        assert!(
+            baseline_ll < 0.0,
+            "baseline must not perfectly fit the tension data"
         );
-        assert!(!outcome.vetoed, "baseline must survive the physics veto: {:?}", outcome.veto_reasons);
+        // Scoring the baseline against itself: delta == 0, survives the veto.
+        let outcome =
+            score_predictions(&Genes::baseline().forward_map(), 3, &obs, baseline_ll, true);
+        assert!(
+            !outcome.vetoed,
+            "baseline must survive the physics veto: {:?}",
+            outcome.veto_reasons
+        );
         assert!(outcome.delta_log_likelihood.abs() < 1e-9);
     }
 
@@ -638,7 +678,10 @@ mod tests {
         assert!(r.delta_log_likelihood > 0.0, "resolver must beat baseline");
 
         // A non-physical genome (H0 = 100) must be vetoed.
-        let broken = Genes { h0: 100.0, ..Genes::baseline() };
+        let broken = Genes {
+            h0: 100.0,
+            ..Genes::baseline()
+        };
         let b = score_predictions(
             &broken.forward_map(),
             broken.parameter_count(),
@@ -658,16 +701,32 @@ mod tests {
         // and never clamp to a single plateau value.
         let mut scores = Vec::new();
         for i in 0..=10 {
-            let g = Genes { delta_h0_local: i as f64 * 0.56, s8_suppression: 0.05, ..Genes::baseline() };
-            let o = score_predictions(&g.forward_map(), g.parameter_count(), &obs, baseline_ll, true);
+            let g = Genes {
+                delta_h0_local: i as f64 * 0.56,
+                s8_suppression: 0.05,
+                ..Genes::baseline()
+            };
+            let o = score_predictions(
+                &g.forward_map(),
+                g.parameter_count(),
+                &obs,
+                baseline_ll,
+                true,
+            );
             scores.push(o.final_score);
         }
         let distinct = scores
             .iter()
             .map(|s| (s * 1e6) as i64)
             .collect::<std::collections::BTreeSet<_>>();
-        assert!(distinct.len() >= scores.len() - 1, "fitness must be spread, not saturated: {scores:?}");
-        assert!(scores.last().unwrap() > &scores[0], "moving toward the local H0 must help");
+        assert!(
+            distinct.len() >= scores.len() - 1,
+            "fitness must be spread, not saturated: {scores:?}"
+        );
+        assert!(
+            scores.last().unwrap() > &scores[0],
+            "moving toward the local H0 must help"
+        );
     }
 
     #[test]
@@ -697,7 +756,10 @@ mod tests {
         let far = mutate_genes(std::slice::from_ref(&parent), "novelty_jump", 5, 3, 99);
         assert!((near.h0 - parent.h0).abs() <= (far.h0 - parent.h0).abs() + 1e-9);
         // Child genome is always physical.
-        assert!(far.within_physical_bounds(), "mutated child must stay in bounds");
+        assert!(
+            far.within_physical_bounds(),
+            "mutated child must stay in bounds"
+        );
     }
 
     fn resolver_like() -> Genes {
@@ -745,6 +807,9 @@ mod tests {
             }
             checked += 1;
         }
-        assert!(checked >= 4, "expected >=4 anchor artifacts, found {checked}");
+        assert!(
+            checked >= 4,
+            "expected >=4 anchor artifacts, found {checked}"
+        );
     }
 }

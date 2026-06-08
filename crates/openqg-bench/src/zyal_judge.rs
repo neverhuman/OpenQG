@@ -81,9 +81,10 @@ pub struct Attack {
 fn attack_lands(attack: &Attack, outcome: &RobustnessOutcome, violations: &[String]) -> bool {
     let has = |v: &str| violations.iter().any(|x| x == v);
     match attack.kind {
-        AttackKind::NonPhysical => outcome.veto_reasons.iter().any(|r| {
-            r == "non_physical_parameters" || r == "far_worse_than_baseline"
-        }),
+        AttackKind::NonPhysical => outcome
+            .veto_reasons
+            .iter()
+            .any(|r| r == "non_physical_parameters" || r == "far_worse_than_baseline"),
         AttackKind::IncompleteCoverage => outcome.coverage < 1.0,
         AttackKind::Unfalsifiable => has("no_falsifiable_prediction"),
         AttackKind::NoDeclaredLimit => has("no_declared_limit"),
@@ -481,7 +482,11 @@ pub struct AnchorSet {
 
 /// Load and evaluate the frozen anchor/decoy set from `ZYAL/anchors`. Survivors must keep
 /// surviving as the adversary escalates (honesty loop); decoys must stay dead (calibration).
-pub fn load_anchor_set(root: &Path, observables: &[ObservableRecord], baseline_ll: f64) -> AnchorSet {
+pub fn load_anchor_set(
+    root: &Path,
+    observables: &[ObservableRecord],
+    baseline_ll: f64,
+) -> AnchorSet {
     let mut survivors = Vec::new();
     let mut decoys = Vec::new();
     if let Ok(rd) = std::fs::read_dir(root.join("ZYAL/anchors")) {
@@ -521,7 +526,11 @@ mod tests {
         load_tension_observables(&root).unwrap()
     }
 
-    fn grade_genes(genes: &Genes, observables: &[ObservableRecord], baseline_ll: f64) -> RobustnessOutcome {
+    fn grade_genes(
+        genes: &Genes,
+        observables: &[ObservableRecord],
+        baseline_ll: f64,
+    ) -> RobustnessOutcome {
         let mut o = score_predictions(
             &genes.forward_map(),
             genes.parameter_count(),
@@ -551,12 +560,14 @@ mod tests {
 
         // A theory that fits well but adds a free, ungrounded fudge parameter is gray-box.
         let mut graybox = resolver().to_artifact("graybox");
-        graybox.pillars[0].parameters.push(crate::zyal_robustness::ParamMeaning {
-            symbol: "k_fudge".into(),
-            physical_meaning: String::new(),
-            provenance: String::new(),
-            kind: "free".into(),
-        });
+        graybox.pillars[0]
+            .parameters
+            .push(crate::zyal_robustness::ParamMeaning {
+                symbol: "k_fudge".into(),
+                physical_meaning: String::new(),
+                provenance: String::new(),
+                kind: "free".into(),
+            });
         let v = judge("graybox", &graybox, &outcome, &archive);
         assert!(
             !v.survived && v.survival == 0.0,
@@ -565,7 +576,10 @@ mod tests {
 
         // The grounded whitebox theory survives the same adversary on the same fit.
         let whitebox = resolver().to_artifact("whitebox");
-        assert!(whitebox.whitebox_violations().is_empty(), "grounded genome must be whitebox");
+        assert!(
+            whitebox.whitebox_violations().is_empty(),
+            "grounded genome must be whitebox"
+        );
         let v2 = judge("whitebox", &whitebox, &outcome, &archive);
         assert!(v2.survived, "a grounded whitebox theory must survive");
     }
@@ -579,12 +593,21 @@ mod tests {
         let r = resolver();
         let ro = grade_genes(&r, &observables, baseline_ll);
         let v = judge("resolver", &r.to_artifact("resolver"), &ro, &archive);
-        assert!(v.survived && v.survival > 0.5, "resolver should survive comfortably: {v:?}");
+        assert!(
+            v.survived && v.survival > 0.5,
+            "resolver should survive comfortably: {v:?}"
+        );
 
-        let broken = Genes { h0: 100.0, ..Genes::baseline() };
+        let broken = Genes {
+            h0: 100.0,
+            ..Genes::baseline()
+        };
         let bo = grade_genes(&broken, &observables, baseline_ll);
         let bv = judge("broken", &broken.to_artifact("broken"), &bo, &archive);
-        assert!(!bv.survived && bv.survival == 0.0, "non-physical genome must be killed");
+        assert!(
+            !bv.survived && bv.survival == 0.0,
+            "non-physical genome must be killed"
+        );
     }
 
     #[test]
@@ -601,7 +624,10 @@ mod tests {
             archive.escalate(&BTreeMap::new(), true);
         }
         let late = judge("r", &r.to_artifact("r"), &ro, &archive).survival;
-        assert!(late < early, "escalation must lower survival of a fixed candidate ({late} !< {early})");
+        assert!(
+            late < early,
+            "escalation must lower survival of a fixed candidate ({late} !< {early})"
+        );
     }
 
     #[test]
@@ -628,9 +654,27 @@ mod tests {
     #[test]
     fn pairwise_elo_orders_by_survival_without_ceiling() {
         let mut verdicts = vec![
-            Verdict { candidate_id: "a".into(), survived: true, survival: 0.9, elo: 1500.0, landed: vec![] },
-            Verdict { candidate_id: "b".into(), survived: true, survival: 0.5, elo: 1500.0, landed: vec![] },
-            Verdict { candidate_id: "c".into(), survived: false, survival: 0.0, elo: 1500.0, landed: vec![] },
+            Verdict {
+                candidate_id: "a".into(),
+                survived: true,
+                survival: 0.9,
+                elo: 1500.0,
+                landed: vec![],
+            },
+            Verdict {
+                candidate_id: "b".into(),
+                survived: true,
+                survival: 0.5,
+                elo: 1500.0,
+                landed: vec![],
+            },
+            Verdict {
+                candidate_id: "c".into(),
+                survived: false,
+                survival: 0.0,
+                elo: 1500.0,
+                landed: vec![],
+            },
         ];
         assign_pairwise_elo(&mut verdicts);
         assert!(verdicts[0].elo > verdicts[1].elo && verdicts[1].elo > verdicts[2].elo);
@@ -646,8 +690,14 @@ mod tests {
         let total: usize = alloc.values().sum();
         assert_eq!(total, 24, "budget must be fully allocated");
         let max_key = alloc.iter().max_by_key(|(_, v)| **v).unwrap().0;
-        assert_eq!(max_key, "coefficients", "the most-attacked pillar gets the bulk");
-        assert!(alloc.values().all(|&v| v >= 1), "every pillar keeps a floor");
+        assert_eq!(
+            max_key, "coefficients",
+            "the most-attacked pillar gets the bulk"
+        );
+        assert!(
+            alloc.values().all(|&v| v >= 1),
+            "every pillar keeps a floor"
+        );
     }
 
     #[test]
@@ -658,22 +708,43 @@ mod tests {
         // A spread of distinct mechanisms/param-counts fills distinct cells.
         let variants = [
             Genes::baseline(),
-            Genes { delta_h0_local: 5.6, ..Genes::baseline() },
-            Genes { s8_suppression: 0.05, ..Genes::baseline() },
+            Genes {
+                delta_h0_local: 5.6,
+                ..Genes::baseline()
+            },
+            Genes {
+                s8_suppression: 0.05,
+                ..Genes::baseline()
+            },
             resolver(),
         ];
         for (i, g) in variants.iter().enumerate() {
             let o = grade_genes(g, &observables, baseline_ll);
-            archive.insert(descriptor(&o), &format!("c{i}"), o.delta_log_likelihood.max(0.0));
+            archive.insert(
+                descriptor(&o),
+                &format!("c{i}"),
+                o.delta_log_likelihood.max(0.0),
+            );
         }
-        assert!(archive.coverage() >= 3, "distinct mechanisms must fill distinct cells");
+        assert!(
+            archive.coverage() >= 3,
+            "distinct mechanisms must fill distinct cells"
+        );
         assert!(archive.qd_score() > 0.0);
         // Descriptor is computed from numeric outcome only (no names): re-inserting under a
         // different id into the same cell does not change coverage.
         let o = grade_genes(&resolver(), &observables, baseline_ll);
         let before = archive.coverage();
-        archive.insert(descriptor(&o), "renamed-stage-xyz", o.delta_log_likelihood.max(0.0));
-        assert_eq!(archive.coverage(), before, "behavior cells are name-independent");
+        archive.insert(
+            descriptor(&o),
+            "renamed-stage-xyz",
+            o.delta_log_likelihood.max(0.0),
+        );
+        assert_eq!(
+            archive.coverage(),
+            before,
+            "behavior cells are name-independent"
+        );
     }
 
     #[test]
@@ -681,10 +752,15 @@ mod tests {
         // A saturated frontier (old behavior) must FAIL the gate.
         let saturated = vec![0.995; 20];
         let g = robustness_gate(&saturated, true, true, true);
-        assert!(g.iter().any(|c| c.name == "max_single_score_cluster" && !c.passed));
+        assert!(g
+            .iter()
+            .any(|c| c.name == "max_single_score_cluster" && !c.passed));
         // A real spread frontier passes.
         let real: Vec<f64> = (0..20).map(|i| 0.4 + i as f64 * 0.02).collect();
         let g2 = robustness_gate(&real, true, true, true);
-        assert!(g2.iter().all(|c| c.passed), "a real spread frontier must pass: {g2:?}");
+        assert!(
+            g2.iter().all(|c| c.passed),
+            "a real spread frontier must pass: {g2:?}"
+        );
     }
 }

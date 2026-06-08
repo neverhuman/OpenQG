@@ -106,6 +106,9 @@ mod tests {
             }
             checked += 1;
         }
-        assert!(checked >= 4, "expected at least 4 anchor artifacts, found {checked}");
+        assert!(
+            checked >= 4,
+            "expected at least 4 anchor artifacts, found {checked}"
+        );
     }
 }

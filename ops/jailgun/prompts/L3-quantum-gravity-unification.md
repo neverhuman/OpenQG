@@ -6,6 +6,8 @@ cosmology and gravity, plus its ZYAL orchestration layer. The project's goal is 
 TRUSTWORTHY possible automated system for chasing the physics frontier where quantum gravity /
 unification meets real data — and to make it worthy of a serious physicist's attention.
 
+The full curated source is **attached to this conversation as `source.tar.gz`**. FIRST extract it in your code sandbox (`tar xzf source.tar.gz`) and read the ACTUAL file contents below — do not review from filenames or prior knowledge; if the archive is genuinely unavailable, say so explicitly.
+
 Start with these files, in order:
 - `docs/architecture.md` — system, forward model (background+growth) with equations, scoring, data
   previews, and an explicit honest-limitations section.

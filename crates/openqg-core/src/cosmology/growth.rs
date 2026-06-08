@@ -136,6 +136,120 @@ impl CosmologyParams {
         let hist = self.growth_history();
         *hist.f.last().unwrap()
     }
+
+    // ── M4: scale-dependent derived modified-gravity growth path ──────────────────────────────
+    //
+    // The legacy `growth_mu(a)` above is a scale-FREE late-time μ(a) (the μ0 parametrization). A
+    // modified-gravity theorist needs μ to be *derived* and *scale-dependent* (`docs/theory-league.md`
+    // §"Honest limitations"; plan M4). The methods below add that without touching the existing
+    // `growth_history`/`growth_fsigma8`/`growth_mu` API or numbers: when `mg_family == None` they fall
+    // straight back to the legacy μ(a), so every prior result is byte-identical. They are exercised
+    // through the `f_r()` / `ndgp()` ModelClasses (`theory/league.rs`).
+
+    /// Effective gravitational coupling μ(a, k) = G_eff/G evaluated for the *derived* MG family on
+    /// the genome (`mg_family`), at scale factor `a` and comoving wavenumber `k` in h/Mpc. f(R)
+    /// Hu–Sawicki and nDGP each compute μ from one fundamental parameter (`theory::sectors`); with no
+    /// derived family declared it returns the legacy scale-free `growth_mu(a)` (so k is irrelevant and
+    /// nothing changes for existing models). Ω_Λ for the sectors is the present dark-energy fraction.
+    pub fn growth_mu_kdep(&self, a: f64, k: f64) -> f64 {
+        use crate::cosmology::MgFamily;
+        use crate::theory::sectors::{fr::FrParams, ndgp::NdgpParams};
+        match self.mg_family {
+            MgFamily::None => self.growth_mu(a),
+            MgFamily::FrHuSawicki => {
+                // |f_R0| = 10^{fr_log10_fr0}; a very negative exponent is the GR limit.
+                let f_r0_abs = if self.fr_log10_fr0 <= -20.0 {
+                    0.0
+                } else {
+                    10f64.powf(self.fr_log10_fr0)
+                };
+                FrParams::new(self.fr_n, f_r0_abs)
+                    .response(a, k, self.omega_m, self.omega_de())
+                    .mu
+            }
+            MgFamily::Ndgp => {
+                // β needs E(a) = H/H₀ and Ḣ/H² = dlnE/dN at this a (computed from the background).
+                let z = 1.0 / a - 1.0;
+                let e = self.e_of_z(z);
+                let dln_e = self.dln_e_dn(a);
+                NdgpParams::from_omega_rc(self.ndgp_omega_rc)
+                    .response(e, dln_e)
+                    .mu
+            }
+        }
+    }
+
+    /// Reference comoving wavenumber (h/Mpc) at which the scale-dependent growth observable is
+    /// evaluated. k ≈ 0.1 h/Mpc is the linear RSD pivot probed by DESI/BOSS fσ8 (e.g. Bose et al.
+    /// 2018, arXiv:1606.02520) — large enough that the f(R) fifth force is partly active, small
+    /// enough to stay linear.
+    pub const GROWTH_KREF_H_MPC: f64 = 0.1;
+
+    /// Solve the linear growth equation with a scale-dependent μ(a, k) at fixed comoving k (h/Mpc).
+    /// Identical RK4 scheme to [`Self::growth_history`] but with the derived μ(a,k) in the source
+    /// term — the only physically-correct way to grow a mode that feels a k-dependent fifth force.
+    pub fn growth_history_kdep(&self, k: f64) -> GrowthHistory {
+        let n_i = A_INITIAL.ln();
+        let n_f = 0.0_f64;
+        let steps = GROWTH_STEPS;
+        let dn = (n_f - n_i) / steps as f64;
+
+        let mut delta = A_INITIAL;
+        let mut v = A_INITIAL;
+
+        let mut n_grid = Vec::with_capacity(steps + 1);
+        let mut delta_hist = Vec::with_capacity(steps + 1);
+        let mut f_hist = Vec::with_capacity(steps + 1);
+
+        let deriv = |n: f64, d: f64, v: f64| -> (f64, f64) {
+            let a = n.exp();
+            let z = 1.0 / a - 1.0;
+            let e2 = self.e_of_z(z).powi(2);
+            let omega_m_a = self.omega_m * a.powi(-3) / e2;
+            let drag = 2.0 + self.dln_e_dn(a);
+            let source = 1.5 * omega_m_a * self.growth_mu_kdep(a, k) * d;
+            (v, -drag * v + source)
+        };
+
+        for i in 0..=steps {
+            let n = n_i + i as f64 * dn;
+            n_grid.push(n);
+            delta_hist.push(delta);
+            f_hist.push(v / delta);
+            if i == steps {
+                break;
+            }
+            let (k1d, k1v) = deriv(n, delta, v);
+            let (k2d, k2v) = deriv(n + 0.5 * dn, delta + 0.5 * dn * k1d, v + 0.5 * dn * k1v);
+            let (k3d, k3v) = deriv(n + 0.5 * dn, delta + 0.5 * dn * k2d, v + 0.5 * dn * k2v);
+            let (k4d, k4v) = deriv(n + dn, delta + dn * k3d, v + dn * k3v);
+            delta += dn / 6.0 * (k1d + 2.0 * k2d + 2.0 * k3d + k4d);
+            v += dn / 6.0 * (k1v + 2.0 * k2v + 2.0 * k3v + k4v);
+        }
+
+        let delta_today = *delta_hist.last().unwrap();
+        GrowthHistory {
+            n_grid,
+            delta: delta_hist,
+            f: f_hist,
+            delta_today,
+        }
+    }
+
+    /// fσ8(z) evaluated with the *derived* scale-dependent μ(a, k) at comoving wavenumber k (h/Mpc).
+    /// For `mg_family == None` this equals the legacy [`Self::growth_fsigma8`] (μ is scale-free).
+    pub fn growth_fsigma8_kdep(&self, z: f64, k: f64) -> f64 {
+        let hist = self.growth_history_kdep(k);
+        let a = 1.0 / (1.0 + z);
+        let (delta, f) = hist.interp(a.ln());
+        self.sigma8 * (delta / hist.delta_today) * f
+    }
+
+    /// fσ8(z) at the reference wavenumber [`Self::GROWTH_KREF_H_MPC`] (≈ 0.1 h/Mpc) — the
+    /// observable the derived-MG families ([`crate::theory::ModelClass::f_r`] / `ndgp`) are scored on.
+    pub fn growth_fsigma8_kref(&self, z: f64) -> f64 {
+        self.growth_fsigma8_kdep(z, Self::GROWTH_KREF_H_MPC)
+    }
 }
 
 impl GrowthHistory {
@@ -221,5 +335,91 @@ mod tests {
         let mut c = CosmologyParams::planck_lcdm();
         c.omega_m = 0.3;
         assert!((c.s8() - c.sigma8).abs() < 1e-12);
+    }
+
+    // ── M4: derived scale-dependent MG growth (f(R) Hu–Sawicki, nDGP) ─────────────────────────
+
+    #[test]
+    fn scale_dependent_path_is_identical_to_legacy_for_plain_lcdm() {
+        // mg_family == None ⇒ the k-dependent path must reproduce the legacy fσ8 bit-for-bit
+        // (additive guarantee: nothing changes for existing ΛCDM/μ0 models).
+        let c = CosmologyParams::planck_lcdm();
+        for &z in &[0.0_f64, 0.5, 1.1] {
+            let legacy = c.growth_fsigma8(z);
+            let kdep = c.growth_fsigma8_kref(z);
+            assert!((legacy - kdep).abs() < 1e-12, "z={z}: {legacy} vs {kdep}");
+        }
+    }
+
+    #[test]
+    fn fr_enhances_growth_and_recovers_gr_as_f_r0_to_zero() {
+        use super::super::MgFamily;
+        let gr = CosmologyParams::planck_lcdm();
+        let base = gr.growth_fsigma8_kref(0.5);
+
+        // Strong f(R): |f_R0| = 1e-4 ⇒ active fifth force ⇒ MORE growth (fσ8 up).
+        let mut strong = gr.clone();
+        strong.mg_family = MgFamily::FrHuSawicki;
+        strong.fr_n = 1.0;
+        strong.fr_log10_fr0 = -4.0;
+        let boosted = strong.growth_fsigma8_kref(0.5);
+        assert!(
+            boosted > base,
+            "f(R) |f_R0|=1e-4 should raise fσ8: {boosted} vs {base}"
+        );
+
+        // Larger |f_R0| ⇒ more enhancement (monotone in the fundamental amplitude).
+        let mut stronger = strong.clone();
+        stronger.fr_log10_fr0 = -3.5;
+        assert!(
+            stronger.growth_fsigma8_kref(0.5) > boosted,
+            "bigger |f_R0| ⇒ more growth"
+        );
+
+        // f_R0 → 0 recovers GR growth exactly (within integrator noise).
+        let mut weak = strong.clone();
+        weak.fr_log10_fr0 = -30.0;
+        let recovered = weak.growth_fsigma8_kref(0.5);
+        assert!(
+            (recovered - base).abs() < 1e-6,
+            "f_R0→0 must recover GR: {recovered} vs {base}"
+        );
+    }
+
+    #[test]
+    fn ndgp_normal_branch_enhances_growth_and_recovers_gr_as_rc_to_infinity() {
+        // PHYSICS: the normal branch ENHANCES growth (β>0 ⇒ μ=1+1/(3β)>1; Koyama & Maartens 2006).
+        // (The milestone brief said "suppresses"; that is the ghost-unstable self-accelerating
+        // branch — see theory/sectors/ndgp.rs and the `deferred` note. We implement the healthy,
+        // growth-enhancing normal branch and test the literature-correct sign.)
+        use super::super::MgFamily;
+        let gr = CosmologyParams::planck_lcdm();
+        let base = gr.growth_fsigma8_kref(0.5);
+
+        let mut ndgp = gr.clone();
+        ndgp.mg_family = MgFamily::Ndgp;
+        ndgp.ndgp_omega_rc = 0.25; // H₀ r_c = 1
+        let enhanced = ndgp.growth_fsigma8_kref(0.5);
+        assert!(
+            enhanced > base,
+            "nDGP normal branch should raise fσ8: {enhanced} vs {base}"
+        );
+
+        // Smaller r_c (larger Ω_rc) ⇒ stronger fifth force ⇒ even more growth.
+        let mut stronger = ndgp.clone();
+        stronger.ndgp_omega_rc = 1.0;
+        assert!(
+            stronger.growth_fsigma8_kref(0.5) > enhanced,
+            "smaller r_c ⇒ more growth"
+        );
+
+        // r_c → ∞ (Ω_rc → 0) recovers GR growth exactly.
+        let mut weak = ndgp.clone();
+        weak.ndgp_omega_rc = 0.0;
+        let recovered = weak.growth_fsigma8_kref(0.5);
+        assert!(
+            (recovered - base).abs() < 1e-9,
+            "r_c→∞ must recover GR: {recovered} vs {base}"
+        );
     }
 }

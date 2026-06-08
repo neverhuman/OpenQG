@@ -61,6 +61,51 @@ pub struct CosmologyParams {
     /// exact α-basis G_eff is the Boltzmann backend's job (`docs/boltzmann-backend.md`).
     #[serde(default)]
     pub mu0: f64,
+    /// Which *derived* modified-gravity family (if any) supplies a scale-dependent `μ(a,k)`/`Σ(a,k)`
+    /// for the growth sector, computed from action-level parameters (`theory::sectors`). `None`
+    /// (the default) keeps the scale-FREE `μ0` parametrization above untouched — so every existing
+    /// theory and test sees ΛCDM/μ0 growth exactly as before (additive, M4). The family's
+    /// fundamental parameters live in the `fr_*` / `ndgp_*` fields below so the league optimizer can
+    /// fit them through `set_param`.
+    #[serde(default)]
+    pub mg_family: MgFamily,
+    /// f(R) Hu–Sawicki index `n` (used only when `mg_family == FRHuSawicki`).
+    #[serde(default = "default_fr_n")]
+    pub fr_n: f64,
+    /// f(R) Hu–Sawicki present-day scalaron amplitude, stored as `log₁₀|f_R0|` (so the optimizer
+    /// explores it on a log scale, as the literature does). A very negative value (≤ −20) ⇒
+    /// `|f_R0| → 0` ⇒ GR. Used only when `mg_family == FRHuSawicki`.
+    #[serde(default = "default_fr_log10_fr0")]
+    pub fr_log10_fr0: f64,
+    /// nDGP dimensionless crossover `Ω_rc = 1/(4 H₀² r_c²)` (≥ 0). `0` ⇒ `r_c → ∞` ⇒ GR. Used only
+    /// when `mg_family == NDGP`.
+    #[serde(default)]
+    pub ndgp_omega_rc: f64,
+}
+
+/// The derived modified-gravity family driving the scale-dependent growth path (M4). `None` is GR /
+/// the legacy scale-free `μ0` parametrization; the two derived families compute `μ(a,k)` from one
+/// fundamental action-level parameter via `theory::sectors`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum MgFamily {
+    /// No derived MG family — the legacy `μ0` scale-free growth path (GR when `μ0 = 0`).
+    #[default]
+    None,
+    /// f(R) Hu–Sawicki `{n, f_R0}` (scale-dependent scalaron; chameleon-screened).
+    FrHuSawicki,
+    /// nDGP `{r_c}` (scale-free linear coupling; Vainshtein-screened).
+    Ndgp,
+}
+
+/// Default f(R) index when deserializing a theory written before the M4 derived-MG sector existed.
+fn default_fr_n() -> f64 {
+    1.0
+}
+
+/// Default f(R) log-amplitude: deep in the GR limit (`|f_R0| = 10⁻³⁰`).
+fn default_fr_log10_fr0() -> f64 {
+    -30.0
 }
 
 /// Planck-2018 σ8 default for deserializing theories written before the growth sector existed.
@@ -82,6 +127,10 @@ impl CosmologyParams {
             omega_k: 0.0,
             sigma8: 0.811,
             mu0: 0.0,
+            mg_family: MgFamily::None,
+            fr_n: default_fr_n(),
+            fr_log10_fr0: default_fr_log10_fr0(),
+            ndgp_omega_rc: 0.0,
         }
     }
 
@@ -340,6 +389,7 @@ mod tests {
             omega_k: 0.0,
             sigma8: 0.811,
             mu0: 0.0,
+            ..CosmologyParams::planck_lcdm()
         };
         let dc = c.comoving_distance(1.0);
         assert!(dc > 3250.0 && dc < 3450.0, "D_C(z=1) = {dc} Mpc");

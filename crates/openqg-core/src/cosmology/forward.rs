@@ -105,7 +105,15 @@ impl BackgroundForwardModel {
                 } else if let Some(z) = parse_z(id, "mu") {
                     Some((c.distance_modulus(z), 1e-4, "mag"))
                 } else if let Some(z) = parse_z(id, "fsigma8") {
-                    Some((c.growth_fsigma8(z), 1e-4, "dimensionless"))
+                    // M4: a declared *derived* MG family (f(R)/nDGP) grows the reference k-mode with
+                    // its computed scale-dependent μ(a,k); plain ΛCDM/μ0 keeps the scale-free path
+                    // (growth_fsigma8_kref == growth_fsigma8 when mg_family == None — byte-identical).
+                    let fs8 = if c.mg_family == super::MgFamily::None {
+                        c.growth_fsigma8(z)
+                    } else {
+                        c.growth_fsigma8_kref(z)
+                    };
+                    Some((fs8, 1e-4, "dimensionless"))
                 } else {
                     None
                 }
@@ -195,7 +203,10 @@ mod tests {
             .collect();
         let preds = model.predict(&c, &ids).unwrap();
         assert_eq!(preds.len(), 3);
-        let fs8 = preds.iter().find(|p| p.observable_id == "fsigma8@0.5").unwrap();
+        let fs8 = preds
+            .iter()
+            .find(|p| p.observable_id == "fsigma8@0.5")
+            .unwrap();
         assert!(fs8.value > 0.40 && fs8.value < 0.50, "fσ8 = {}", fs8.value);
     }
 

@@ -22,6 +22,7 @@ pub mod mutation;
 pub mod pareto;
 pub mod proposal;
 pub mod robustness;
+pub mod sectors;
 pub mod unification;
 pub mod vetoes;
 

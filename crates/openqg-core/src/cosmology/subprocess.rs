@@ -1,0 +1,127 @@
+//! A [`ForwardModel`] that delegates to an external subprocess — the seam through which the
+//! optional Boltzmann backend (CLASS / CAMB / hi_class, wrapped in a Python script) plugs in.
+//!
+//! The engine writes `{ "params": <CosmologyParams>, "observables": [<id>, ...] }` as JSON to the
+//! command's stdin and reads back a JSON array of `PredictionRecord`s on stdout. This keeps the
+//! heavy Python/C physics stack *out* of the Rust build (the default engine stays pure-Rust and
+//! deterministic); the script is "just a command you pass," exactly like the LLM proposer hook.
+//! A reference adapter lives at `tools/boltzmann_adapter.py`.
+//!
+//! Reproducibility: a crash/timeout/non-zero exit is an error (a pathological cosmology that makes
+//! the solver fail is a lethal candidate, never a silent default) — see
+//! `docs/research/forward-model-and-unification.md` §5.
+
+use super::{CosmologyParams, ForwardKind, ForwardManifest, ForwardModel};
+use crate::types::PredictionRecord;
+use anyhow::{bail, Context, Result};
+use std::io::Write;
+use std::process::{Command, Stdio};
+
+/// A forward model backed by an external command (run via `sh -c`).
+pub struct SubprocessForwardModel {
+    command: String,
+    model_id: String,
+    version: String,
+}
+
+impl SubprocessForwardModel {
+    /// Build a subprocess model from a shell command whose stdin is the JSON request and whose
+    /// stdout is the JSON `PredictionRecord` array.
+    pub fn new(command: impl Into<String>) -> Self {
+        SubprocessForwardModel {
+            command: command.into(),
+            model_id: "subprocess-boltzmann".into(),
+            version: "0.1.0".into(),
+        }
+    }
+
+    pub fn with_id(mut self, model_id: impl Into<String>, version: impl Into<String>) -> Self {
+        self.model_id = model_id.into();
+        self.version = version.into();
+        self
+    }
+}
+
+impl ForwardModel for SubprocessForwardModel {
+    type Theory = CosmologyParams;
+
+    fn predict(
+        &self,
+        theory: &CosmologyParams,
+        observable_ids: &[String],
+    ) -> Result<Vec<PredictionRecord>> {
+        let request = serde_json::json!({
+            "params": theory,
+            "observables": observable_ids,
+        })
+        .to_string();
+
+        let mut child = Command::new("sh")
+            .arg("-c")
+            .arg(&self.command)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .with_context(|| format!("spawn forward-model command: {}", self.command))?;
+        child
+            .stdin
+            .take()
+            .context("forward-model command has no stdin")?
+            .write_all(request.as_bytes())
+            .context("write request to forward-model command")?;
+        let output = child
+            .wait_with_output()
+            .context("wait for forward-model command")?;
+        if !output.status.success() {
+            bail!(
+                "forward-model command failed ({}): {}",
+                output.status,
+                String::from_utf8_lossy(&output.stderr).trim()
+            );
+        }
+        serde_json::from_slice(&output.stdout)
+            .context("parse forward-model command predictions JSON")
+    }
+
+    fn manifest(&self) -> ForwardManifest {
+        ForwardManifest {
+            model_id: self.model_id.clone(),
+            version: self.version.clone(),
+            kind: ForwardKind::Boltzmann,
+            // The provenance hash should be filled by the adapter (code+data versions); empty here.
+            provenance_hash: String::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn delegates_to_an_external_command_and_parses_predictions() {
+        // A mock backend: ignore stdin, echo a fixed prediction array (stands in for a CLASS run).
+        let mock = "cat >/dev/null; printf '[{\"observable_id\":\"h0\",\"value\":67.4,\"uncertainty\":0.5,\"unit\":\"km s^-1 Mpc^-1\"}]'";
+        let model = SubprocessForwardModel::new(mock);
+        let preds = model
+            .predict(&CosmologyParams::planck_lcdm(), &["h0".to_string()])
+            .expect("predict");
+        assert_eq!(preds.len(), 1);
+        assert_eq!(preds[0].observable_id, "h0");
+        assert!((preds[0].value - 67.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_failing_backend_is_an_error_not_a_silent_default() {
+        let model = SubprocessForwardModel::new("exit 3");
+        let r = model.predict(&CosmologyParams::planck_lcdm(), &["h0".to_string()]);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn manifest_marks_a_boltzmann_backend() {
+        let m = SubprocessForwardModel::new("true").manifest();
+        assert_eq!(m.kind, ForwardKind::Boltzmann);
+    }
+}

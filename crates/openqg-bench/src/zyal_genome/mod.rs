@@ -724,6 +724,8 @@ mod novelty;
 pub(crate) use novelty::*;
 mod physics_score;
 pub(crate) use physics_score::*;
+mod theory_population;
+pub(crate) use theory_population::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

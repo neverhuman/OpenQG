@@ -16,6 +16,7 @@ pub mod anchors;
 pub mod assessment;
 pub mod certificate;
 pub mod claim_graph;
+pub mod contenders;
 pub mod evaluate;
 pub mod evidence;
 pub mod evolve;
@@ -43,6 +44,10 @@ pub use certificate::{
 pub use claim_graph::{
     claim_graph_digest, Claim, ClaimGraph, ClaimId, ClaimKind, Sector, SharedParam,
     UnificationClaim,
+};
+pub use contenders::{
+    decoy_contenders, decoy_false_positive_rate, human_contenders, score_contender, Contender,
+    ContenderSuite, ExpectedVerdict, MapEvidenceStore,
 };
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evidence::{

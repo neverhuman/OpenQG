@@ -113,7 +113,6 @@ fn run_proposer_lines(cmd: &str) -> Result<Vec<String>> {
         .collect())
 }
 
-
 /// One per-generation telemetry line (legacy-monitor-compatible metrics_point shape).
 fn metrics_point(gr: &GenerationReport, run_id: &str) -> Value {
     json!({

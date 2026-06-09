@@ -359,7 +359,10 @@ mod tests {
             "background":{"h":0.674,"omega_m":0.315}}"#;
         let a = proposal_receipt(json, "fixture");
         let b = proposal_receipt(json, "fixture");
-        assert_eq!(a, b, "the oracle must re-adjudicate identically (no LLM needed)");
+        assert_eq!(
+            a, b,
+            "the oracle must re-adjudicate identically (no LLM needed)"
+        );
         assert!(!a.vetoed);
         assert_eq!(a.theory_id, "p1");
         assert_eq!(a.input_sha256.len(), 64);

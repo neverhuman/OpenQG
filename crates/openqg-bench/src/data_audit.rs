@@ -85,17 +85,18 @@ pub fn audit(manifest_path: &Path) -> Result<()> {
     let base = Path::new(".");
     let rows = audit_manifest(&manifest, base)?;
 
-    println!(
-        "data audit: {} ({} fixtures)",
-        manifest.schema,
-        rows.len()
-    );
+    println!("data audit: {} ({} fixtures)", manifest.schema, rows.len());
     let mut drift = 0usize;
     let mut missing = 0usize;
     for r in &rows {
         match &r.status {
             FixtureStatus::Ok { sha256 } => {
-                println!("  ok     {}  {:48}  cov={}", &sha256[..12], r.path, r.covariance)
+                println!(
+                    "  ok     {}  {:48}  cov={}",
+                    &sha256[..12],
+                    r.path,
+                    r.covariance
+                )
             }
             FixtureStatus::Drift { expected, got } => {
                 drift += 1;
@@ -115,7 +116,10 @@ pub fn audit(manifest_path: &Path) -> Result<()> {
     if drift > 0 || missing > 0 {
         bail!("data audit FAILED: {drift} drifted, {missing} missing");
     }
-    println!("data audit OK: all {} fixtures match the manifest", rows.len());
+    println!(
+        "data audit OK: all {} fixtures match the manifest",
+        rows.len()
+    );
     Ok(())
 }
 
@@ -196,6 +200,9 @@ mod tests {
                 r.status
             );
         }
-        assert!(rows.len() >= 8, "manifest should list the cosmology fixtures");
+        assert!(
+            rows.len() >= 8,
+            "manifest should list the cosmology fixtures"
+        );
     }
 }

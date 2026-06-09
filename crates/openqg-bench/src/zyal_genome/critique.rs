@@ -101,8 +101,14 @@ pub(crate) fn run_live_critique_banded(
         .quality_band()
         .map(|band| vec![("JEKKO_RUN_QUALITY_BAND".to_string(), band.to_string())])
         .unwrap_or_default();
-    match run_live_call_attempt_env(&command, &prompt, timeout_seconds, 1, &now_iso8601(), &extra_env)
-    {
+    match run_live_call_attempt_env(
+        &command,
+        &prompt,
+        timeout_seconds,
+        1,
+        &now_iso8601(),
+        &extra_env,
+    ) {
         Ok(attempt) => match parse_live_verdict(&attempt.stdout) {
             Some((falsifiability, plausibility, fatal_flaw)) => LiveVerdict {
                 falsifiability,
@@ -213,7 +219,10 @@ pub(crate) fn aggregate_verdicts(verdicts: &[LiveVerdict]) -> VotedVerdict {
     let spread = |xs: &[f64]| {
         xs.iter().cloned().fold(f64::MIN, f64::max) - xs.iter().cloned().fold(f64::MAX, f64::min)
     };
-    let flaw_count = ok.iter().filter(|v| !v.fatal_flaw.trim().is_empty()).count();
+    let flaw_count = ok
+        .iter()
+        .filter(|v| !v.fatal_flaw.trim().is_empty())
+        .count();
     let fatal_flaw_rate = flaw_count as f64 / ok_votes as f64;
     // A fatal flaw only carries if a MAJORITY of ok votes name one (self-consistency).
     let fatal_flaw = if fatal_flaw_rate > 0.5 {
@@ -289,7 +298,10 @@ mod vote_tests {
             "median = {}",
             agg.verdict.falsifiability
         );
-        assert!(agg.falsifiability_spread > 0.6, "spread must surface the disagreement");
+        assert!(
+            agg.falsifiability_spread > 0.6,
+            "spread must surface the disagreement"
+        );
     }
 
     #[test]
@@ -299,7 +311,10 @@ mod vote_tests {
             v(0.5, 0.5, "gray-box knob", "ok"),
             v(0.5, 0.5, "", "ok"),
         ];
-        assert_eq!(aggregate_verdicts(&majority).verdict.fatal_flaw, "gray-box knob");
+        assert_eq!(
+            aggregate_verdicts(&majority).verdict.fatal_flaw,
+            "gray-box knob"
+        );
 
         let minority = vec![
             v(0.5, 0.5, "maybe", "ok"),

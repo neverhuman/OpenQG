@@ -34,7 +34,11 @@ fn available_models(has_growth: bool) -> Vec<ModelClass> {
             ModelClass::ndgp(),
         ]
     } else {
-        vec![ModelClass::lcdm(), ModelClass::w_cdm(), ModelClass::w0wa_cdm()]
+        vec![
+            ModelClass::lcdm(),
+            ModelClass::w_cdm(),
+            ModelClass::w0wa_cdm(),
+        ]
     }
 }
 
@@ -68,10 +72,10 @@ fn load_covariance(path: Option<&Path>) -> Result<Vec<CovarianceBlock>> {
     match path {
         None => Ok(Vec::new()),
         Some(p) => {
-            let text =
-                fs::read_to_string(p).with_context(|| format!("read covariance {}", p.display()))?;
-            let blocks: Vec<CovarianceBlock> =
-                serde_json::from_str(&text).with_context(|| format!("parse covariance {}", p.display()))?;
+            let text = fs::read_to_string(p)
+                .with_context(|| format!("read covariance {}", p.display()))?;
+            let blocks: Vec<CovarianceBlock> = serde_json::from_str(&text)
+                .with_context(|| format!("parse covariance {}", p.display()))?;
             Ok(blocks)
         }
     }
@@ -134,7 +138,12 @@ pub fn run_league(
     for r in &rows {
         println!(
             "{:<11} {:>2} {:>9.3} {:>9.3} {:>+9.3} {:>+9.3} {:>+9.3}  {}",
-            r.fit.model_id, r.fit.k, r.fit.chi2, r.fit.aic, r.delta_aic, r.delta_bic,
+            r.fit.model_id,
+            r.fit.k,
+            r.fit.chi2,
+            r.fit.aic,
+            r.delta_aic,
+            r.delta_bic,
             r.delta_ln_evidence,
             if r.eligible { "yes" } else { "NO (coverage)" }
         );

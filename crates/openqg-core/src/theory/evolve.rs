@@ -445,12 +445,20 @@ mod tests {
             );
             assert!(!g.adversary_decoy_kind.is_empty());
             assert!(!g.adversary_held_out_observable.is_empty());
-            assert!(g.calibration_honest, "honesty held with the generated decoy");
+            assert!(
+                g.calibration_honest,
+                "honesty held with the generated decoy"
+            );
         }
         // The rotation exercises more than one decoy kind (a real opponent, not a fixed probe).
-        let kinds: std::collections::BTreeSet<_> =
-            reports.iter().map(|g| g.adversary_decoy_kind.clone()).collect();
-        assert!(kinds.len() >= 4, "all decoy kinds should appear over 8 generations");
+        let kinds: std::collections::BTreeSet<_> = reports
+            .iter()
+            .map(|g| g.adversary_decoy_kind.clone())
+            .collect();
+        assert!(
+            kinds.len() >= 4,
+            "all decoy kinds should appear over 8 generations"
+        );
     }
 
     #[test]

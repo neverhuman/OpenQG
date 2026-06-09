@@ -76,8 +76,14 @@ mod tests {
     fn aliases_normalize_the_historical_drift() {
         // The whole point: the code's "top20_pct" and the runbooks' "top20_pct_only" are one tier.
         assert_eq!(RouteTier::parse("top20_pct"), Some(RouteTier::Top20Pct));
-        assert_eq!(RouteTier::parse("top20_pct_only"), Some(RouteTier::Top20Pct));
-        assert_eq!(RouteTier::parse("TOP20_PCT_ONLY "), Some(RouteTier::Top20Pct));
+        assert_eq!(
+            RouteTier::parse("top20_pct_only"),
+            Some(RouteTier::Top20Pct)
+        );
+        assert_eq!(
+            RouteTier::parse("TOP20_PCT_ONLY "),
+            Some(RouteTier::Top20Pct)
+        );
         assert!(RouteTier::same_tier("top20_pct", "top20_pct_only"));
         assert!(!RouteTier::same_tier("top20_pct", "standard"));
     }

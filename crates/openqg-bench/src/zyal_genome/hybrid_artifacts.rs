@@ -439,8 +439,11 @@ pub(crate) fn emit_hybrid_evolution_artifacts(
                 // M6: multi-call voting on the top-20% jnoccio models tames run-to-run LLM
                 // stochasticity (the median is robust to an outlier call). Default 3 votes;
                 // ZYAL_CRITIC_VOTES overrides (use 3–5). One vote reproduces the single-call path.
-                let voted =
-                    run_live_critique_voted(&promoted[i], live_timeout, env_usize("ZYAL_CRITIC_VOTES", 3));
+                let voted = run_live_critique_voted(
+                    &promoted[i],
+                    live_timeout,
+                    env_usize("ZYAL_CRITIC_VOTES", 3),
+                );
                 let votes = voted.votes;
                 let ok_votes = voted.ok_votes;
                 let falsifiability_spread = voted.falsifiability_spread;

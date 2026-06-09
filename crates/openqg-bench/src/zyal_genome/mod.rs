@@ -722,6 +722,8 @@ mod markdown;
 pub(crate) use markdown::*;
 mod novelty;
 pub(crate) use novelty::*;
+mod physics_score;
+pub(crate) use physics_score::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

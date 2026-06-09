@@ -28,6 +28,7 @@ pub mod pareto;
 pub mod proposal;
 pub mod recombine_proof;
 pub mod robustness;
+pub mod scorecard;
 pub mod sectors;
 pub mod unification;
 pub mod unification_data;
@@ -65,6 +66,10 @@ pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
 pub use robustness::perturbation_robustness;
+pub use scorecard::{
+    score, scorecard_receipt, DataFitOutcome, RubricComponent, RubricV4, ScorecardReceipt,
+    ScorecardV4,
+};
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{
     adjudicate, is_adjudicated_out, obligation_vetoes, run_veto_cascade, run_veto_cascade_full,

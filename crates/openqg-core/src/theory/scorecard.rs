@@ -1,0 +1,521 @@
+//! V4 M3: the veto-first ScorecardV4 and the fixed 100-point critic-proofness rubric.
+//!
+//! This is the single trustworthy score. It fuses the V4 trust-spine pieces — content-bound
+//! evidence (M0), the derivation-obligation oracle (M1), the ClaimGraph / UnificationClaim (M2) —
+//! with the existing deterministic physics (`vetoes`, `model_league`, `held_out_evaluate`) into one
+//! verdict that ranks the system's champion against human contenders and decoys on identical terms.
+//!
+//! **Veto-first invariant.** No positive credit is ever awarded before the hard gates pass. In
+//! order: (1) every claim's evidence must materialize and content-hash-verify; (2) the physical
+//! veto cascade must pass; (3) every physics claim must carry ≥1 obligation and every obligation
+//! must verify; (4) a theory that *claims* unification must pass `no_hidden_knob_test`. Any failure
+//! ⇒ `disqualified = true, total = 0.0` and we return before scoring. Only survivors earn the five
+//! weighted rubric components (which sum to 100) plus uncertainty bands.
+//!
+//! `score()` is a pure function of (theory, claim graph, obligations, *materialized evidence bytes*,
+//! and an optional pre-computed [`DataFitOutcome`]). The heavy forward-model / dataset work that
+//! produces a `DataFitOutcome` (via `model_league` + `held_out_evaluate`) is done by the caller (the
+//! genome in M5, the contender league in M4) and passed in, so this module stays deterministic and
+//! unit-testable, and a verdict replays bit-for-bit from the same inputs ([`ScorecardReceipt`]).
+
+use serde::{Deserialize, Serialize};
+
+use super::{
+    obligation_vetoes, run_veto_cascade, Claim, ClaimGraph, DerivationObligation, EvidenceStore,
+    MaterializedEvidenceAudit, Theory, UnificationClaim,
+};
+
+/// Pre-computed data-fit summary for a candidate, produced by the caller from `model_league`
+/// (covariance-aware ΔAIC / Δln Z vs ΛCDM) and `held_out_evaluate` (sealed-holdout generalization
+/// gap). `None` passed to [`score`] means "no data fit available" → the DataFit component scores 0
+/// with a maximal uncertainty band (we never invent a fit).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct DataFitOutcome {
+    /// ΔAIC vs the ΛCDM reference (negative = candidate preferred).
+    pub delta_aic: f64,
+    /// Δln Z ≈ −0.5·ΔBIC vs ΛCDM (positive = candidate preferred).
+    pub delta_lnz: f64,
+    /// Sealed-holdout generalization gap (train_ll − heldout_ll per point; smaller = generalizes).
+    pub generalization_gap: f64,
+    /// League coverage in [0,1]; below the floor the fit is not trustworthy.
+    pub coverage: f64,
+    /// True if the best fit landed on a prior bound (the fit is suspect → wider band).
+    pub boundary_hit: bool,
+}
+
+/// One weighted rubric dimension. `raw ∈ [0,1]`, `points = raw·weight`, `band` is the
+/// (low, high) point uncertainty interval (always contains `points`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RubricComponent {
+    pub name: String,
+    pub weight: f64,
+    pub raw: f64,
+    pub points: f64,
+    pub band: (f64, f64),
+}
+
+/// The fixed V4 rubric: five weighted components summing to exactly 100. Veto-survival is a *gate*,
+/// not a component. (Novel-falsifiable-prediction and adversarial-survival enter through the
+/// obligation set and the robustness component / decoy-league gate respectively.)
+pub struct RubricV4;
+
+impl RubricV4 {
+    pub const WEIGHTS: [(&'static str, f64); 5] = [
+        ("derivation_rigor", 25.0),
+        ("data_fit", 25.0),
+        ("unification", 20.0),
+        ("robustness_under_judge", 15.0),
+        ("parsimony", 15.0),
+    ];
+
+    /// Total of the weights — asserted to be 100 by [`assert_weights_sum_to_100`].
+    pub fn weight_sum() -> f64 {
+        Self::WEIGHTS.iter().map(|(_, w)| w).sum()
+    }
+}
+
+/// Compile-time-ish guarantee (checked in tests and at the top of `score`) that the rubric is a
+/// true 100-point scale.
+fn assert_weights_sum_to_100() {
+    debug_assert!(
+        (RubricV4::weight_sum() - 100.0).abs() < 1e-9,
+        "rubric weights must sum to 100"
+    );
+}
+
+/// The full verdict for one candidate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ScorecardV4 {
+    pub theory_id: String,
+    /// True ⇒ a hard gate failed; `total == 0.0` and `components` is empty.
+    pub disqualified: bool,
+    /// Stringified kill reasons (vetoes / failed obligations / evidence / hidden-knob).
+    pub kill_reasons: Vec<String>,
+    /// Per-claim evidence materialization audits (the content-binding proof).
+    pub evidence_audits: Vec<MaterializedEvidenceAudit>,
+    pub claim_graph_digest: String,
+    pub data_fit: Option<DataFitOutcome>,
+    pub unification_claimed: bool,
+    pub no_hidden_knob: bool,
+    pub free_dof: u32,
+    pub components: Vec<RubricComponent>,
+    pub total: f64,
+    pub total_band: (f64, f64),
+}
+
+/// A replay receipt: the canonical hash of the scorecard's inputs and of the scorecard itself, so a
+/// referee can confirm the verdict is reproducible from the recorded inputs without re-running the
+/// LLM. Mirrors the sealed-nondeterminism contract of `ProposalReceipt`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ScorecardReceipt {
+    pub theory_id: String,
+    pub inputs_sha256: String,
+    pub scorecard_sha256: String,
+}
+
+fn clamp01(x: f64) -> f64 {
+    x.max(0.0).min(1.0)
+}
+
+/// Logistic squash centred so Δln Z = 0 (ties ΛCDM) → 0.5; scale 5 nats.
+fn logistic(x: f64, scale: f64) -> f64 {
+    1.0 / (1.0 + (-x / scale).exp())
+}
+
+/// Count genuine free degrees of freedom: a `Free` parameter, or a `Derived` parameter whose value
+/// is not pinned by a certificate (an uncertified knob). `Fundamental` and certified-`Derived`
+/// parameters cost nothing. This is the parsimony/complexity ledger.
+fn free_dof(theory: &Theory) -> u32 {
+    use super::Provenance::*;
+    theory
+        .parameters
+        .iter()
+        .filter(|p| {
+            matches!(
+                &p.provenance,
+                Free | Derived {
+                    certificate: None,
+                    ..
+                }
+            )
+        })
+        .count() as u32
+}
+
+fn component(name: &str, raw: f64, band_lo_raw: f64, band_hi_raw: f64) -> RubricComponent {
+    let weight = RubricV4::WEIGHTS
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, w)| *w)
+        .expect("known rubric component");
+    let raw = clamp01(raw);
+    RubricComponent {
+        name: name.to_string(),
+        weight,
+        raw,
+        points: raw * weight,
+        band: (clamp01(band_lo_raw) * weight, clamp01(band_hi_raw) * weight),
+    }
+}
+
+/// Derivation-rigor raw score: mean over physics claims of the best *verified* obligation rigor
+/// weight for that claim (0 if a claim has no verified obligation). Obligations are matched to a
+/// claim by id appearing in the claim's `obligations` list.
+fn derivation_rigor_raw(cg: &ClaimGraph, obligations: &[DerivationObligation]) -> f64 {
+    let physics: Vec<&Claim> = cg.physics_claims();
+    if physics.is_empty() {
+        return 0.0;
+    }
+    let mut acc = 0.0;
+    for c in &physics {
+        let best = obligations
+            .iter()
+            .filter(|o| c.obligations.contains(&o.claim_id))
+            .filter(|o| o.check().is_verified())
+            .map(|o| o.kind.rigor_weight())
+            .fold(0.0_f64, f64::max);
+        acc += best;
+    }
+    acc / physics.len() as f64
+}
+
+/// Score a candidate veto-first against the fixed rubric. See module docs for the gate order.
+pub fn score(
+    theory: &Theory,
+    cg: &ClaimGraph,
+    obligations: &[DerivationObligation],
+    unification: &UnificationClaim,
+    store: &dyn EvidenceStore,
+    evidence_schema: &str,
+    data_fit: Option<DataFitOutcome>,
+) -> ScorecardV4 {
+    assert_weights_sum_to_100();
+    let mut kill = Vec::new();
+
+    // --- Gate 1: evidence materialization (content-bound; no laundering) ---
+    let mut evidence_audits = Vec::new();
+    for c in &cg.claims {
+        for r in &c.evidence {
+            let audit = store.materialize(r, evidence_schema);
+            if !audit.ok {
+                kill.push(format!(
+                    "evidence[{}] for claim {} failed: {}",
+                    audit.path, c.id, audit.detail
+                ));
+            }
+            evidence_audits.push(audit);
+        }
+    }
+
+    // --- Gate 2: physical sanity (the deterministic veto cascade) ---
+    for v in run_veto_cascade(theory) {
+        kill.push(format!("veto: {v:?}"));
+    }
+
+    // --- Gate 3: derivation integrity (every physics claim obligated; every obligation verifies) ---
+    if cg.validate_dag().is_err() {
+        kill.push("claim graph is not a valid DAG".to_string());
+    }
+    for c in cg.unobligated_physics_claims() {
+        kill.push(format!(
+            "physics claim {} carries no derivation obligation",
+            c.id
+        ));
+    }
+    for v in obligation_vetoes(obligations) {
+        kill.push(format!("obligation: {v:?}"));
+    }
+
+    // --- Gate 4: if it claims unification, it must not hide a per-sector knob ---
+    let unification_claimed = !unification.shared.is_empty();
+    let no_hidden_knob = unification.no_hidden_knob_test(theory);
+    if unification_claimed && !no_hidden_knob {
+        kill.push("claims unification but fails no_hidden_knob_test".to_string());
+    }
+
+    let free = free_dof(theory);
+    let digest = cg.digest();
+
+    if !kill.is_empty() {
+        return ScorecardV4 {
+            theory_id: theory.id.clone(),
+            disqualified: true,
+            kill_reasons: kill,
+            evidence_audits,
+            claim_graph_digest: digest,
+            data_fit,
+            unification_claimed,
+            no_hidden_knob,
+            free_dof: free,
+            components: Vec::new(),
+            total: 0.0,
+            total_band: (0.0, 0.0),
+        };
+    }
+
+    // --- Survivor: earn the five weighted components ---
+    // 1. Derivation rigor.
+    let dr = derivation_rigor_raw(cg, obligations);
+    let c_dr = component("derivation_rigor", dr, dr, dr);
+
+    // 2. Data fit — logistic in Δln Z; ties ΛCDM (Δln Z = 0) → 0.5. None ⇒ 0 with full band.
+    let c_df = match data_fit {
+        Some(f) => {
+            let raw = logistic(f.delta_lnz, 5.0);
+            // boundary-hit / sub-coverage widen the band downward (the fit is suspect).
+            let suspect = f.boundary_hit || f.coverage < 1.0 - 1e-9;
+            let lo = if suspect { raw * 0.6 } else { raw };
+            component("data_fit", raw, lo, raw)
+        }
+        None => component("data_fit", 0.0, 0.0, 1.0),
+    };
+
+    // 3. Unification — credit for a genuine, hidden-knob-free shared-parameter claim + self-consistency.
+    let uni_raw = {
+        let shared = unification.shared_parameter_audit(theory);
+        let mut r = 0.0;
+        if shared {
+            r += 0.6;
+        }
+        if unification_claimed && no_hidden_knob {
+            r += 0.4;
+        }
+        r
+    };
+    let c_uni = component("unification", uni_raw, uni_raw, uni_raw);
+
+    // 4. Robustness under judge — generalization gap (smaller = better); adversarial panel folds in
+    //    here in M4+. None ⇒ 0.5 with full band (unknown).
+    let c_rob = match data_fit {
+        Some(f) => {
+            let raw = clamp01(1.0 / (1.0 + (f.generalization_gap.max(0.0) / 0.05)));
+            component("robustness_under_judge", raw, raw, raw)
+        }
+        None => component("robustness_under_judge", 0.5, 0.0, 1.0),
+    };
+
+    // 5. Parsimony — fewer free dof is better. 0 free dof ⇒ 1.0.
+    let pars_raw = 1.0 / (1.0 + free as f64);
+    let c_par = component("parsimony", pars_raw, pars_raw, pars_raw);
+
+    let components = vec![c_dr, c_df, c_uni, c_rob, c_par];
+    let total: f64 = components.iter().map(|c| c.points).sum();
+    let band_lo: f64 = components.iter().map(|c| c.band.0).sum();
+    let band_hi: f64 = components.iter().map(|c| c.band.1).sum();
+
+    ScorecardV4 {
+        theory_id: theory.id.clone(),
+        disqualified: false,
+        kill_reasons: Vec::new(),
+        evidence_audits,
+        claim_graph_digest: digest,
+        data_fit,
+        unification_claimed,
+        no_hidden_knob,
+        free_dof: free,
+        components,
+        total,
+        total_band: (band_lo, band_hi),
+    }
+}
+
+/// Build the replay receipt for a scorecard given a canonical rendering of its inputs.
+pub fn scorecard_receipt(scorecard: &ScorecardV4, inputs_canonical: &str) -> ScorecardReceipt {
+    let scorecard_json = serde_json::to_string(scorecard).unwrap_or_default();
+    ScorecardReceipt {
+        theory_id: scorecard.theory_id.clone(),
+        inputs_sha256: crate::sha256_digest(inputs_canonical.as_bytes()),
+        scorecard_sha256: crate::sha256_digest(scorecard_json.as_bytes()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theory::claim_graph::{ClaimKind, Sector};
+    use crate::theory::{
+        audit_bytes, DerivationObligationKind, EvidenceRef, EvidenceTier, LimitWitness, Parameter,
+        Provenance, SharedParam,
+    };
+    use std::collections::BTreeMap;
+
+    struct MemStore(BTreeMap<String, Vec<u8>>);
+    impl EvidenceStore for MemStore {
+        fn materialize(&self, r: &EvidenceRef, schema_id: &str) -> MaterializedEvidenceAudit {
+            match self.0.get(&r.path) {
+                Some(b) => audit_bytes(r, b, schema_id),
+                None => MaterializedEvidenceAudit {
+                    path: r.path.clone(),
+                    sha256: String::new(),
+                    byte_len: 0,
+                    jsonl_count: 0,
+                    schema_id: schema_id.to_string(),
+                    tier: r.tier,
+                    ok: false,
+                    detail: "missing".into(),
+                },
+            }
+        }
+    }
+
+    fn bound_ref(path: &str, bytes: &[u8]) -> EvidenceRef {
+        EvidenceRef::new(path, crate::sha256_digest(bytes), EvidenceTier::T2)
+    }
+
+    // A minimal valid candidate: ΛCDM baseline + one obligated, evidence-bound physics claim.
+    fn fixture() -> (
+        Theory,
+        ClaimGraph,
+        Vec<DerivationObligation>,
+        UnificationClaim,
+        MemStore,
+    ) {
+        let theory = Theory::baseline_lcdm();
+        let bytes = b"{\"e2\":1.0}\n".to_vec();
+        let claim = Claim {
+            id: "c-bg".into(),
+            sector: Sector::Background,
+            kind: ClaimKind::Physics,
+            statement: "background recovers GR".into(),
+            evidence: vec![bound_ref("bg.json", &bytes)],
+            obligations: vec!["ob-limit".into()],
+            depends_on: vec![],
+        };
+        let cg = ClaimGraph {
+            claims: vec![claim],
+        };
+        let ob = DerivationObligation {
+            claim_id: "ob-limit".into(),
+            kind: DerivationObligationKind::Limit,
+            detail: "GR limit".into(),
+            certificate: None,
+            limit: Some(LimitWitness {
+                name: "gr".into(),
+                residual: 0.0,
+                bound: 1e-6,
+            }),
+            citation: None,
+        };
+        let store = MemStore(BTreeMap::from([("bg.json".to_string(), bytes)]));
+        (
+            theory,
+            cg,
+            vec![ob],
+            UnificationClaim { shared: vec![] },
+            store,
+        )
+    }
+
+    fn good_fit() -> DataFitOutcome {
+        DataFitOutcome {
+            delta_aic: -2.0,
+            delta_lnz: 1.0,
+            generalization_gap: 0.01,
+            coverage: 1.0,
+            boundary_hit: false,
+        }
+    }
+
+    #[test]
+    fn weights_sum_to_100() {
+        assert!((RubricV4::weight_sum() - 100.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_clean_survivor_scores_and_bands_contain_the_total() {
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
+        assert!(sc.total > 0.0 && sc.total <= 100.0);
+        assert!(sc.total_band.0 <= sc.total && sc.total <= sc.total_band.1 + 1e-9);
+        assert_eq!(sc.components.len(), 5);
+    }
+
+    #[test]
+    fn a_free_parameter_is_disqualified_with_zero_total() {
+        let (mut t, cg, obs, uni, store) = fixture();
+        t.parameters.push(Parameter {
+            symbol: "xi".into(),
+            value: 0.3,
+            physical_meaning: "gray-box knob".into(),
+            provenance: Provenance::Free,
+        });
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(sc.disqualified);
+        assert_eq!(sc.total, 0.0);
+        assert!(sc.components.is_empty());
+        assert!(sc.kill_reasons.iter().any(|r| r.contains("veto")));
+    }
+
+    #[test]
+    fn unmaterializable_evidence_disqualifies() {
+        let (t, mut cg, obs, uni, _store) = fixture();
+        // Point a claim at evidence the store does not have.
+        cg.claims[0].evidence = vec![EvidenceRef::new(
+            "absent.json",
+            "0".repeat(64),
+            EvidenceTier::T2,
+        )];
+        let empty = MemStore(BTreeMap::new());
+        let sc = score(&t, &cg, &obs, &uni, &empty, "schema.v1", Some(good_fit()));
+        assert!(sc.disqualified);
+        assert_eq!(sc.total, 0.0);
+        assert!(sc.kill_reasons.iter().any(|r| r.contains("evidence")));
+    }
+
+    #[test]
+    fn a_physics_claim_without_an_obligation_is_disqualified() {
+        let (t, mut cg, _obs, uni, store) = fixture();
+        cg.claims[0].obligations.clear(); // physics claim with no obligation
+        let sc = score(&t, &cg, &[], &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(sc.disqualified);
+        assert!(sc
+            .kill_reasons
+            .iter()
+            .any(|r| r.contains("no derivation obligation")));
+    }
+
+    #[test]
+    fn claimed_unification_with_a_hidden_knob_is_disqualified() {
+        let (mut t, cg, obs, _uni, store) = fixture();
+        // Add an uncertified derived knob NOT declared in the shared set.
+        t.parameters.push(Parameter {
+            symbol: "g_x".into(),
+            value: 0.5,
+            physical_meaning: "sector-private knob".into(),
+            provenance: Provenance::derived("hand-wave"),
+        });
+        // Claim unification over a different (matching) shared param, leaving g_x hidden.
+        let uni = UnificationClaim {
+            shared: vec![SharedParam {
+                symbol: "H0".into(),
+                value: 67.4,
+                sectors: vec![Sector::Background, Sector::Growth],
+            }],
+        };
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(sc.disqualified);
+        assert!(sc.kill_reasons.iter().any(|r| r.contains("no_hidden_knob")));
+    }
+
+    #[test]
+    fn none_datafit_scores_zero_datafit_with_full_band() {
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", None);
+        assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
+        let df = sc.components.iter().find(|c| c.name == "data_fit").unwrap();
+        assert_eq!(df.points, 0.0);
+        assert_eq!(df.band, (0.0, 25.0));
+    }
+
+    #[test]
+    fn receipt_is_deterministic() {
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        let r1 = scorecard_receipt(&sc, "canonical-inputs");
+        let r2 = scorecard_receipt(&sc, "canonical-inputs");
+        assert_eq!(r1, r2);
+        assert_eq!(r1.inputs_sha256.len(), 64);
+        assert_eq!(r1.scorecard_sha256.len(), 64);
+    }
+}

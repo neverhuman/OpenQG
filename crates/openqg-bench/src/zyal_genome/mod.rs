@@ -225,6 +225,14 @@ pub enum GenomeCommand {
         /// LLM-proposer path; no live infra).
         #[arg(long)]
         with_fixture_proposer: bool,
+        /// Inject a real LIVE jailgun (ChatGPT) proposal periodically. Calls ChatGPT ONLY through
+        /// jailgun (never Claude/direct); requires the jailgun server up.
+        #[arg(long)]
+        with_live_proposer: bool,
+        /// With --with-live-proposer: spend a live jailgun call on gen 1 and every Nth generation
+        /// (the rest evolve deterministically). Bounds the live-call budget.
+        #[arg(long, default_value_t = 40)]
+        live_every: usize,
     },
     /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
     /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
@@ -261,6 +269,14 @@ pub enum GenomeCommand {
         /// LLM-proposer path; no live infra).
         #[arg(long)]
         with_fixture_proposer: bool,
+        /// Inject a real LIVE jailgun (ChatGPT) proposal periodically. Calls ChatGPT ONLY through
+        /// jailgun (never Claude/direct); requires the jailgun server up.
+        #[arg(long)]
+        with_live_proposer: bool,
+        /// With --with-live-proposer: spend a live jailgun call on gen 1 and every Nth generation
+        /// (the rest evolve deterministically). Bounds the live-call budget.
+        #[arg(long, default_value_t = 40)]
+        live_every: usize,
     },
     /// V4 M6b: one LIVE jailgun proposal (ChatGPT via MCP) adjudicated by the deterministic oracle.
     /// Requires the jailgun server up. The LLM proposes; the oracle disposes.
@@ -355,6 +371,8 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             seed,
             run_id,
             with_fixture_proposer,
+            with_live_proposer,
+            live_every,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -362,13 +380,20 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 max_generations,
                 seed,
             };
-            let dir = run_population(
-                &observables,
-                &output_root,
-                config,
-                &run_id,
-                with_fixture_proposer,
-            )?;
+            let fixture = FixtureProposer;
+            let live = JailgunProposer {
+                timeout_seconds: 540,
+            };
+            let budgeted;
+            let proposer: Option<&dyn Proposer> = if with_live_proposer {
+                budgeted = BudgetedProposer::new(&live, live_every);
+                Some(&budgeted)
+            } else if with_fixture_proposer {
+                Some(&fixture)
+            } else {
+                None
+            };
+            let dir = run_population(&observables, &output_root, config, &run_id, proposer)?;
             println!("wrote v4 population run to {}", dir.display());
             Ok(())
         }
@@ -409,6 +434,8 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             seed,
             run_id,
             with_fixture_proposer,
+            with_live_proposer,
+            live_every,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("whitepaper-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -416,13 +443,20 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 max_generations,
                 seed,
             };
-            let dir = generate_whitepaper(
-                &observables,
-                &output_root,
-                config,
-                &run_id,
-                with_fixture_proposer,
-            )?;
+            let fixture = FixtureProposer;
+            let live = JailgunProposer {
+                timeout_seconds: 540,
+            };
+            let budgeted;
+            let proposer: Option<&dyn Proposer> = if with_live_proposer {
+                budgeted = BudgetedProposer::new(&live, live_every);
+                Some(&budgeted)
+            } else if with_fixture_proposer {
+                Some(&fixture)
+            } else {
+                None
+            };
+            let dir = generate_whitepaper(&observables, &output_root, config, &run_id, proposer)?;
             println!(
                 "wrote white paper to {}",
                 dir.join("white-paper.md").display()

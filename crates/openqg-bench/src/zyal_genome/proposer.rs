@@ -121,6 +121,42 @@ impl Proposer for FixtureProposer {
     }
 }
 
+/// Rate-limits an inner (e.g. live) proposer so a long deterministic campaign only spends a live
+/// call on the first generation and every `every`-th generation thereafter. Off-generations return
+/// `Err`, which the engine treats as "no proposal this generation" — so the bulk evolves
+/// deterministically and the live (jailgun) budget is bounded. Single-threaded (the engine is
+/// sequential), so a `Cell` counter is sufficient.
+pub(crate) struct BudgetedProposer<'a> {
+    inner: &'a dyn Proposer,
+    every: usize,
+    count: std::cell::Cell<usize>,
+}
+
+impl<'a> BudgetedProposer<'a> {
+    pub(crate) fn new(inner: &'a dyn Proposer, every: usize) -> Self {
+        Self {
+            inner,
+            every: every.max(1),
+            count: std::cell::Cell::new(0),
+        }
+    }
+}
+
+impl Proposer for BudgetedProposer<'_> {
+    fn propose(&self) -> Result<ProposalDoc> {
+        let n = self.count.get() + 1;
+        self.count.set(n);
+        if n == 1 || n % self.every == 0 {
+            self.inner.propose()
+        } else {
+            anyhow::bail!(
+                "budgeted proposer: skip generation {n} (live every {})",
+                self.every
+            )
+        }
+    }
+}
+
 /// The reference derivation-rich proposal (also used as the canonical test vector).
 pub(crate) fn fixture_proposal() -> ProposalDoc {
     // β = 2 ⇒ G_eff/G = 1 + 1/(3·2) = 7/6, recomputed by the cited closed form.

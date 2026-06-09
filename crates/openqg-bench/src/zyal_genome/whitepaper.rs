@@ -71,18 +71,13 @@ pub(crate) fn generate_whitepaper(
     output_root: &Path,
     config: EvolveConfig,
     run_id: &str,
-    use_fixture_proposer: bool,
+    proposer: Option<&dyn super::proposer::Proposer>,
 ) -> Result<PathBuf> {
     let observables = load_observables(observables_path)?;
     anyhow::ensure!(!observables.is_empty(), "no observables loaded");
     let n_obs = observables.len();
+    let used_proposer = proposer.is_some();
 
-    let fixture = super::proposer::FixtureProposer;
-    let proposer: Option<&dyn super::proposer::Proposer> = if use_fixture_proposer {
-        Some(&fixture)
-    } else {
-        None
-    };
     let run = evolve_population(&config, &observables, proposer);
     let champion: Individual = run
         .best
@@ -191,7 +186,7 @@ pub(crate) fn generate_whitepaper(
         "- Data fit computed on {n_obs} observables from `{}`.",
         observables_path.display()
     );
-    if use_fixture_proposer {
+    if used_proposer {
         let _ = writeln!(
             md,
             "- This run used the **LLM-proposer path**: the champion may carry verified derivations \
@@ -282,7 +277,7 @@ mod tests {
             max_generations: 5,
             seed: 555,
         };
-        let run_dir = generate_whitepaper(&obs, &tmp, cfg, "wp-test", false).unwrap();
+        let run_dir = generate_whitepaper(&obs, &tmp, cfg, "wp-test", None).unwrap();
 
         let md = fs::read_to_string(run_dir.join("white-paper.md")).unwrap();
         assert!(md.contains("Candidate Theory Report"));

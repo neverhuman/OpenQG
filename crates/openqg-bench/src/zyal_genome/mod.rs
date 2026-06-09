@@ -269,6 +269,10 @@ pub enum GenomeCommand {
         observables: PathBuf,
         #[arg(long, default_value_t = 240)]
         timeout_seconds: u64,
+        /// Score a proposal JSON from a file instead of calling jailgun (offline; e.g. a saved live
+        /// proposal). When set, no live call is made.
+        #[arg(long)]
+        proposal_file: Option<PathBuf>,
     },
     Selftest,
 }
@@ -428,11 +432,17 @@ pub fn run(command: GenomeCommand) -> Result<()> {
         GenomeCommand::ProposeLive {
             observables,
             timeout_seconds,
+            proposal_file,
         } => {
             let obs = load_observables(&observables)?;
             anyhow::ensure!(!obs.is_empty(), "no observables loaded");
-            let proposer = JailgunProposer { timeout_seconds };
-            let doc = proposer.propose()?;
+            let doc = if let Some(path) = proposal_file {
+                let raw = fs::read_to_string(&path)
+                    .with_context(|| format!("read proposal file {}", path.display()))?;
+                parse_proposal_response(&raw)?
+            } else {
+                JailgunProposer { timeout_seconds }.propose()?
+            };
             let sc = score_proposal(&doc, &obs, baseline_log_likelihood(&obs));
             println!(
                 "live jailgun proposal: theory `{}` scored {:.1}/100 (disqualified={})",

@@ -42,8 +42,8 @@ impl Default for JailgunProposer {
 /// the hard rules the deterministic oracle will enforce — so the model proposes in a shape that can
 /// actually pass the gates rather than be disqualified.
 pub(crate) fn build_proposer_prompt() -> String {
-    let example =
-        serde_json::to_string_pretty(&fixture_proposal()).unwrap_or_else(|_| "{}".to_string());
+    // Compact (not pretty) example keeps the prompt small so the browser round-trip completes.
+    let example = serde_json::to_string(&fixture_proposal()).unwrap_or_else(|_| "{}".to_string());
     format!(
         "You are proposing ONE candidate component of a unified theory of physics for the OpenQG \
 engine. Your proposal is adjudicated by a DETERMINISTIC oracle — you do not score it, and any \
@@ -62,6 +62,15 @@ Citing evidence you do not supply is laundering and is KILLED.\n\
 sector-private knob), or it is KILLED.\n\
 5. The theory must pass the physical veto cascade (dimensionally homogeneous terms, no ghost, GR \
 recovery / screening for any gravity modification).\n\
+6. ALL numeric fields MUST be JSON NUMBERS, never strings or labels: every parameter `value`, every \
+term `coefficient`/exponent, and every certificate `inputs` value / `expected` / `tolerance` must \
+look like `1.16667`, not `\"ndgp\"` or `\"1.16667\"`. Identifiers (relation names, symbols) are \
+strings; physical magnitudes are numbers.\n\
+7. Each claim's `sector` MUST be EXACTLY one of: `background`, `growth`, `tensor_sector`, \
+`screening_ppn`, `bbn`, `particle`, `quantum`. Do NOT invent sectors like `gravity`, `stability`, or \
+`unification` (gravity modifications go in `growth` or `tensor_sector`; a unification statement is \
+expressed via the top-level `unification.shared` list, not a claim sector). Each claim `kind` is \
+`physics` or `engineering`.\n\
 \n\
 Return EXACTLY one downloadable JSON artifact named `{DOWNLOAD_TARGET}` and nothing else — no prose, \
 no markdown fences. It must match this schema (here is a complete, valid example you should improve \
@@ -122,8 +131,15 @@ impl Proposer for JailgunProposer {
         let prompt_path: PathBuf = dir.join("proposer-prompt.md");
         fs::write(&prompt_path, &prompt).context("write proposer prompt")?;
 
+        // Unique per invocation: a fixed call_id collides with a prior (e.g. timed-out) run that is
+        // still registered in jailgun (`agent-run-conflict: run_id already exists`).
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let call_id = format!("openqg-v4-proposer-{unique}");
         let attempt = run_jailgun_live_call_attempt(
-            "openqg-v4-proposer",
+            &call_id,
             &prompt_path,
             DOWNLOAD_TARGET,
             self.timeout_seconds,
@@ -139,7 +155,15 @@ impl Proposer for JailgunProposer {
             );
         }
         let response = response_text_from_stdout(attempt.stdout())?;
-        parse_proposal_response(&response).context("parse the jailgun-proposed ProposalDoc")
+        // Persist the raw LLM proposal so a schema-rejection is always inspectable.
+        let raw_path = dir.join("last-proposal.json");
+        let _ = fs::write(&raw_path, &response);
+        parse_proposal_response(&response).with_context(|| {
+            format!(
+                "parse the jailgun-proposed ProposalDoc (raw saved to {})",
+                raw_path.display()
+            )
+        })
     }
 }
 

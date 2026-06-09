@@ -15,6 +15,7 @@ pub mod adversary;
 pub mod anchors;
 pub mod assessment;
 pub mod certificate;
+pub mod claim_graph;
 pub mod evaluate;
 pub mod evidence;
 pub mod evolve;
@@ -22,8 +23,10 @@ pub mod fingerprint;
 pub mod holdout;
 pub mod league;
 pub mod mutation;
+pub mod obligation;
 pub mod pareto;
 pub mod proposal;
+pub mod recombine_proof;
 pub mod robustness;
 pub mod sectors;
 pub mod unification;
@@ -36,6 +39,10 @@ pub use assessment::{assess, CandidateAssessment};
 pub use certificate::{
     registered_relations, relation_registry, CertificateOutcome, DerivedCertificate,
 };
+pub use claim_graph::{
+    claim_graph_digest, Claim, ClaimGraph, ClaimId, ClaimKind, Sector, SharedParam,
+    UnificationClaim,
+};
 pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
@@ -45,15 +52,22 @@ pub use fingerprint::claim_fingerprint;
 pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
 pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, ModelClass};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
+pub use obligation::{
+    dimensional_consistency, falsifier, limit_recovers_gr, DerivationObligation,
+    DerivationObligationKind, LimitWitness, ObligationOutcome,
+};
 pub use pareto::{dominates, objectives, pareto_front, Objectives};
 pub use proposal::{
     parse_proposal, proposal_into_theory, proposal_receipt, proposal_to_theory, ProposalReceipt,
     TheoryProposal,
 };
+pub use recombine_proof::{
+    proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
+};
 pub use robustness::perturbation_robustness;
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{
-    adjudicate, is_adjudicated_out, run_veto_cascade, run_veto_cascade_full,
+    adjudicate, is_adjudicated_out, obligation_vetoes, run_veto_cascade, run_veto_cascade_full,
     tensor_speed_excess_at, VetoReason,
 };
 

@@ -9,6 +9,7 @@
 //! dimensional homogeneity → Lorentz invariance → parameter provenance (whitebox gate) →
 //! GW170817 tensor speed → ghost/Ostrogradsky → gradient stability → PPN screening.
 
+use super::obligation::{DerivationObligation, DerivationObligationKind, ObligationOutcome};
 use super::{Provenance, Theory};
 
 /// GW170817 bound: c_GW = c forces the tensor-speed excess α_T to ~0. We allow a 1% structural
@@ -86,6 +87,19 @@ pub enum VetoReason {
     /// ADJUDICATION: the theory's own background is unphysical (the Friedmann sum E(z)² went
     /// negative at some probed redshift) — recomputed, not clamped.
     UnphysicalBackground { z: f64, e_squared: f64 },
+
+    // --- V4 derivation-obligation reasons (the typed "derived, not asserted" gate) ---
+    /// A derivation obligation FAILED verification — the claimed derivation does not check out
+    /// (e.g. a numeric/symbolic witness recomputes a different value, or a literature attestation
+    /// is missing). Carries the owning claim/obligation id, the obligation kind, and a detail.
+    UnverifiedDerivation {
+        obligation: String,
+        kind: String,
+        detail: String,
+    },
+    /// A required physical-*limit* obligation FAILED — the theory does not recover its reference
+    /// (GR/QM/QFT/SM/ΛCDM) in the stated limit to within the bound.
+    LimitFailure { obligation: String, detail: String },
 }
 
 impl VetoReason {
@@ -106,6 +120,32 @@ pub fn run_veto_cascade(theory: &Theory) -> Vec<VetoReason> {
         .into_iter()
         .filter(VetoReason::is_kill)
         .collect()
+}
+
+/// V4 derivation-obligation gate: run each [`DerivationObligation`] through its oracle and turn any
+/// FAILED obligation into a kill veto ([`VetoReason::LimitFailure`] for a `Limit` obligation, else
+/// [`VetoReason::UnverifiedDerivation`]). `Unsupported` obligations (e.g. a recorded-but-unchecked
+/// Positivstellensatz/Lean stub) are NOT a kill here — they simply earn no rigor credit; the
+/// separate "every physics claim must carry ≥1 obligation" rule is enforced at the ClaimGraph /
+/// scorecard layer ([`super::ClaimGraph::unobligated_physics_claims`]). Empty input ⇒ no vetoes.
+pub fn obligation_vetoes(obligations: &[DerivationObligation]) -> Vec<VetoReason> {
+    let mut reasons = Vec::new();
+    for o in obligations {
+        if let ObligationOutcome::Failed { detail, .. } = o.check() {
+            match o.kind {
+                DerivationObligationKind::Limit => reasons.push(VetoReason::LimitFailure {
+                    obligation: o.claim_id.clone(),
+                    detail,
+                }),
+                _ => reasons.push(VetoReason::UnverifiedDerivation {
+                    obligation: o.claim_id.clone(),
+                    kind: format!("{:?}", o.kind),
+                    detail,
+                }),
+            }
+        }
+    }
+    reasons
 }
 
 /// Run the cascade and return every reason, *including* non-fatal diagnostics (e.g. an uncertified

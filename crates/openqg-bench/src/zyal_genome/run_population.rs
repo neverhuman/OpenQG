@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 
 use openqg_core::ObservableRecord;
 
+use super::proposer::{FixtureProposer, Proposer};
 use super::theory_population::{
     evolve_population, population_progress_ok, EvolveConfig, GenerationProgress, Individual,
 };
@@ -61,6 +62,7 @@ pub(crate) fn run_population(
     output_root: &Path,
     config: EvolveConfig,
     run_id: &str,
+    use_fixture_proposer: bool,
 ) -> Result<PathBuf> {
     let observables = load_observables(observables_path)?;
     anyhow::ensure!(
@@ -69,7 +71,13 @@ pub(crate) fn run_population(
         observables_path.display()
     );
 
-    let run = evolve_population(&config, &observables);
+    let fixture = FixtureProposer;
+    let proposer: Option<&dyn Proposer> = if use_fixture_proposer {
+        Some(&fixture)
+    } else {
+        None
+    };
+    let run = evolve_population(&config, &observables, proposer);
 
     let run_dir = output_root.join("runs").join(run_id);
     fs::create_dir_all(&run_dir)
@@ -163,7 +171,7 @@ mod tests {
             max_generations: 5,
             seed: 123,
         };
-        let run_dir = run_population(&obs, &tmp, cfg, "test-pop").expect("run");
+        let run_dir = run_population(&obs, &tmp, cfg, "test-pop", false).expect("run");
 
         // Artifacts exist.
         for f in [

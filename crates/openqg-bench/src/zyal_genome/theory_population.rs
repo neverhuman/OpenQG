@@ -24,6 +24,7 @@ use openqg_core::theory::{
 use openqg_core::ObservableRecord;
 
 use super::physics_score::{baseline_log_likelihood, final_score_unit, score_candidate};
+use super::proposer::{score_proposal, Proposer};
 
 const EVIDENCE_SCHEMA: &str = "genome-candidate.v1";
 
@@ -74,6 +75,8 @@ pub(crate) struct Individual {
     pub fingerprint: String,
     pub final_score: f64,
     pub disqualified: bool,
+    /// The full veto-first scorecard for this individual (bare-theory or proposal-derived).
+    pub scorecard: ScorecardV4,
 }
 
 /// Per-generation progress evidence — the metric that makes the gen-1-only collapse detectable.
@@ -136,6 +139,29 @@ fn score_theory(
     )
 }
 
+/// Build an individual from an already-computed scorecard (used for proposal candidates that carry
+/// a full ClaimGraph + obligations).
+fn individual_from_scorecard(
+    id: String,
+    generation: usize,
+    island: &'static str,
+    parent_ids: Vec<String>,
+    theory: Theory,
+    scorecard: ScorecardV4,
+) -> Individual {
+    Individual {
+        fingerprint: claim_fingerprint(&theory),
+        final_score: final_score_unit(&scorecard),
+        disqualified: scorecard.disqualified,
+        scorecard,
+        id,
+        generation,
+        island,
+        parent_ids,
+        theory,
+    }
+}
+
 fn individual(
     id: String,
     generation: usize,
@@ -146,16 +172,35 @@ fn individual(
     baseline_ll: f64,
 ) -> Individual {
     let sc = score_theory(&theory, observables, baseline_ll);
-    Individual {
-        fingerprint: claim_fingerprint(&theory),
-        final_score: final_score_unit(&sc),
-        disqualified: sc.disqualified,
-        id,
+    individual_from_scorecard(id, generation, island, parent_ids, theory, sc)
+}
+
+/// Produce a proposal candidate from the proposer (if present): the LLM/fixture emits a derivation-
+/// rich [`super::proposer::ProposalDoc`] which is adjudicated veto-first. Returns `None` if there is
+/// no proposer or the proposal cannot be produced. This is how a champion earns derivation +
+/// unification credit (the "LLM proposes, oracle disposes" path).
+fn proposal_individual(
+    proposer: Option<&dyn Proposer>,
+    generation: usize,
+    observables: &[ObservableRecord],
+    baseline_ll: f64,
+) -> Option<Individual> {
+    let doc = proposer?.propose().ok()?;
+    let sc = score_proposal(&doc, observables, baseline_ll);
+    let theory = doc.theory.clone();
+    let parents = if generation == 1 {
+        vec![]
+    } else {
+        vec![format!("proposer-g{}", generation - 1)]
+    };
+    Some(individual_from_scorecard(
+        format!("g{generation:04}-proposer"),
         generation,
-        island,
-        parent_ids,
+        "proposer",
+        parents,
         theory,
-    }
+        sc,
+    ))
 }
 
 /// Seed generation 1 from the ΛCDM baseline plus low-rate mutations (so the initial pool is diverse
@@ -311,10 +356,13 @@ fn promote_champion<'a>(
     })
 }
 
-/// Run the full population evolution. Deterministic given `config` + `observables`.
+/// Run the full population evolution. Deterministic given `config` + `observables` (+ a
+/// deterministic proposer). Pass `None` for pure parameter evolution; pass a [`Proposer`] to inject
+/// a derivation-rich candidate each generation (the LLM-proposes path).
 pub(crate) fn evolve_population(
     config: &EvolveConfig,
     observables: &[ObservableRecord],
+    proposer: Option<&dyn Proposer>,
 ) -> EvolutionRun {
     let baseline_ll = baseline_log_likelihood(observables);
     let mut rng = Rng::new(config.seed);
@@ -322,8 +370,11 @@ pub(crate) fn evolve_population(
     let mut progress = Vec::new();
     let mut champions = Vec::new();
 
-    // Generation 1 — seed.
+    // Generation 1 — seed (+ optional proposal candidate).
     let mut pop = seed_population(config, observables, baseline_ll, &mut rng);
+    if let Some(ind) = proposal_individual(proposer, 1, observables, baseline_ll) {
+        pop.push(ind);
+    }
     let mut fp_by_id: std::collections::BTreeMap<String, String> = pop
         .iter()
         .map(|i| (i.id.clone(), i.fingerprint.clone()))
@@ -346,6 +397,9 @@ pub(crate) fn evolve_population(
                 observables,
                 baseline_ll,
             ));
+        }
+        if let Some(ind) = proposal_individual(proposer, generation, observables, baseline_ll) {
+            next.push(ind);
         }
         fp_by_id = next
             .iter()
@@ -462,7 +516,7 @@ mod tests {
             max_generations: 6,
             seed: 42,
         };
-        let run = evolve_population(&cfg, &obs());
+        let run = evolve_population(&cfg, &obs(), None);
         assert_eq!(run.progress.len(), 6);
         // The core anti-collapse guarantee:
         for g in run.progress.iter().filter(|g| g.generation > 1) {
@@ -495,8 +549,8 @@ mod tests {
             max_generations: 4,
             seed: 7,
         };
-        let a = evolve_population(&cfg, &obs());
-        let b = evolve_population(&cfg, &obs());
+        let a = evolve_population(&cfg, &obs(), None);
+        let b = evolve_population(&cfg, &obs(), None);
         assert_eq!(a.progress, b.progress);
         assert_eq!(
             a.best.map(|x| x.fingerprint),
@@ -535,6 +589,51 @@ mod tests {
         assert!(
             !population_progress_ok(&v3),
             "a gen-1-only collapse must FAIL the progress gate"
+        );
+    }
+
+    #[test]
+    fn a_proposer_run_yields_a_derivation_rich_champion() {
+        use super::super::proposer::FixtureProposer;
+        let cfg = EvolveConfig {
+            population_size: 9,
+            max_generations: 5,
+            seed: 99,
+        };
+        // Without a proposer the champion is a bare parameter-fit: derivation_rigor == 0.
+        let bare = evolve_population(&cfg, &obs(), None).best.unwrap();
+        let bare_rigor = bare
+            .scorecard
+            .components
+            .iter()
+            .find(|c| c.name == "derivation_rigor")
+            .map(|c| c.points)
+            .unwrap_or(0.0);
+        assert_eq!(bare_rigor, 0.0, "pure evolution earns no derivation rigor");
+
+        // With the proposer, the champion carries verified derivations + unification.
+        let rich = evolve_population(&cfg, &obs(), Some(&FixtureProposer))
+            .best
+            .expect("a champion");
+        let pts = |n: &str| {
+            rich.scorecard
+                .components
+                .iter()
+                .find(|c| c.name == n)
+                .map(|c| c.points)
+                .unwrap_or(0.0)
+        };
+        assert!(
+            pts("derivation_rigor") > 0.0,
+            "proposer champion must earn derivation rigor"
+        );
+        assert!(
+            pts("unification") > 0.0,
+            "proposer champion must earn unification"
+        );
+        assert!(
+            rich.final_score > bare.final_score,
+            "derivations should raise the score"
         );
     }
 }

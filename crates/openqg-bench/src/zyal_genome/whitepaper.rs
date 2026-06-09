@@ -13,33 +13,12 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde_json::{json, Value};
 
-use openqg_core::theory::{
-    human_contenders, score_contender, ClaimGraph, MapEvidenceStore, Provenance, ScorecardV4,
-    Theory, UnificationClaim,
-};
+use openqg_core::theory::{human_contenders, score_contender, Provenance, ScorecardV4};
 
-use super::physics_score::{baseline_log_likelihood, final_score_unit, score_candidate};
+use super::physics_score::final_score_unit;
 use super::run_population::load_observables;
 use super::theory_population::{evolve_population, EvolveConfig, Individual};
 use super::trust_gate::evaluate_trust_gate;
-
-const EVIDENCE_SCHEMA: &str = "genome-candidate.v1";
-
-/// Full scorecard for a bare evolved theory (no attached derivations).
-fn champion_scorecard(theory: &Theory, observables_path: &Path) -> Result<ScorecardV4> {
-    let observables = load_observables(observables_path)?;
-    let baseline_ll = baseline_log_likelihood(&observables);
-    Ok(score_candidate(
-        theory,
-        &observables,
-        baseline_ll,
-        &ClaimGraph { claims: vec![] },
-        &[],
-        &UnificationClaim { shared: vec![] },
-        &MapEvidenceStore::default(),
-        EVIDENCE_SCHEMA,
-    ))
-}
 
 fn provenance_label(p: &Provenance) -> &'static str {
     match p {
@@ -92,17 +71,24 @@ pub(crate) fn generate_whitepaper(
     output_root: &Path,
     config: EvolveConfig,
     run_id: &str,
+    use_fixture_proposer: bool,
 ) -> Result<PathBuf> {
     let observables = load_observables(observables_path)?;
     anyhow::ensure!(!observables.is_empty(), "no observables loaded");
     let n_obs = observables.len();
 
-    let run = evolve_population(&config, &observables);
+    let fixture = super::proposer::FixtureProposer;
+    let proposer: Option<&dyn super::proposer::Proposer> = if use_fixture_proposer {
+        Some(&fixture)
+    } else {
+        None
+    };
+    let run = evolve_population(&config, &observables, proposer);
     let champion: Individual = run
         .best
         .clone()
         .context("no non-disqualified champion produced; cannot write a white paper")?;
-    let sc = champion_scorecard(&champion.theory, observables_path)?;
+    let sc = champion.scorecard.clone();
 
     // Same-rubric ranking: champion + human contenders.
     let mut rows = vec![rank_row("openqg-v4 (evolved champion)", &sc)];
@@ -205,13 +191,22 @@ pub(crate) fn generate_whitepaper(
         "- Data fit computed on {n_obs} observables from `{}`.",
         observables_path.display()
     );
-    let _ = writeln!(
-        md,
-        "- This run used **pure parameter evolution** (no LLM-attached derivations), so \
-         `derivation_rigor` and `unification` reflect that — those dimensions are earned only by \
-         verified derivations, which the live proposer (M6) supplies. The champion's merit here is \
-         data fit + parsimony + physical sanity; it is **not** yet a critic-proof unified theory."
-    );
+    if use_fixture_proposer {
+        let _ = writeln!(
+            md,
+            "- This run used the **LLM-proposer path**: the champion may carry verified derivations \
+             + a unification claim, so `derivation_rigor`/`unification` reflect *proven* claims \
+             (every derivation was re-checked by the deterministic oracle — the LLM never scored)."
+        );
+    } else {
+        let _ = writeln!(
+            md,
+            "- This run used **pure parameter evolution** (no LLM-attached derivations), so \
+             `derivation_rigor` and `unification` reflect that — those dimensions are earned only by \
+             verified derivations, which the proposer path supplies. The champion's merit here is \
+             data fit + parsimony + physical sanity; it is **not** yet a critic-proof unified theory."
+        );
+    }
     let _ = writeln!(
         md,
         "- A candidate is only critic-proof when it clears all gates AND earns derivation + \
@@ -287,7 +282,7 @@ mod tests {
             max_generations: 5,
             seed: 555,
         };
-        let run_dir = generate_whitepaper(&obs, &tmp, cfg, "wp-test").unwrap();
+        let run_dir = generate_whitepaper(&obs, &tmp, cfg, "wp-test", false).unwrap();
 
         let md = fs::read_to_string(run_dir.join("white-paper.md")).unwrap();
         assert!(md.contains("Candidate Theory Report"));

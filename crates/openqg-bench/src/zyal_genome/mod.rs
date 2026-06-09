@@ -221,6 +221,10 @@ pub enum GenomeCommand {
         seed: u64,
         #[arg(long)]
         run_id: Option<String>,
+        /// Inject a derivation-rich fixture proposal each generation (deterministic demo of the
+        /// LLM-proposer path; no live infra).
+        #[arg(long)]
+        with_fixture_proposer: bool,
     },
     /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
     /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
@@ -253,6 +257,10 @@ pub enum GenomeCommand {
         seed: u64,
         #[arg(long)]
         run_id: Option<String>,
+        /// Inject a derivation-rich fixture proposal each generation (deterministic demo of the
+        /// LLM-proposer path; no live infra).
+        #[arg(long)]
+        with_fixture_proposer: bool,
     },
     Selftest,
 }
@@ -334,6 +342,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             population_size,
             seed,
             run_id,
+            with_fixture_proposer,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -341,7 +350,13 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 max_generations,
                 seed,
             };
-            let dir = run_population(&observables, &output_root, config, &run_id)?;
+            let dir = run_population(
+                &observables,
+                &output_root,
+                config,
+                &run_id,
+                with_fixture_proposer,
+            )?;
             println!("wrote v4 population run to {}", dir.display());
             Ok(())
         }
@@ -381,6 +396,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             population_size,
             seed,
             run_id,
+            with_fixture_proposer,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("whitepaper-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -388,7 +404,13 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 max_generations,
                 seed,
             };
-            let dir = generate_whitepaper(&observables, &output_root, config, &run_id)?;
+            let dir = generate_whitepaper(
+                &observables,
+                &output_root,
+                config,
+                &run_id,
+                with_fixture_proposer,
+            )?;
             println!(
                 "wrote white paper to {}",
                 dir.join("white-paper.md").display()

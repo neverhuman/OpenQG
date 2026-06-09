@@ -104,6 +104,8 @@ pub fn relation_registry(name: &str) -> Option<Relation> {
         "fr_largescale_geff_over_g" => Some(fr_largescale_geff_over_g),
         "fr_alpha_m" => Some(fr_alpha_m),
         "coupled_de_geff_over_g" => Some(coupled_de_geff_over_g),
+        "h0_from_h" => Some(h0_from_h),
+        "flat_universe_omega_lambda" => Some(flat_universe_omega_lambda),
         _ => None,
     }
 }
@@ -112,10 +114,29 @@ pub fn relation_registry(name: &str) -> Option<Relation> {
 pub fn registered_relations() -> Vec<&'static str> {
     vec![
         "coupled_de_geff_over_g",
+        "flat_universe_omega_lambda",
         "fr_alpha_m",
         "fr_largescale_geff_over_g",
+        "h0_from_h",
         "ndgp_geff_over_g",
     ]
+}
+
+/// A one-line input-signature hint per relation (for proposer prompts / diagnostics).
+pub fn relation_signature(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "ndgp_geff_over_g" => "inputs {beta}; G_eff/G = 1 + 1/(3·beta)",
+        "fr_largescale_geff_over_g" => {
+            "inputs {regime: 1.0 inside / 0.0 outside Compton}; 4/3 or 1"
+        }
+        "fr_alpha_m" => "inputs {f_R, a_f_R_prime}; alpha_M = a_f_R_prime/(1+f_R)",
+        "coupled_de_geff_over_g" => "inputs {beta}; G_eff/G = 1 + 2·beta²",
+        "h0_from_h" => "inputs {h}; H0 = 100·h (km/s/Mpc)",
+        "flat_universe_omega_lambda" => {
+            "inputs {omega_m, [omega_r], [omega_k]}; Omega_Lambda = 1 − omega_m − omega_r − omega_k"
+        }
+        _ => return None,
+    })
 }
 
 // --- Registry relations (each cited) ----------------------------------------------------------
@@ -198,6 +219,32 @@ fn coupled_de_geff_over_g(c: &DerivedCertificate) -> Result<f64, String> {
     Ok(1.0 + 2.0 * beta * beta)
 }
 
+/// Reduced-Hubble definition: H0 = 100 h (km/s/Mpc), with h the dimensionless reduced Hubble
+/// parameter. This is a definition, not a fit. Input: `h` (must be finite, positive).
+fn h0_from_h(c: &DerivedCertificate) -> Result<f64, String> {
+    let h = c.required("h", "reduced Hubble parameter")?;
+    if !h.is_finite() || h <= 0.0 {
+        return Err(format!(
+            "reduced Hubble h must be finite and positive, got {h}"
+        ));
+    }
+    Ok(100.0 * h)
+}
+
+/// Flat-universe (FRW) energy-budget closure: Ω_Λ = 1 − Ω_m − Ω_r − Ω_k, i.e. the densities sum to
+/// one for k = 0. Reference: any standard FRW cosmology text (Σ Ω_i = 1 for a spatially flat
+/// universe). Inputs: `omega_m` (required); `omega_r`, `omega_k` (optional, default 0).
+fn flat_universe_omega_lambda(c: &DerivedCertificate) -> Result<f64, String> {
+    let omega_m = c.required("omega_m", "matter density parameter today")?;
+    let omega_r = c.input("omega_r").unwrap_or(0.0);
+    let omega_k = c.input("omega_k").unwrap_or(0.0);
+    let lambda = 1.0 - omega_m - omega_r - omega_k;
+    if !lambda.is_finite() {
+        return Err("non-finite Ω_Λ from flat closure".into());
+    }
+    Ok(lambda)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -216,6 +263,42 @@ mod tests {
         // β = 2 ⇒ G_eff/G = 1 + 1/6 = 1.16666...
         let c = cert("ndgp_geff_over_g", &[("beta", 2.0)], 1.0 + 1.0 / 6.0, 1e-9);
         assert!(c.verify(), "{:?}", c.check());
+    }
+
+    #[test]
+    fn h0_from_h_verifies_and_catches_a_fit() {
+        // h = 0.674 ⇒ H0 = 67.4 (definition).
+        assert!(cert("h0_from_h", &[("h", 0.674)], 67.4, 1e-9).verify());
+        // A claimed H0 inconsistent with h is a mismatch (a fitted number wearing a derived label).
+        assert!(!cert("h0_from_h", &[("h", 0.674)], 73.0, 1e-3).verify());
+    }
+
+    #[test]
+    fn flat_closure_verifies_and_optional_inputs_default_to_zero() {
+        // Ω_m = 0.315 (flat, no radiation/curvature) ⇒ Ω_Λ = 0.685.
+        assert!(cert(
+            "flat_universe_omega_lambda",
+            &[("omega_m", 0.315)],
+            0.685,
+            1e-9
+        )
+        .verify());
+        // With explicit radiation: Ω_Λ = 1 − 0.315 − 0.0001 = 0.6849.
+        let c = cert(
+            "flat_universe_omega_lambda",
+            &[("omega_m", 0.315), ("omega_r", 0.0001)],
+            0.6849,
+            1e-9,
+        );
+        assert!(c.verify(), "{:?}", c.check());
+        // A non-closing budget (claimed Ω_Λ that does not sum to 1) is a mismatch.
+        assert!(!cert(
+            "flat_universe_omega_lambda",
+            &[("omega_m", 0.315)],
+            0.5,
+            1e-3
+        )
+        .verify());
     }
 
     #[test]

@@ -39,7 +39,8 @@ pub use adversary::{Adversary, Decoy, DecoyKind};
 pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
 pub use certificate::{
-    registered_relations, relation_registry, CertificateOutcome, DerivedCertificate,
+    registered_relations, relation_registry, relation_signature, CertificateOutcome,
+    DerivedCertificate,
 };
 pub use claim_graph::{
     claim_graph_digest, Claim, ClaimGraph, ClaimId, ClaimKind, Sector, SharedParam,

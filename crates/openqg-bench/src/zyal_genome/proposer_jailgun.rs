@@ -18,7 +18,7 @@ use anyhow::{bail, Context, Result};
 use serde_json::Value;
 
 use super::jailgun_live::run_jailgun_live_call_attempt;
-use super::proposer::{fixture_proposal, parse_proposal_doc, ProposalDoc, Proposer};
+use super::proposer::{fixture_proposal, ProposalDoc, Proposer};
 
 const DOWNLOAD_TARGET: &str = "openqg-v4-proposal.json";
 
@@ -44,6 +44,18 @@ impl Default for JailgunProposer {
 pub(crate) fn build_proposer_prompt() -> String {
     // Compact (not pretty) example keeps the prompt small so the browser round-trip completes.
     let example = serde_json::to_string(&fixture_proposal()).unwrap_or_else(|_| "{}".to_string());
+    // The authoritative registry: the LLM otherwise invents relation names the oracle cannot
+    // recompute (UnknownRelation kill), so we pin the exact set + their input signatures.
+    let relations = openqg_core::theory::registered_relations()
+        .iter()
+        .map(|r| {
+            format!(
+                "  - {r}  [{}]",
+                openqg_core::theory::relation_signature(r).unwrap_or("")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
     format!(
         "You are proposing ONE candidate component of a unified theory of physics for the OpenQG \
 engine. Your proposal is adjudicated by a DETERMINISTIC oracle — you do not score it, and any \
@@ -51,8 +63,8 @@ cheating is disqualified. To earn credit you MUST:\n\
 \n\
 1. Make every parameter DERIVED, not fitted: each parameter's `provenance` is either \
 `\"fundamental\"` or a `derived` object `{{\"derived\":{{\"mechanism\":\"...\",\"certificate\":{{...}}}}}}` \
-whose certificate names a closed-form relation the oracle can recompute (e.g. `ndgp_geff_over_g`, \
-`fr_alpha_m`, `coupled_de_geff_over_g`). A free/uncertified knob is KILLED.\n\
+whose certificate names a closed-form relation from the AVAILABLE RELATIONS list below (any other \
+relation name is an UnknownRelation KILL). A free/uncertified knob is KILLED.\n\
 2. Attach, for each physics claim, at least one derivation OBLIGATION that VERIFIES (a \
 `numeric_witness` carrying the same certificate, or a `limit` witness whose residual is within its \
 bound). An unobligated physics claim is KILLED.\n\
@@ -71,6 +83,12 @@ strings; physical magnitudes are numbers.\n\
 `unification` (gravity modifications go in `growth` or `tensor_sector`; a unification statement is \
 expressed via the top-level `unification.shared` list, not a claim sector). Each claim `kind` is \
 `physics` or `engineering`.\n\
+\n\
+AVAILABLE RELATIONS — the ONLY relation names the oracle can recompute; use these EXACT names and \
+supply the exact named inputs (a certificate's `expected` is recomputed from `inputs` and must match):\n\
+{relations}\n\
+Note: `screening` is a single STRING label (e.g. \"vainshtein\"), and `screening_recovery` is a single \
+NUMBER (the GR-recovery residual, ~0), not objects.\n\
 \n\
 Return EXACTLY one downloadable JSON artifact named `{DOWNLOAD_TARGET}` and nothing else — no prose, \
 no markdown fences. It must match this schema (here is a complete, valid example you should improve \
@@ -99,7 +117,44 @@ pub(crate) fn parse_proposal_response(raw: &str) -> Result<ProposalDoc> {
         .rfind('}')
         .context("no closing brace in proposal response")?;
     anyhow::ensure!(end > start, "malformed JSON object in proposal response");
-    parse_proposal_doc(&body[start..=end])
+    let mut value: Value =
+        serde_json::from_str(&body[start..=end]).context("parse proposal JSON")?;
+    repair_proposal_value(&mut value);
+    serde_json::from_value(value).context("parse proposal document")
+}
+
+/// Project the rich shapes the LLM tends to emit onto our strict schema slots — lossless w.r.t. the
+/// schema, which only HAS a string/number there: `theory.screening` object → its `mechanism` string;
+/// `theory.screening_recovery` object → its `residual` number. The physics claims, parameters,
+/// certificates, terms, etc. are left untouched and adjudicated strictly.
+fn repair_proposal_value(value: &mut Value) {
+    let Some(theory) = value.get_mut("theory").and_then(Value::as_object_mut) else {
+        return;
+    };
+    if theory
+        .get("screening")
+        .map(Value::is_object)
+        .unwrap_or(false)
+    {
+        let mech = theory["screening"]
+            .get("mechanism")
+            .and_then(Value::as_str)
+            .map(|s| Value::String(s.to_string()))
+            .unwrap_or(Value::Null);
+        theory.insert("screening".into(), mech);
+    }
+    if theory
+        .get("screening_recovery")
+        .map(Value::is_object)
+        .unwrap_or(false)
+    {
+        let num = theory["screening_recovery"]
+            .get("residual")
+            .filter(|v| v.is_number())
+            .cloned()
+            .unwrap_or(Value::Null);
+        theory.insert("screening_recovery".into(), num);
+    }
 }
 
 /// Read the model's emitted JSON from a completed live attempt: the jailgun run summary (stdout)
@@ -198,6 +253,31 @@ mod tests {
         let wrapped = format!("Here is my proposal:\n```json\n{json}\n```\nThanks!");
         let doc = parse_proposal_response(&wrapped).expect("parse fenced json");
         assert_eq!(doc.theory.id, fixture_proposal().theory.id);
+    }
+
+    #[test]
+    fn repair_normalizes_rich_screening_shapes() {
+        // The LLM tends to emit screening as a rich object; repair projects it onto our schema slots.
+        let mut v: Value =
+            serde_json::from_str(&serde_json::to_string(&fixture_proposal()).unwrap()).unwrap();
+        v["theory"]["screening"] = serde_json::json!({"mechanism": "vainshtein", "active": true});
+        v["theory"]["screening_recovery"] =
+            serde_json::json!({"residual": 1.0e-12, "bound": 1.0e-6});
+        let raw = serde_json::to_string(&v).unwrap();
+        let doc = parse_proposal_response(&raw).expect("repair should normalize rich screening");
+        assert_eq!(doc.theory.screening.as_deref(), Some("vainshtein"));
+        assert_eq!(doc.theory.screening_recovery, Some(1.0e-12));
+    }
+
+    #[test]
+    fn the_prompt_lists_the_real_registry_relations() {
+        let p = build_proposer_prompt();
+        assert!(p.contains("AVAILABLE RELATIONS"));
+        assert!(
+            p.contains("h0_from_h"),
+            "prompt must list the real registry relations"
+        );
+        assert!(p.contains("flat_universe_omega_lambda"));
     }
 
     #[test]

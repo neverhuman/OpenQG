@@ -238,6 +238,22 @@ pub enum GenomeCommand {
         #[arg(long)]
         run_id: Option<String>,
     },
+    /// V4: run the engine and write a candidate-theory white paper (champion + per-dimension
+    /// scorecard + ranking vs human contenders + trust-gate status). Deterministic, no LLM.
+    Whitepaper {
+        #[arg(long)]
+        observables: PathBuf,
+        #[arg(long, default_value = DEFAULT_OUTPUT_ROOT)]
+        output_root: PathBuf,
+        #[arg(long, default_value_t = 8)]
+        max_generations: usize,
+        #[arg(long, default_value_t = 9)]
+        population_size: usize,
+        #[arg(long, default_value_t = DEFAULT_SEED)]
+        seed: u64,
+        #[arg(long)]
+        run_id: Option<String>,
+    },
     Selftest,
 }
 
@@ -356,6 +372,27 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             if !passed {
                 anyhow::bail!("trust gate failed; campaign blocked");
             }
+            Ok(())
+        }
+        GenomeCommand::Whitepaper {
+            observables,
+            output_root,
+            max_generations,
+            population_size,
+            seed,
+            run_id,
+        } => {
+            let run_id = run_id.unwrap_or_else(|| format!("whitepaper-g{max_generations}-s{seed}"));
+            let config = EvolveConfig {
+                population_size,
+                max_generations,
+                seed,
+            };
+            let dir = generate_whitepaper(&observables, &output_root, config, &run_id)?;
+            println!(
+                "wrote white paper to {}",
+                dir.join("white-paper.md").display()
+            );
             Ok(())
         }
         GenomeCommand::Selftest => selftest(),
@@ -809,6 +846,8 @@ mod run_population;
 pub(crate) use run_population::*;
 mod trust_gate;
 pub(crate) use trust_gate::*;
+mod whitepaper;
+pub(crate) use whitepaper::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

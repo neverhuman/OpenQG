@@ -16,7 +16,9 @@ pub mod anchors;
 pub mod assessment;
 pub mod certificate;
 pub mod evaluate;
+pub mod evidence;
 pub mod evolve;
+pub mod fingerprint;
 pub mod holdout;
 pub mod league;
 pub mod mutation;
@@ -35,7 +37,11 @@ pub use certificate::{
     registered_relations, relation_registry, CertificateOutcome, DerivedCertificate,
 };
 pub use evaluate::{derivation_score, evaluate, Evaluation};
+pub use evidence::{
+    audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
+};
 pub use evolve::{evolve, evolve_run, Cell, Champion, EvolutionResult, GenerationReport};
+pub use fingerprint::claim_fingerprint;
 pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
 pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, ModelClass};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};

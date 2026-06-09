@@ -91,13 +91,13 @@ pub(crate) struct GenerationProgress {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct PopulationConfig {
+pub(crate) struct EvolveConfig {
     pub population_size: usize,
     pub max_generations: usize,
     pub seed: u64,
 }
 
-impl Default for PopulationConfig {
+impl Default for EvolveConfig {
     fn default() -> Self {
         Self {
             population_size: 9,
@@ -161,7 +161,7 @@ fn individual(
 /// Seed generation 1 from the ΛCDM baseline plus low-rate mutations (so the initial pool is diverse
 /// but anchored on a physically-sane theory).
 fn seed_population(
-    config: &PopulationConfig,
+    config: &EvolveConfig,
     observables: &[ObservableRecord],
     baseline_ll: f64,
     rng: &mut Rng,
@@ -313,7 +313,7 @@ fn promote_champion<'a>(
 
 /// Run the full population evolution. Deterministic given `config` + `observables`.
 pub(crate) fn evolve_population(
-    config: &PopulationConfig,
+    config: &EvolveConfig,
     observables: &[ObservableRecord],
 ) -> EvolutionRun {
     let baseline_ll = baseline_log_likelihood(observables);
@@ -457,7 +457,7 @@ mod tests {
 
     #[test]
     fn every_generation_produces_new_fingerprints_and_a_non_root_champion() {
-        let cfg = PopulationConfig {
+        let cfg = EvolveConfig {
             population_size: 9,
             max_generations: 6,
             seed: 42,
@@ -490,7 +490,7 @@ mod tests {
 
     #[test]
     fn evolution_is_deterministic() {
-        let cfg = PopulationConfig {
+        let cfg = EvolveConfig {
             population_size: 6,
             max_generations: 4,
             seed: 7,

@@ -206,6 +206,22 @@ pub enum GenomeCommand {
         #[arg(long)]
         run_dir: PathBuf,
     },
+    /// V4: run the real theory-population evolution engine (deterministic, physics-scored) and write
+    /// a progress ledger + champion + quality gate. The new, trustworthy run path.
+    Population {
+        #[arg(long)]
+        observables: PathBuf,
+        #[arg(long, default_value = DEFAULT_OUTPUT_ROOT)]
+        output_root: PathBuf,
+        #[arg(long, default_value_t = 8)]
+        max_generations: usize,
+        #[arg(long, default_value_t = 9)]
+        population_size: usize,
+        #[arg(long, default_value_t = DEFAULT_SEED)]
+        seed: u64,
+        #[arg(long)]
+        run_id: Option<String>,
+    },
     Selftest,
 }
 
@@ -279,6 +295,24 @@ pub fn run(command: GenomeCommand) -> Result<()> {
         GenomeCommand::Validate { root, schema } => validate(&root, &schema),
         GenomeCommand::PlotIndex { run_dir, root } => plot_index(run_dir, root),
         GenomeCommand::QualityGate { run_dir } => quality_gate(&run_dir),
+        GenomeCommand::Population {
+            observables,
+            output_root,
+            max_generations,
+            population_size,
+            seed,
+            run_id,
+        } => {
+            let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
+            let config = EvolveConfig {
+                population_size,
+                max_generations,
+                seed,
+            };
+            let dir = run_population(&observables, &output_root, config, &run_id)?;
+            println!("wrote v4 population run to {}", dir.display());
+            Ok(())
+        }
         GenomeCommand::Selftest => selftest(),
     }
 }
@@ -726,6 +760,8 @@ mod physics_score;
 pub(crate) use physics_score::*;
 mod theory_population;
 pub(crate) use theory_population::*;
+mod run_population;
+pub(crate) use run_population::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

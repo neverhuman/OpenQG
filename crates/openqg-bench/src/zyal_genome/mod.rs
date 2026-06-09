@@ -848,6 +848,8 @@ mod trust_gate;
 pub(crate) use trust_gate::*;
 mod whitepaper;
 pub(crate) use whitepaper::*;
+mod proposer;
+pub(crate) use proposer::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

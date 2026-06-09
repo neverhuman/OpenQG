@@ -262,6 +262,14 @@ pub enum GenomeCommand {
         #[arg(long)]
         with_fixture_proposer: bool,
     },
+    /// V4 M6b: one LIVE jailgun proposal (ChatGPT via MCP) adjudicated by the deterministic oracle.
+    /// Requires the jailgun server up. The LLM proposes; the oracle disposes.
+    ProposeLive {
+        #[arg(long)]
+        observables: PathBuf,
+        #[arg(long, default_value_t = 240)]
+        timeout_seconds: u64,
+    },
     Selftest,
 }
 
@@ -415,6 +423,27 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 "wrote white paper to {}",
                 dir.join("white-paper.md").display()
             );
+            Ok(())
+        }
+        GenomeCommand::ProposeLive {
+            observables,
+            timeout_seconds,
+        } => {
+            let obs = load_observables(&observables)?;
+            anyhow::ensure!(!obs.is_empty(), "no observables loaded");
+            let proposer = JailgunProposer { timeout_seconds };
+            let doc = proposer.propose()?;
+            let sc = score_proposal(&doc, &obs, baseline_log_likelihood(&obs));
+            println!(
+                "live jailgun proposal: theory `{}` scored {:.1}/100 (disqualified={})",
+                doc.theory.id, sc.total, sc.disqualified
+            );
+            for c in &sc.components {
+                println!("  {}: {:.1}/{:.0}", c.name, c.points, c.weight);
+            }
+            for r in &sc.kill_reasons {
+                println!("  KILL: {r}");
+            }
             Ok(())
         }
         GenomeCommand::Selftest => selftest(),
@@ -657,6 +686,21 @@ pub(crate) struct LiveAttempt {
     metadata: Value,
 }
 
+impl LiveAttempt {
+    pub(crate) fn status(&self) -> &str {
+        &self.status
+    }
+    pub(crate) fn stdout(&self) -> &str {
+        &self.stdout
+    }
+    pub(crate) fn error(&self) -> Option<&str> {
+        self.error.as_deref()
+    }
+    pub(crate) fn metadata(&self) -> &Value {
+        &self.metadata
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct JailgunBridgeCommand {
     args: Vec<String>,
@@ -872,6 +916,8 @@ mod whitepaper;
 pub(crate) use whitepaper::*;
 mod proposer;
 pub(crate) use proposer::*;
+mod proposer_jailgun;
+pub(crate) use proposer_jailgun::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

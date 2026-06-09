@@ -138,7 +138,7 @@ fn jailgun_run_arguments_use_one_account_fresh_artifact_and_no_source_archive() 
     );
     assert_eq!(
         args["browser"]["bridge_env"]["JAILGUN_ARTIFACT_REPAIR_ATTEMPTS"],
-        json!("1")
+        json!("0")
     );
     assert_eq!(
         args["browser"]["download_target_name"],

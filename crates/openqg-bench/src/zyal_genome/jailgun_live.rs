@@ -14,7 +14,10 @@ pub(crate) fn jailgun_run_arguments(
         "JAILGUN_ARTIFACT_CONVERSATION_RECOVERY_LIMIT".to_string(),
         json!("0"),
     );
-    bridge_env.insert("JAILGUN_ARTIFACT_REPAIR_ATTEMPTS".to_string(), json!("1"));
+    // The jailgun bridge hard-disabled artifact repair: chrome-bridge.mjs throws at module load if
+    // JAILGUN_ARTIFACT_REPAIR_ATTEMPTS > 0 ("artifact repair is hard-disabled ... must be 0 or
+    // unset"), so the bridge exits before reporting ready. Must be "0" to match the current bridge.
+    bridge_env.insert("JAILGUN_ARTIFACT_REPAIR_ATTEMPTS".to_string(), json!("0"));
     // Reuse a provisioned X display (export DISPLAY before launching) instead of spawning a
     // fresh Xvfb per call. Per-call spawning exhausted the display pool and caused ~73% of the
     // last run's live calls to fail with "could not find a free Xvfb display number".

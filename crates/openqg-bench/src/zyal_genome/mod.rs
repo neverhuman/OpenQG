@@ -222,6 +222,22 @@ pub enum GenomeCommand {
         #[arg(long)]
         run_id: Option<String>,
     },
+    /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
+    /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
+    TrustGate {
+        #[arg(long)]
+        observables: PathBuf,
+        #[arg(long, default_value = DEFAULT_OUTPUT_ROOT)]
+        output_root: PathBuf,
+        #[arg(long, default_value_t = 6)]
+        max_generations: usize,
+        #[arg(long, default_value_t = 9)]
+        population_size: usize,
+        #[arg(long, default_value_t = DEFAULT_SEED)]
+        seed: u64,
+        #[arg(long)]
+        run_id: Option<String>,
+    },
     Selftest,
 }
 
@@ -311,6 +327,35 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             };
             let dir = run_population(&observables, &output_root, config, &run_id)?;
             println!("wrote v4 population run to {}", dir.display());
+            Ok(())
+        }
+        GenomeCommand::TrustGate {
+            observables,
+            output_root,
+            max_generations,
+            population_size,
+            seed,
+            run_id,
+        } => {
+            let run_id = run_id.unwrap_or_else(|| format!("trust-gate-g{max_generations}-s{seed}"));
+            let config = EvolveConfig {
+                population_size,
+                max_generations,
+                seed,
+            };
+            let (dir, passed) = run_trust_gate(&observables, &output_root, config, &run_id)?;
+            println!(
+                "trust gate {}: wrote {}",
+                if passed {
+                    "PASSED — campaign unblocked"
+                } else {
+                    "FAILED — campaign blocked"
+                },
+                dir.join("trust-gate.json").display()
+            );
+            if !passed {
+                anyhow::bail!("trust gate failed; campaign blocked");
+            }
             Ok(())
         }
         GenomeCommand::Selftest => selftest(),
@@ -762,6 +807,8 @@ mod theory_population;
 pub(crate) use theory_population::*;
 mod run_population;
 pub(crate) use run_population::*;
+mod trust_gate;
+pub(crate) use trust_gate::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

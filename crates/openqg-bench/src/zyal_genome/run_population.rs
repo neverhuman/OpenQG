@@ -21,7 +21,7 @@ use super::theory_population::{
 };
 
 /// Read JSONL observables (one [`ObservableRecord`] per non-empty line).
-fn load_observables(path: &Path) -> Result<Vec<ObservableRecord>> {
+pub(crate) fn load_observables(path: &Path) -> Result<Vec<ObservableRecord>> {
     let text =
         fs::read_to_string(path).with_context(|| format!("read observables {}", path.display()))?;
     text.lines()

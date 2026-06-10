@@ -83,6 +83,17 @@ strings; physical magnitudes are numbers.\n\
 `unification` (gravity modifications go in `growth` or `tensor_sector`; a unification statement is \
 expressed via the top-level `unification.shared` list, not a claim sector). Each claim `kind` is \
 `physics` or `engineering`.\n\
+8. BE PHYSICALLY DISTINCT FROM ΛCDM. A theory observationally identical to ΛCDM (every \
+modified-gravity knob at its GR value — `geff_over_g` = 1, `alpha_*` = 0) earns ZERO novelty and \
+ZERO data credit and is flagged not-distinct. To be distinct, carry a value-certified derived \
+parameter on a modification relation AT A VALUE THAT DEPARTS FROM ITS GR LIMIT (e.g. nDGP \
+`geff_over_g` = 7/6 via `ndgp_geff_over_g` with beta=2, NOT beta→∞ which gives the GR value 1). \
+Re-deriving definitions (H0=100h, flat closure) is NOT distinctness and earns NO rigor.\n\
+9. MAKE A NOVEL FALSIFIABLE PREDICTION. Attach an obligation of kind `novel_prediction` with a \
+`novel` object {{\"observable\":\"fsigma8_z051\",\"predicted\":<your value>,\"baseline\":<ΛCDM value>,\
+\"min_detectable\":<experiment resolution>,\"falsifier\":\"which measurement refutes it\"}} where \
+|predicted − baseline| >= min_detectable. Tying ΛCDM on the data earns 0 — only a real, testable \
+deviation scores. Wire its claim id into a physics claim's `obligations`.\n\
 \n\
 AVAILABLE RELATIONS — the ONLY relation names the oracle can recompute; use these EXACT names and \
 supply the exact named inputs (a certificate's `expected` is recomputed from `inputs` and must match):\n\

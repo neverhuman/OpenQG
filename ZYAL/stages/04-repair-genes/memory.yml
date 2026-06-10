@@ -1,9 +1,0 @@
-schema_version: zyal-stage-memory.v1
-stage_id: 04-repair-genes
-summary: Preserve repair patterns, rejected repairs, and useful failure explanations.
-memory_refs:
-  - failures
-  - repair_candidates
-  - rejected_ideas
-  - stage_variants
-rejected_ideas: []

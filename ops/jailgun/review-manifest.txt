@@ -21,11 +21,11 @@ docs/production-run-1000.md
 crates/openqg-core/src/theory/mod.rs
 crates/openqg-core/src/theory/vetoes.rs
 crates/openqg-core/src/theory/evaluate.rs
-crates/openqg-core/src/theory/assessment.rs
+crates/openqg-core/src/theory/binding.rs
 crates/openqg-core/src/theory/unification.rs
-crates/openqg-core/src/theory/adversary.rs
-crates/openqg-core/src/theory/anchors.rs
-crates/openqg-core/src/theory/evolve.rs
+crates/openqg-core/src/theory/contenders.rs
+crates/openqg-core/src/theory/scorecard.rs
+crates/openqg-bench/src/zyal_genome/theory_population.rs
 crates/openqg-core/src/theory/league.rs
 
 # --- Engine: real forward model (background + growth) ---
@@ -39,9 +39,9 @@ crates/openqg-core/src/scoring/likelihood.rs
 
 # --- ZYAL orchestration (runbook + calibration anchor + a stage) ---
 ZYAL/README.md
-ZYAL/runs/run-hybrid-1000-v2.zyal
+crates/openqg-bench/src/zyal_genome/physics_score.rs
 ZYAL/anchors/good-lcdm-baseline.json
-ZYAL/stages/00-atlas/stage.yml
+crates/openqg-bench/src/zyal_genome/proposer.rs
 
 # --- Tiny real data (KB, shown so a reviewer sees the actual observables) ---
 data/fixtures/cosmology/tier0-combined.jsonl

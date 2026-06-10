@@ -1,9 +1,0 @@
-schema_version: zyal-stage-memory.v1
-stage_id: 08-failure-slicing
-summary: Track sliced failures, root-cause hypotheses, and repair routing.
-memory_refs:
-  - failures
-  - repair_candidates
-  - rejected_ideas
-  - stage_variants
-rejected_ideas: []

@@ -1,9 +1,0 @@
-schema_version: zyal-stage-memory.v1
-stage_id: 00-atlas
-summary: Bootstrap genome context, source boundaries, and initial lineage state.
-memory_refs:
-  - prior_champions
-  - source_cards
-  - rejected_ideas
-  - stage_variants
-rejected_ideas: []

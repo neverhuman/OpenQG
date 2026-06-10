@@ -1,9 +1,0 @@
-schema_version: zyal-stage-memory.v1
-stage_id: 03-generate-genes
-summary: Record generated gene families and source-backed novelty terms.
-memory_refs:
-  - prior_champions
-  - source_cards
-  - novelty_archive
-  - stage_variants
-rejected_ideas: []

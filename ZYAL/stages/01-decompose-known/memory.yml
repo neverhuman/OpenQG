@@ -1,9 +1,0 @@
-schema_version: zyal-stage-memory.v1
-stage_id: 01-decompose-known
-summary: Preserve reusable fragments from known-good traces without copying benchmark answers.
-memory_refs:
-  - prior_champions
-  - source_cards
-  - interface_contracts
-  - stage_variants
-rejected_ideas: []

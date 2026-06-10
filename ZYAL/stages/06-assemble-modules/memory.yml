@@ -1,9 +1,0 @@
-schema_version: zyal-stage-memory.v1
-stage_id: 06-assemble-modules
-summary: Track reusable module assemblies and their source-backed components.
-memory_refs:
-  - prior_champions
-  - interface_contracts
-  - source_cards
-  - stage_variants
-rejected_ideas: []

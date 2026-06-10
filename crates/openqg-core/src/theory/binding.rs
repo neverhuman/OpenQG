@@ -87,6 +87,7 @@ fn cert_input(cert: &super::DerivedCertificate, name: &str) -> Option<f64> {
 /// Does this background compute non-GR growth? (the exact conditions the growth code branches on)
 fn background_non_gr(bg: &CosmologyParams) -> bool {
     bg.mu0.abs() > 1e-12
+        || bg.drag_a > 1e-12
         || (bg.mg_family == MgFamily::Ndgp && bg.ndgp_omega_rc > 0.0)
         || (bg.mg_family == MgFamily::FrHuSawicki && bg.fr_log10_fr0 > -20.0)
 }
@@ -276,6 +277,33 @@ pub fn bind_modified_background(theory: &Theory) -> BindingOutcome {
         }
     }
 
+    // V6 dark-scattering drag: a verified certificate binds A_drag into the background the
+    // growth ODE integrates (the relation also pins w0/omega_de0 consistency at adjudication).
+    if let Some((_symbol, cert)) = verified_cert(theory, "dark_scattering_growth_drag") {
+        if let Some(a_drag) = cert_input(cert, "a_drag") {
+            if a_drag.is_finite() && a_drag >= 0.0 {
+                if let Some((_, prev)) = relation_set.iter().find(|(f, _)| *f == "drag_a") {
+                    if !values_agree(*prev, a_drag) {
+                        vetoes.push(VetoReason::ConflictingModification {
+                            field: "drag_a".into(),
+                            certificate_value: *prev,
+                            declared_value: a_drag,
+                        });
+                    }
+                } else {
+                    bound.background.drag_a = a_drag;
+                    relation_set.push(("drag_a", a_drag));
+                    bindings.push(FieldBinding {
+                        field: "drag_a".into(),
+                        value: a_drag,
+                        source: "relation:dark_scattering_growth_drag".into(),
+                        fidelity: None,
+                    });
+                }
+            }
+        }
+    }
+
     // --- 2. Direct-symbol copies (only where no relation set the field) -----------------------
     // A Fundamental or certified-Derived parameter whose symbol exactly names an MG background
     // field is copied in; an uncertified Derived or Free parameter is never a binding source.
@@ -403,6 +431,22 @@ pub fn bind_modified_background(theory: &Theory) -> BindingOutcome {
             vetoes.push(VetoReason::UnexplainedModification {
                 field: "ndgp_omega_rc".into(),
                 value: declared.ndgp_omega_rc,
+            });
+        }
+    }
+    if declared.drag_a > 1e-12 {
+        if explained("drag_a") {
+            if !values_agree(bound.background.drag_a, declared.drag_a) {
+                vetoes.push(VetoReason::ConflictingModification {
+                    field: "drag_a".into(),
+                    certificate_value: bound.background.drag_a,
+                    declared_value: declared.drag_a,
+                });
+            }
+        } else {
+            vetoes.push(VetoReason::UnexplainedModification {
+                field: "drag_a".into(),
+                value: declared.drag_a,
             });
         }
     }

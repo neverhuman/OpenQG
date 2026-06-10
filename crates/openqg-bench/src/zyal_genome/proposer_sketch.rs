@@ -491,12 +491,12 @@ impl Lane {
                  directly at the negative fσ8/S8 pulls in the DATA BRIEF."
             }
             Lane::DarkScattering => {
-                "Build a dark-sector interaction theory (DE–DM drag / momentum exchange, e.g. \
-                 Simpson 2010). Express its growth effect through the registry's suppressed-growth \
-                 handle (`planck_mu0_geff` with mu0 < 0) and motivate mu0's value from your \
-                 interaction mechanism in the parameter `mechanism` text and cited evidence. You \
-                 may also move (w0, wa) off (−1, 0) — note every moved background dial costs \
-                 parsimony."
+                "Build a dark-sector interaction theory (DE–DM momentum exchange, Simpson 2010; \
+                 Pourtsidou+ 2013) via the REAL mechanism relation `dark_scattering_growth_drag` \
+                 with inputs {a_drag ≥ 0, w0 > −1, omega_de0}: the engine integrates the friction \
+                 Γ(a)=A_drag·(1+w(a))·Ω_de(a) in the growth ODE (suppresses growth). Set the \
+                 sketch background w0 to the SAME w0 you certify (a moved w0 costs one parsimony \
+                 dof — that is the honest price of the mechanism)."
             }
             Lane::Free => {
                 "Choose the mechanism YOU judge most promising — any registry relation, any \

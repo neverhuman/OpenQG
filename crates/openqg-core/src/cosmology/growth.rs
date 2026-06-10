@@ -56,6 +56,25 @@ impl CosmologyParams {
     }
 
     /// dln E/dN by symmetric finite difference (E is smooth in N = ln a).
+    /// V6 dark-scattering friction Γ(a) = drag_a·(1+w(a))·Ω_de(a) (Simpson 2010, "Scattering
+    /// of dark matter and dark energy"; Pourtsidou, Skordis & Copeland 2013). Enters the growth
+    /// ODE as extra Hubble drag: δ'' + (2 + dlnE/dN + Γ)δ' = (3/2)Ω_m(a)μ(a)δ. Exact GR limit
+    /// at drag_a = 0; vanishes for w = −1 (no momentum exchange with a cosmological constant).
+    pub fn growth_drag_gamma(&self, a: f64) -> f64 {
+        if self.drag_a == 0.0 {
+            return 0.0;
+        }
+        let z = 1.0 / a - 1.0;
+        let e2 = self.e_of_z(z).powi(2);
+        let w_a = self.w0 + self.wa * (1.0 - a);
+        let omega_de0 = 1.0 - self.omega_m - self.omega_k;
+        let de_density = omega_de0
+            * a.powf(-3.0 * (1.0 + self.w0 + self.wa))
+            * (3.0 * self.wa * (a - 1.0)).exp();
+        let omega_de_a = de_density / e2;
+        self.drag_a * (1.0 + w_a) * omega_de_a
+    }
+
     pub fn dln_e_dn(&self, a: f64) -> f64 {
         let h = 1.0e-4_f64;
         let ap = a * h.exp();
@@ -94,7 +113,7 @@ impl CosmologyParams {
             let z = 1.0 / a - 1.0;
             let e2 = self.e_of_z(z).powi(2);
             let omega_m_a = self.omega_m * a.powi(-3) / e2;
-            let drag = 2.0 + self.dln_e_dn(a);
+            let drag = 2.0 + self.dln_e_dn(a) + self.growth_drag_gamma(a);
             let source = 1.5 * omega_m_a * self.growth_mu(a) * d;
             (v, -drag * v + source)
         };
@@ -213,7 +232,7 @@ impl CosmologyParams {
             let z = 1.0 / a - 1.0;
             let e2 = self.e_of_z(z).powi(2);
             let omega_m_a = self.omega_m * a.powi(-3) / e2;
-            let drag = 2.0 + self.dln_e_dn(a);
+            let drag = 2.0 + self.dln_e_dn(a) + self.growth_drag_gamma(a);
             let source = 1.5 * omega_m_a * self.growth_mu_kdep(a, k) * d;
             (v, -drag * v + source)
         };
@@ -367,6 +386,7 @@ mod tests {
             fr_n: 1.0,
             fr_log10_fr0: -30.0,
             ndgp_omega_rc: 0.0,
+            drag_a: 0.0,
         }
     }
 
@@ -516,5 +536,47 @@ mod tests {
             (recovered - base).abs() < 1e-9,
             "r_c→∞ must recover GR: {recovered} vs {base}"
         );
+    }
+}
+
+#[cfg(test)]
+mod v6_drag_tests {
+    use super::super::background::CosmologyParams;
+
+    /// GR limit: drag_a = 0 reproduces ΛCDM growth exactly.
+    #[test]
+    fn zero_drag_is_the_exact_gr_limit() {
+        let base = CosmologyParams::planck_lcdm();
+        let mut dragged = base.clone();
+        dragged.drag_a = 0.0;
+        assert_eq!(base.growth_fsigma8(0.51), dragged.growth_fsigma8(0.51));
+        assert_eq!(base.growth_drag_gamma(1.0), 0.0);
+    }
+
+    /// The mechanism suppresses growth: drag_a > 0 with w > −1 lowers fσ8 — the direction the
+    /// real fσ8/S8 data demand, from a REAL friction term the engine integrates.
+    #[test]
+    fn positive_drag_suppresses_fsigma8() {
+        let base = CosmologyParams::planck_lcdm();
+        let mut dragged = base.clone();
+        dragged.w0 = -0.9; // momentum exchange needs w > −1
+        dragged.drag_a = 2.0;
+        let mut undragged = base.clone();
+        undragged.w0 = -0.9;
+        let f_dragged = dragged.growth_fsigma8(0.51);
+        let f_plain = undragged.growth_fsigma8(0.51);
+        assert!(
+            f_dragged < f_plain,
+            "drag must suppress growth: {f_dragged} vs {f_plain}"
+        );
+        assert!(dragged.growth_drag_gamma(1.0) > 0.0);
+    }
+
+    /// w = −1 kills the drag (no momentum exchange with a cosmological constant).
+    #[test]
+    fn cosmological_constant_has_no_drag() {
+        let mut p = CosmologyParams::planck_lcdm();
+        p.drag_a = 5.0; // w0 = −1 ⇒ (1+w) = 0
+        assert!(p.growth_drag_gamma(1.0).abs() < 1e-12);
     }
 }

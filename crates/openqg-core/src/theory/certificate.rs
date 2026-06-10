@@ -103,6 +103,7 @@ pub fn relation_registry(name: &str) -> Option<Relation> {
         "ndgp_geff_over_g" => Some(ndgp_geff_over_g),
         "ndgp_beta_from_omega_rc" => Some(ndgp_beta_from_omega_rc),
         "planck_mu0_geff" => Some(planck_mu0_geff),
+        "dark_scattering_growth_drag" => Some(dark_scattering_growth_drag),
         "fr_largescale_geff_over_g" => Some(fr_largescale_geff_over_g),
         "fr_alpha_m" => Some(fr_alpha_m),
         "coupled_de_geff_over_g" => Some(coupled_de_geff_over_g),
@@ -116,6 +117,7 @@ pub fn relation_registry(name: &str) -> Option<Relation> {
 pub fn registered_relations() -> Vec<&'static str> {
     vec![
         "coupled_de_geff_over_g",
+        "dark_scattering_growth_drag",
         "flat_universe_omega_lambda",
         "fr_alpha_m",
         "fr_largescale_geff_over_g",
@@ -147,6 +149,9 @@ pub fn relation_rigor_weight(name: &str) -> f64 {
         // (Planck 2018), not a mechanism — it is near-definitional, so it earns only partial
         // rigor. It still binds the value (a fitted G_eff/G inconsistent with μ0 is caught).
         "planck_mu0_geff" => 0.3,
+        // A real mechanism (DE–DM momentum exchange) with cited equations the engine integrates;
+        // 0.8 until the full Boltzmann treatment exists.
+        "dark_scattering_growth_drag" => 0.8,
         _ => 0.0,
     }
 }
@@ -157,11 +162,12 @@ pub fn relation_rigor_weight(name: &str) -> f64 {
 /// distinct from ΛCDM) rather than sitting at the GR point.
 pub fn relation_gr_value(name: &str) -> Option<f64> {
     Some(match name {
-        "ndgp_geff_over_g" => 1.0,          // β → ∞
-        "coupled_de_geff_over_g" => 1.0,    // β → 0
-        "fr_largescale_geff_over_g" => 1.0, // outside the Compton wavelength
-        "fr_alpha_m" => 0.0,                // f_R → 0
-        "planck_mu0_geff" => 1.0,           // μ0 = 0 ⇒ G_eff/G = 1 (GR)
+        "ndgp_geff_over_g" => 1.0,            // β → ∞
+        "coupled_de_geff_over_g" => 1.0,      // β → 0
+        "fr_largescale_geff_over_g" => 1.0,   // outside the Compton wavelength
+        "fr_alpha_m" => 0.0,                  // f_R → 0
+        "planck_mu0_geff" => 1.0,             // μ0 = 0 ⇒ G_eff/G = 1 (GR)
+        "dark_scattering_growth_drag" => 0.0, // Γ0 = 0 ⇒ no drag (GR)
         // ndgp_beta_from_omega_rc has *no finite* GR value: the GR limit is β → ∞ (Ω_rc → 0),
         // not a number β can sit at. A certified β therefore cannot establish GR-distinctness by
         // itself — pair it with ndgp_geff_over_g (whose GR value is 1) for that.
@@ -274,6 +280,32 @@ fn planck_mu0_geff(c: &DerivedCertificate) -> Result<f64, String> {
         ));
     }
     Ok(1.0 + mu0)
+}
+
+/// V6 dark-scattering growth drag (Simpson 2010, PRD 82, 083505: "Scattering of dark matter
+/// and dark energy"; Pourtsidou, Skordis & Copeland 2013): a DE–DM momentum-exchange cross
+/// section adds a friction term Γ(a) = A_drag·(1+w(a))·Ω_de(a) to the linear growth equation.
+/// This relation certifies the TODAY amplitude:
+///     Γ₀ = A_drag · (1 + w0) · Ω_de0,
+/// the value the growth code's `growth_drag_gamma(a=1)` computes. Domain: A_drag ≥ 0 and
+/// w0 ≥ −1 (no momentum exchange with a cosmological constant; phantom drag is unphysical).
+/// GR limit: A_drag → 0 ⇒ Γ₀ = 0.
+fn dark_scattering_growth_drag(c: &DerivedCertificate) -> Result<f64, String> {
+    let a_drag = c.required("a_drag", "dimensionless drag amplitude A_drag")?;
+    let w0 = c.required("w0", "dark-energy equation of state today")?;
+    let omega_de0 = c.required("omega_de0", "dark-energy density fraction today")?;
+    if !a_drag.is_finite() || a_drag < 0.0 {
+        return Err(format!("A_drag must be finite and >= 0, got {a_drag}"));
+    }
+    if !w0.is_finite() || w0 < -1.0 {
+        return Err(format!(
+            "w0 must be finite and >= -1 for a physical drag, got {w0}"
+        ));
+    }
+    if !(0.0..=1.0).contains(&omega_de0) {
+        return Err(format!("omega_de0 must be in [0,1], got {omega_de0}"));
+    }
+    Ok(a_drag * (1.0 + w0) * omega_de0)
 }
 
 /// f(R) effective gravitational coupling in the small-scale / large-k quasi-static limit, i.e. for

@@ -104,6 +104,11 @@ pub struct CosmologyParams {
     /// when `mg_family == NDGP`.
     #[serde(default)]
     pub ndgp_omega_rc: f64,
+    /// V6 dark-scattering drag amplitude (Simpson 2010; Pourtsidou+ 2013): a DE–DM momentum-
+    /// exchange friction Γ(a) = drag_a·(1+w(a))·Ω_de(a) added to the growth ODE's Hubble drag.
+    /// 0 ⇒ exact GR limit. Suppresses growth for drag_a > 0 with w > −1.
+    #[serde(default)]
+    pub drag_a: f64,
 }
 
 /// The derived modified-gravity family driving the scale-dependent growth path (M4). `None` is GR /
@@ -154,6 +159,7 @@ impl CosmologyParams {
             fr_n: default_fr_n(),
             fr_log10_fr0: default_fr_log10_fr0(),
             ndgp_omega_rc: 0.0,
+            drag_a: 0.0,
         }
     }
 
@@ -530,6 +536,7 @@ mod tests {
             fr_n: 1.0,
             fr_log10_fr0: -30.0,
             ndgp_omega_rc: 0.0,
+            drag_a: 0.0,
         }
     }
 

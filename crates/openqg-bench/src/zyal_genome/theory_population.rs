@@ -212,6 +212,58 @@ pub(crate) fn score_theory(
     )
 }
 
+/// V6 re-clothing (review-05): a SEARCH OPERATOR, never a score merger. Grafts the donor
+/// proposal's claim structure (claims/obligations/unification/evidence + its certified
+/// non-baseline parameters — the claim-carriers binding reads) onto an evolved descendant
+/// theory, then REFRESHES every novel-prediction witness to the engine-computed truth on the
+/// descendant's bound background (declared values are honesty attestations; the engine computes
+/// the physics either way). The result is scored through the FULL `score_proposal` path — every
+/// certificate re-checks, every witness re-audits, evidence re-hashes; nothing copies from the
+/// donor scorecard. A stale graft dies by the same fabrication/conflict kills as any proposal.
+pub(crate) fn reclothe_candidate(
+    donor: &super::proposer::ProposalDoc,
+    descendant: &Theory,
+) -> super::proposer::ProposalDoc {
+    use openqg_core::cosmology::{BackgroundForwardModel, CosmologyParams, ForwardModel};
+    let mut doc = donor.clone();
+    let mut theory = descendant.clone();
+    theory.id = format!("{}-rc", descendant.id);
+    let base = Theory::baseline_lcdm();
+    for p in &donor.theory.parameters {
+        let is_base = base.parameters.iter().any(|b| b.symbol == p.symbol);
+        let present = theory.parameters.iter().any(|t| t.symbol == p.symbol);
+        if !is_base && !present {
+            theory.parameters.push(p.clone());
+        }
+    }
+    doc.theory = theory;
+    // Witness refresh: recompute declared values from the DESCENDANT's bound background.
+    let bound = openqg_core::theory::bind_modified_background(&doc.theory).theory;
+    let model = BackgroundForwardModel;
+    let baseline_bg = CosmologyParams::planck_lcdm();
+    for o in &mut doc.obligations {
+        if let Some(w) = &mut o.novel {
+            if let Some(canon) = openqg_core::cosmology::canonicalize_observable_id(&w.observable) {
+                let id = canon.to_id();
+                let predict = |bg: &CosmologyParams| -> Option<f64> {
+                    model
+                        .predict(bg, &[id.clone()])
+                        .ok()
+                        .and_then(|p| p.first().map(|x| x.value))
+                        .filter(|v| v.is_finite())
+                };
+                if let (Some(pred), Some(basev)) =
+                    (predict(&bound.background), predict(&baseline_bg))
+                {
+                    w.predicted = pred;
+                    w.baseline = basev;
+                }
+            }
+        }
+    }
+    doc
+}
+
 /// Build an individual from an already-computed scorecard (used for proposal candidates that carry
 /// a full ClaimGraph + obligations).
 fn individual_from_scorecard(
@@ -485,12 +537,16 @@ pub(crate) fn evolve_population(
     let mut progress = Vec::new();
     let mut champions = Vec::new();
     let mut live_proposals: Vec<LiveProposalRecord> = Vec::new();
+    let mut last_donor: Option<super::proposer::ProposalDoc> = None;
 
     // Generation 1 — seed (+ optional proposal candidate).
     let mut pop = seed_population(config, observables, blocks, baseline_ll, &mut rng);
     if let Some((ind, rec)) =
         proposal_individual(proposer, 1, observables, blocks, baseline_ll, sink)
     {
+        if !rec.disqualified {
+            last_donor = serde_json::from_value(rec.doc.clone()).ok();
+        }
         pop.push(ind);
         sink.proposal(&rec);
         live_proposals.push(rec);
@@ -527,9 +583,41 @@ pub(crate) fn evolve_population(
         if let Some((ind, rec)) =
             proposal_individual(proposer, generation, observables, blocks, baseline_ll, sink)
         {
+            if !rec.disqualified {
+                last_donor = serde_json::from_value(rec.doc.clone()).ok();
+            }
             next.push(ind);
             sink.proposal(&rec);
             live_proposals.push(rec);
+        }
+        // V6 re-clothing slot: graft the best donor's verified structure onto the current best
+        // evolved theory (full re-verification; a failed graft is ledgered evidence, not an error).
+        if generation % 25 == 0 {
+            if let (Some(donor), Some(best)) = (last_donor.as_ref(), best_so_far.as_ref()) {
+                let doc = reclothe_candidate(donor, &best.theory);
+                let sc = score_proposal(&doc, observables, blocks, baseline_ll);
+                let canonical = serde_json::to_string(&doc).unwrap_or_default();
+                let rc_rec = LiveProposalRecord {
+                    generation,
+                    theory_id: doc.theory.id.clone(),
+                    proposal_sha256: openqg_core::sha256_digest(canonical.as_bytes()),
+                    disqualified: sc.disqualified,
+                    total: sc.total,
+                    distinct_from_baseline: sc.distinct_from_baseline,
+                    doc: serde_json::to_value(&doc).unwrap_or(serde_json::Value::Null),
+                };
+                sink.proposal(&rc_rec);
+                live_proposals.push(rc_rec);
+                let theory = doc.theory.clone();
+                next.push(individual_from_scorecard(
+                    format!("g{generation:04}-reclothe"),
+                    generation,
+                    "reclothe",
+                    vec![best.id.clone()],
+                    theory,
+                    sc,
+                ));
+            }
         }
         fp_by_id = next
             .iter()
@@ -810,6 +898,99 @@ mod tests {
         assert!(
             rich.final_score > bare.final_score,
             "derivations should raise the score"
+        );
+    }
+}
+
+#[cfg(test)]
+mod v6_reclothe_tests {
+    use super::*;
+    use crate::zyal_genome::physics_score::baseline_log_likelihood;
+    use crate::zyal_genome::proposer::{fixture_proposal, score_proposal};
+
+    fn obs() -> Vec<openqg_core::ObservableRecord> {
+        ["bao_dv_z038", "bao_dv_z051", "fsigma8_z038", "fsigma8_z051"]
+            .iter()
+            .enumerate()
+            .map(|(i, id)| openqg_core::ObservableRecord {
+                observable_id: id.to_string(),
+                kind: "bao".into(),
+                value: 10.0 + i as f64,
+                uncertainty: 0.5,
+                unit: "dimensionless".into(),
+                source: None,
+            })
+            .collect()
+    }
+
+    /// Structure × fit: grafting the donor's verified claim graph onto an evolved descendant
+    /// passes the FULL oracle — witnesses refreshed to the descendant's computed truth.
+    #[test]
+    fn reclothing_a_descendant_earns_structure_honestly() {
+        let donor = fixture_proposal();
+        let mut descendant = Theory::baseline_lcdm();
+        descendant.id = "evolved-child".into();
+        descendant.background.w0 = -1.02; // a (costed) evolved drift — changes computed fsigma8
+        let doc = reclothe_candidate(&donor, &descendant);
+        let observables = obs();
+        let sc = score_proposal(
+            &doc,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+        );
+        assert!(
+            !sc.disqualified,
+            "honest graft killed: {:?}",
+            sc.kill_reasons
+        );
+        // Structure survived re-verification (the donor's derivation earns on THIS background).
+        let deriv = sc
+            .components
+            .iter()
+            .find(|c| c.name == "derivation_rigor")
+            .unwrap();
+        assert!(deriv.points > 0.0, "derivation credit re-earned");
+    }
+
+    /// The protection: the same graft WITHOUT the witness refresh is killed by the truth audit
+    /// (stale donor numbers vs the descendant's computed physics = fabrication).
+    #[test]
+    fn a_stale_graft_without_refresh_is_killed() {
+        let donor = fixture_proposal();
+        let mut descendant = Theory::baseline_lcdm();
+        descendant.id = "evolved-child".into();
+        descendant.background.w0 = -1.3; // a big evolved drift — the computed physics moves
+        descendant.background.omega_m = 0.28;
+        // Manual stale graft: donor claims + descendant theory, NO refresh.
+        let mut doc = donor.clone();
+        let mut theory = descendant.clone();
+        let base = Theory::baseline_lcdm();
+        for p in &donor.theory.parameters {
+            if !base.parameters.iter().any(|b| b.symbol == p.symbol) {
+                theory.parameters.push(p.clone());
+            }
+        }
+        doc.theory = theory;
+        let observables = obs();
+        let sc = score_proposal(
+            &doc,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+        );
+        // Either fabrication-killed or novelty-zeroed — the stale numbers can never earn.
+        let nov = sc
+            .components
+            .iter()
+            .find(|c| c.name == "novel_prediction")
+            .map(|c| c.points)
+            .unwrap_or(0.0);
+        assert!(
+            sc.disqualified || nov == 0.0,
+            "stale graft must not earn novelty: dq={}, nov={}",
+            sc.disqualified,
+            nov
         );
     }
 }

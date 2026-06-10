@@ -476,7 +476,9 @@ impl Proposer for JekkoProposer {
     }
 }
 
-/// Preflight: one tiny jekko call to fail fast (clear message) before a multi-hour campaign.
+/// Preflight: a tiny jekko call to fail fast (clear message) before a multi-hour campaign.
+/// Retries through transient empty-output transport blips (the campaign itself tolerates them;
+/// the smoke should not be stricter than the run).
 pub(crate) fn jekko_smoke(timeout_seconds: u64) -> Result<()> {
     let cfg = JekkoConfig {
         timeout_seconds,
@@ -486,21 +488,24 @@ pub(crate) fn jekko_smoke(timeout_seconds: u64) -> Result<()> {
         ..Default::default()
     };
     let caller = default_caller(&cfg);
-    let attempt = caller("Reply with exactly: PONG", 1)?;
-    if attempt.status() != "ok" && attempt.status() != "success" {
-        anyhow::bail!(
-            "jekko smoke failed (status {}): {}",
+    let mut last: String = String::new();
+    for attempt_no in 1..=3u32 {
+        let attempt = caller("Reply with exactly: PONG", attempt_no as usize)?;
+        let ok_status = attempt.status() == "ok" || attempt.status() == "success";
+        if ok_status && attempt.stdout().to_uppercase().contains("PONG") {
+            return Ok(());
+        }
+        last = format!(
+            "status {}: {} ({} bytes stdout)",
             attempt.status(),
-            attempt.error().unwrap_or("no detail")
-        );
-    }
-    if !attempt.stdout().to_uppercase().contains("PONG") {
-        anyhow::bail!(
-            "jekko smoke got an unexpected reply ({} bytes)",
+            attempt.error().unwrap_or("no detail"),
             attempt.stdout().len()
         );
+        if attempt_no < 3 {
+            std::thread::sleep(Duration::from_secs(10));
+        }
     }
-    Ok(())
+    anyhow::bail!("jekko smoke failed after 3 attempts — last: {last}")
 }
 
 #[allow(dead_code)]

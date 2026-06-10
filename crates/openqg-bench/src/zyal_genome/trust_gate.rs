@@ -74,7 +74,12 @@ pub(crate) fn evaluate_trust_gate(
         "no observables loaded from {}",
         observables_path.display()
     );
-    let run = evolve_population(config, &observables, None);
+    let run = evolve_population(
+        config,
+        &observables,
+        None,
+        &mut super::ledger_sink::NullSink,
+    );
     let progress_ok = population_progress_ok(&run.progress);
     let champion_non_root = run
         .champions
@@ -82,7 +87,12 @@ pub(crate) fn evaluate_trust_gate(
         .filter(|c| c.generation > 1)
         .all(|c| !c.parent_ids.is_empty());
 
-    let run2 = evolve_population(config, &observables, None);
+    let run2 = evolve_population(
+        config,
+        &observables,
+        None,
+        &mut super::ledger_sink::NullSink,
+    );
     let evolution_deterministic = run.best.as_ref().map(|b| &b.fingerprint)
         == run2.best.as_ref().map(|b| &b.fingerprint)
         && run.progress == run2.progress;

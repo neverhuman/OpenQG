@@ -233,6 +233,22 @@ pub enum GenomeCommand {
         /// (the rest evolve deterministically). Bounds the live-call budget.
         #[arg(long, default_value_t = 40)]
         live_every: usize,
+        /// V5: inject jekko (free jnoccio API) proposals — the high-volume workhorse with
+        /// repair loops + best-of-K sampling. Requires `rtk jekko` available.
+        #[arg(long)]
+        with_jekko_proposer: bool,
+        /// With --with-jekko-proposer: a jekko slot on gen 1 and every Nth generation.
+        #[arg(long, default_value_t = 40)]
+        jekko_every: usize,
+        /// Best-of-K parallel jekko samples per slot.
+        #[arg(long, default_value_t = 4)]
+        jekko_samples: usize,
+        /// Repair budget per sample (parse repairs + at most one oracle repair).
+        #[arg(long, default_value_t = 2)]
+        jekko_repairs: usize,
+        /// Per-call jekko timeout.
+        #[arg(long, default_value_t = 300)]
+        jekko_timeout_seconds: u64,
     },
     /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
     /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
@@ -277,6 +293,22 @@ pub enum GenomeCommand {
         /// (the rest evolve deterministically). Bounds the live-call budget.
         #[arg(long, default_value_t = 40)]
         live_every: usize,
+        /// V5: inject jekko (free jnoccio API) proposals — the high-volume workhorse with
+        /// repair loops + best-of-K sampling. Requires `rtk jekko` available.
+        #[arg(long)]
+        with_jekko_proposer: bool,
+        /// With --with-jekko-proposer: a jekko slot on gen 1 and every Nth generation.
+        #[arg(long, default_value_t = 40)]
+        jekko_every: usize,
+        /// Best-of-K parallel jekko samples per slot.
+        #[arg(long, default_value_t = 4)]
+        jekko_samples: usize,
+        /// Repair budget per sample (parse repairs + at most one oracle repair).
+        #[arg(long, default_value_t = 2)]
+        jekko_repairs: usize,
+        /// Per-call jekko timeout.
+        #[arg(long, default_value_t = 300)]
+        jekko_timeout_seconds: u64,
     },
     /// V4 M6b: one LIVE jailgun proposal (ChatGPT via MCP) adjudicated by the deterministic oracle.
     /// Requires the jailgun server up. The LLM proposes; the oracle disposes.
@@ -381,6 +413,11 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             with_fixture_proposer,
             with_live_proposer,
             live_every,
+            with_jekko_proposer,
+            jekko_every,
+            jekko_samples,
+            jekko_repairs,
+            jekko_timeout_seconds,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -392,8 +429,35 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             let live = JailgunProposer {
                 timeout_seconds: 540,
             };
+            let jekko = if with_jekko_proposer {
+                jekko_smoke(120)
+                    .context("jekko preflight smoke failed — is `rtk jekko` available?")?;
+                let obs_loaded = load_observables(&observables)?;
+                let baseline = baseline_log_likelihood(&obs_loaded);
+                let extra = build_proposer_extra_sections(&obs_loaded, &output_root);
+                Some(JekkoProposer::new(
+                    JekkoConfig {
+                        timeout_seconds: jekko_timeout_seconds,
+                        samples: jekko_samples,
+                        repairs: jekko_repairs,
+                        ..Default::default()
+                    },
+                    obs_loaded,
+                    baseline,
+                    extra,
+                ))
+            } else {
+                None
+            };
             let budgeted;
-            let proposer: Option<&dyn Proposer> = if with_live_proposer {
+            let composite;
+            let proposer: Option<&dyn Proposer> = if let Some(j) = jekko.as_ref() {
+                composite = CompositeProposer::new(
+                    Some((j as &dyn Proposer, jekko_every)),
+                    with_live_proposer.then_some((&live as &dyn Proposer, live_every)),
+                );
+                Some(&composite)
+            } else if with_live_proposer {
                 budgeted = BudgetedProposer::new(&live, live_every);
                 Some(&budgeted)
             } else if with_fixture_proposer {
@@ -444,6 +508,11 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             with_fixture_proposer,
             with_live_proposer,
             live_every,
+            with_jekko_proposer,
+            jekko_every,
+            jekko_samples,
+            jekko_repairs,
+            jekko_timeout_seconds,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("whitepaper-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -455,8 +524,35 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             let live = JailgunProposer {
                 timeout_seconds: 540,
             };
+            let jekko = if with_jekko_proposer {
+                jekko_smoke(120)
+                    .context("jekko preflight smoke failed — is `rtk jekko` available?")?;
+                let obs_loaded = load_observables(&observables)?;
+                let baseline = baseline_log_likelihood(&obs_loaded);
+                let extra = build_proposer_extra_sections(&obs_loaded, &output_root);
+                Some(JekkoProposer::new(
+                    JekkoConfig {
+                        timeout_seconds: jekko_timeout_seconds,
+                        samples: jekko_samples,
+                        repairs: jekko_repairs,
+                        ..Default::default()
+                    },
+                    obs_loaded,
+                    baseline,
+                    extra,
+                ))
+            } else {
+                None
+            };
             let budgeted;
-            let proposer: Option<&dyn Proposer> = if with_live_proposer {
+            let composite;
+            let proposer: Option<&dyn Proposer> = if let Some(j) = jekko.as_ref() {
+                composite = CompositeProposer::new(
+                    Some((j as &dyn Proposer, jekko_every)),
+                    with_live_proposer.then_some((&live as &dyn Proposer, live_every)),
+                );
+                Some(&composite)
+            } else if with_live_proposer {
                 budgeted = BudgetedProposer::new(&live, live_every);
                 Some(&budgeted)
             } else if with_fixture_proposer {
@@ -761,6 +857,9 @@ impl LiveAttempt {
     pub(crate) fn error(&self) -> Option<&str> {
         self.error.as_deref()
     }
+    pub(crate) fn elapsed_seconds(&self) -> f64 {
+        self.elapsed_seconds
+    }
     pub(crate) fn metadata(&self) -> &Value {
         &self.metadata
     }
@@ -985,6 +1084,10 @@ mod proposer_jailgun;
 pub(crate) use proposer_jailgun::*;
 mod proposer_memory;
 pub(crate) use proposer_memory::*;
+mod ledger_sink;
+pub(crate) use ledger_sink::*;
+mod proposer_jekko;
+pub(crate) use proposer_jekko::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;
@@ -1015,6 +1118,17 @@ mod util;
 pub(crate) use util::*;
 mod validate;
 pub(crate) use validate::*;
+
+/// Assemble the V5 prompt extras: the computed DATA BRIEF (real pulls vs the ΛCDM baseline) plus
+/// the cross-run MEMORY section (top scorers, kill histogram, DO/DON'T) from prior run ledgers.
+pub(crate) fn build_proposer_extra_sections(
+    observables: &[openqg_core::ObservableRecord],
+    output_root: &Path,
+) -> String {
+    let brief = build_data_brief(observables);
+    let memory = render_memory_section(&assemble_memory(&output_root.join("runs"), &[]), 1536);
+    format!("\n{brief}\n\n{memory}\n")
+}
 
 #[cfg(test)]
 mod tests;

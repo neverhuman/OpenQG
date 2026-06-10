@@ -82,7 +82,10 @@ pub(crate) fn generate_whitepaper(
     let n_obs = observables.len();
     let used_proposer = proposer.is_some();
 
-    let run = evolve_population(&config, &observables, proposer);
+    let run_dir_early = output_root.join("runs").join(run_id);
+    let mut sink = super::ledger_sink::RunDirSink::create(&run_dir_early, 25)?;
+    let run = evolve_population(&config, &observables, proposer, &mut sink);
+    drop(sink);
     let champion: Individual = run
         .best
         .clone()
@@ -246,29 +249,7 @@ pub(crate) fn generate_whitepaper(
         .with_context(|| format!("create run dir {}", run_dir.display()))?;
     fs::write(run_dir.join("white-paper.md"), &md)?;
 
-    // Audit trail: the content-pinned proposal ledger (makes a live run replayable without the LLM),
-    // the champion's materialized evidence (so the cited derivations actually exist on disk), and the
-    // per-generation progress ledger.
-    {
-        use std::io::Write as _;
-        let mut led = fs::File::create(run_dir.join("proposal-ledger.jsonl"))?;
-        for rec in &run.live_proposals {
-            writeln!(led, "{}", serde_json::to_string(rec)?)?;
-        }
-        let mut pl = fs::File::create(run_dir.join("progress-ledger.jsonl"))?;
-        for g in &run.progress {
-            writeln!(
-                pl,
-                "{}",
-                json!({
-                    "generation": g.generation,
-                    "new_fingerprints": g.new_fingerprints,
-                    "reused_fingerprints": g.reused_fingerprints,
-                    "promote_lineage_only": g.promote_lineage_only,
-                })
-            )?;
-        }
-    }
+    // (proposal-ledger.jsonl and progress-ledger.jsonl are STREAMED by the RunDirSink above.)
     // Materialize the champion's cited evidence to disk (path-hygiene: relative, no `..`).
     if let Some(champ) = run
         .live_proposals

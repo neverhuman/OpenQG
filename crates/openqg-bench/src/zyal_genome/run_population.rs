@@ -72,23 +72,15 @@ pub(crate) fn run_population(
         observables_path.display()
     );
 
-    let run = evolve_population(&config, &observables, proposer);
+    let run_dir = output_root.join("runs").join(run_id);
+    let mut sink = super::ledger_sink::RunDirSink::create(&run_dir, 25)?;
+    let run = evolve_population(&config, &observables, proposer, &mut sink);
 
     let run_dir = output_root.join("runs").join(run_id);
     fs::create_dir_all(&run_dir)
         .with_context(|| format!("create run dir {}", run_dir.display()))?;
 
-    // Progress ledger — one line per generation.
-    let mut pl = fs::File::create(run_dir.join("progress-ledger.jsonl"))?;
-    for g in &run.progress {
-        writeln!(pl, "{}", serde_json::to_string(&progress_value(g))?)?;
-    }
-
-    // Proposal ledger — content-pinned audit/replay trail of every proposal that entered the run.
-    let mut led = fs::File::create(run_dir.join("proposal-ledger.jsonl"))?;
-    for rec in &run.live_proposals {
-        writeln!(led, "{}", serde_json::to_string(rec)?)?;
-    }
+    // (progress-ledger.jsonl and proposal-ledger.jsonl are STREAMED by the RunDirSink above.)
 
     // Champion.
     if let Some(best) = &run.best {

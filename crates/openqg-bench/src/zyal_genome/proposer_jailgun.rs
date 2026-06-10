@@ -94,6 +94,21 @@ Re-deriving definitions (H0=100h, flat closure) is NOT distinctness and earns NO
 \"min_detectable\":<experiment resolution>,\"falsifier\":\"which measurement refutes it\"}} where \
 |predicted − baseline| >= min_detectable. Tying ΛCDM on the data earns 0 — only a real, testable \
 deviation scores. Wire its claim id into a physics claim's `obligations`.\n\
+10. THE ENGINE COMPUTES THE TRUTH (V5). Your certified modification is TRUTH-BOUND into the \
+background the model integrates, and your `novel.predicted`/`baseline` are honesty attestations \
+checked against the MACHINE-COMPUTED values within your own `min_detectable` — a fabricated number \
+demotes novelty to ZERO. Your data fit is then computed from the bound physics: the modification \
+you certify is the modification you are scored on.\n\
+11. CONSISTENCY IS A KILL GATE. Do NOT set background MG fields (`mu0`, `ndgp_omega_rc`, `fr_*`, \
+`mg_family`) without a matching verified certificate (UnexplainedModification = kill). Do NOT \
+declare values that conflict with what your certificate derives (ConflictingModification = kill). \
+A certified modification the engine cannot compute (e.g. ghost-branch beta <= 1, or a regime flag \
+with no amplitude) is UnimplementedModification = kill.\n\
+12. AIM AT THE TENSIONS. The growth data (fσ8, S8) sit LOW relative to Planck-ΛCDM — growth must \
+be SUPPRESSED to fit better. `geff_over_g > 1` (nDGP/f(R)/coupled-DE) ENHANCES growth and worsens \
+the fit. The registered suppressed-growth direction is `planck_mu0_geff` with NEGATIVE `mu0` \
+(e.g. mu0 = -0.1 ⇒ G_eff/G = 0.9). A theory that genuinely improves the combined fit earns real \
+data credit; see the DATA BRIEF below for the actual pulls.\n\
 \n\
 AVAILABLE RELATIONS — the ONLY relation names the oracle can recompute; use these EXACT names and \
 supply the exact named inputs (a certificate's `expected` is recomputed from `inputs` and must match):\n\

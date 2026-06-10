@@ -102,11 +102,30 @@ pub(crate) fn parse_and_score(json: &str, observables: &[ObservableRecord]) -> R
 }
 
 /// A source of proposals. The deterministic [`FixtureProposer`] is used in tests and offline; the
-/// live jailgun/jnoccio adapter (which performs the MCP round-trip and returns the JSON) implements
-/// the same trait, so the engine consumes either identically.
+/// live jailgun/jekko adapters implement the same trait, so the engine consumes either identically.
 pub(crate) trait Proposer {
     fn propose(&self) -> Result<ProposalDoc>;
+
+    /// V5 observability: drain the per-call attempt audit chain accumulated since the last
+    /// `propose()` (every LLM call, repair, parse failure — nothing is ever swallowed). Default:
+    /// no instrumentation.
+    fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
+        Vec::new()
+    }
 }
+
+/// Typed off-generation skip: distinguishes "no proposal this generation BY DESIGN" (a budget
+/// off-gen) from a real failure — the engine ledgers failures but not skips.
+#[derive(Debug)]
+pub(crate) struct ProposeSkip;
+
+impl std::fmt::Display for ProposeSkip {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "proposer skip (off-generation)")
+    }
+}
+
+impl std::error::Error for ProposeSkip {}
 
 /// A deterministic proposer that emits a derivation-rich candidate: an nDGP-style theory whose
 /// effective-gravity parameter is value-certified (`ndgp_geff_over_g`), with a verifying
@@ -149,10 +168,71 @@ impl Proposer for BudgetedProposer<'_> {
         if n == 1 || n % self.every == 0 {
             self.inner.propose()
         } else {
-            anyhow::bail!(
-                "budgeted proposer: skip generation {n} (live every {})",
-                self.every
-            )
+            Err(anyhow::Error::new(ProposeSkip))
+        }
+    }
+
+    fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
+        self.inner.drain_attempts()
+    }
+}
+
+/// Routes per generation across the two live backends: jailgun (billable browser-ChatGPT,
+/// diversity) every `jailgun_every` takes precedence; jekko (free jnoccio API, the workhorse)
+/// fires on generation 1 and every `jekko_every`; all other generations are typed skips.
+pub(crate) struct CompositeProposer<'a> {
+    jekko: Option<(&'a dyn Proposer, usize)>,
+    jailgun: Option<(&'a dyn Proposer, usize)>,
+    generation: std::cell::Cell<usize>,
+    last_fired: std::cell::Cell<u8>, // 0 none / 1 jekko / 2 jailgun
+}
+
+impl<'a> CompositeProposer<'a> {
+    pub(crate) fn new(
+        jekko: Option<(&'a dyn Proposer, usize)>,
+        jailgun: Option<(&'a dyn Proposer, usize)>,
+    ) -> Self {
+        Self {
+            jekko: jekko.map(|(p, g)| (p, g.max(1))),
+            jailgun: jailgun.map(|(p, j)| (p, j.max(1))),
+            generation: std::cell::Cell::new(0),
+            last_fired: std::cell::Cell::new(0),
+        }
+    }
+}
+
+impl Proposer for CompositeProposer<'_> {
+    fn propose(&self) -> Result<ProposalDoc> {
+        // The engine calls propose() exactly once per generation.
+        let g = self.generation.get() + 1;
+        self.generation.set(g);
+        if let Some((p, j)) = self.jailgun {
+            if g > 1 && g % j == 0 {
+                self.last_fired.set(2);
+                return p.propose();
+            }
+        }
+        if let Some((p, gg)) = self.jekko {
+            if g == 1 || g % gg == 0 {
+                self.last_fired.set(1);
+                return p.propose();
+            }
+        }
+        self.last_fired.set(0);
+        Err(anyhow::Error::new(ProposeSkip))
+    }
+
+    fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
+        match self.last_fired.get() {
+            1 => self
+                .jekko
+                .map(|(p, _)| p.drain_attempts())
+                .unwrap_or_default(),
+            2 => self
+                .jailgun
+                .map(|(p, _)| p.drain_attempts())
+                .unwrap_or_default(),
+            _ => Vec::new(),
         }
     }
 }

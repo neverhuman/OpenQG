@@ -110,6 +110,48 @@ impl Default for EvolveConfig {
     }
 }
 
+/// V5 observability: one LLM call/repair attempt as it happened — success, parse failure, process
+/// failure, or oracle kill. Streamed to `proposal-attempts.jsonl`; **nothing is ever swallowed**.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct ProposalAttemptRecord {
+    pub record_kind: &'static str, // "proposal_attempt"
+    pub generation: usize,
+    pub source: String,              // "jekko" | "jailgun" | "fixture" | "engine"
+    pub sample_index: usize,         // 0..K for best-of-K sampling
+    pub attempt_index: usize,        // 0 = initial call, 1.. = repairs
+    pub repair_kind: Option<String>, // None | "parse" | "oracle"
+    pub outcome: String, // "ok" | "parse_error" | "llm_error" | "killed" | "engine_error"
+    pub error: Option<String>,
+    pub kill_reasons: Vec<String>,
+    pub total: Option<f64>,
+    pub raw_sha256: String,
+    pub raw_len: usize,
+    pub elapsed_seconds: f64,
+    pub winner: bool,
+}
+
+impl ProposalAttemptRecord {
+    /// A propose()-level failure recorded by the engine itself (no per-call instrumentation).
+    pub(crate) fn engine_failure(generation: usize, error: &anyhow::Error) -> Self {
+        Self {
+            record_kind: "proposal_attempt",
+            generation,
+            source: "engine".into(),
+            sample_index: 0,
+            attempt_index: 0,
+            repair_kind: None,
+            outcome: "engine_error".into(),
+            error: Some(format!("{error:#}")),
+            kill_reasons: Vec::new(),
+            total: None,
+            raw_sha256: String::new(),
+            raw_len: 0,
+            elapsed_seconds: 0.0,
+            winner: false,
+        }
+    }
+}
+
 /// One proposal (live LLM or fixture) as it entered the run — the audit + replay record. Storing the
 /// full [`super::proposer::ProposalDoc`] (`doc`) makes the run replayable without re-calling the LLM;
 /// `proposal_sha256` content-pins it.
@@ -200,8 +242,26 @@ fn proposal_individual(
     generation: usize,
     observables: &[ObservableRecord],
     baseline_ll: f64,
+    sink: &mut dyn super::ledger_sink::LedgerSink,
 ) -> Option<(Individual, LiveProposalRecord)> {
-    let doc = proposer?.propose().ok()?;
+    let proposer = proposer?;
+    let result = proposer.propose();
+    // V5: drain the per-call attempt audit chain and stream it — every LLM call, repair, and
+    // failure is on record regardless of the outcome.
+    for mut rec in proposer.drain_attempts() {
+        rec.generation = generation;
+        sink.attempt(&rec);
+    }
+    let doc = match result {
+        Ok(doc) => doc,
+        // A budget off-generation is BY DESIGN — silent, not a failure.
+        Err(e) if e.downcast_ref::<super::proposer::ProposeSkip>().is_some() => return None,
+        // A real failure is NEVER swallowed: ledger it, then continue deterministically.
+        Err(e) => {
+            sink.attempt(&ProposalAttemptRecord::engine_failure(generation, &e));
+            return None;
+        }
+    };
     let sc = score_proposal(&doc, observables, baseline_ll);
     // Audit/replay record: the full proposal + its content hash, before we drop the doc.
     let canonical = serde_json::to_string(&doc).unwrap_or_default();
@@ -391,6 +451,7 @@ pub(crate) fn evolve_population(
     config: &EvolveConfig,
     observables: &[ObservableRecord],
     proposer: Option<&dyn Proposer>,
+    sink: &mut dyn super::ledger_sink::LedgerSink,
 ) -> EvolutionRun {
     let baseline_ll = baseline_log_likelihood(observables);
     let mut rng = Rng::new(config.seed);
@@ -401,8 +462,9 @@ pub(crate) fn evolve_population(
 
     // Generation 1 — seed (+ optional proposal candidate).
     let mut pop = seed_population(config, observables, baseline_ll, &mut rng);
-    if let Some((ind, rec)) = proposal_individual(proposer, 1, observables, baseline_ll) {
+    if let Some((ind, rec)) = proposal_individual(proposer, 1, observables, baseline_ll, sink) {
         pop.push(ind);
+        sink.proposal(&rec);
         live_proposals.push(rec);
     }
     let mut fp_by_id: std::collections::BTreeMap<String, String> = pop
@@ -410,6 +472,11 @@ pub(crate) fn evolve_population(
         .map(|i| (i.id.clone(), i.fingerprint.clone()))
         .collect();
     record_progress(&pop, 1, &mut seen, &mut progress, &mut champions, &fp_by_id);
+    if let Some(g) = progress.last() {
+        sink.progress(g);
+    }
+    let mut best_so_far: Option<Individual> = champions.last().cloned();
+    sink.champion_checkpoint(1, best_so_far.as_ref());
 
     // Generations 2..N — genuine reproduction.
     for generation in 2..=config.max_generations {
@@ -429,9 +496,10 @@ pub(crate) fn evolve_population(
             ));
         }
         if let Some((ind, rec)) =
-            proposal_individual(proposer, generation, observables, baseline_ll)
+            proposal_individual(proposer, generation, observables, baseline_ll, sink)
         {
             next.push(ind);
+            sink.proposal(&rec);
             live_proposals.push(rec);
         }
         fp_by_id = next
@@ -452,6 +520,19 @@ pub(crate) fn evolve_population(
             &mut champions,
             &fp_by_id,
         );
+        if let Some(g) = progress.last() {
+            sink.progress(g);
+        }
+        if let Some(c) = champions.last() {
+            let better = best_so_far
+                .as_ref()
+                .map(|b| !c.disqualified && c.final_score > b.final_score)
+                .unwrap_or(!c.disqualified);
+            if better {
+                best_so_far = Some(c.clone());
+            }
+        }
+        sink.champion_checkpoint(generation, best_so_far.as_ref());
         pop = next;
     }
 
@@ -550,7 +631,7 @@ mod tests {
             max_generations: 6,
             seed: 42,
         };
-        let run = evolve_population(&cfg, &obs(), None);
+        let run = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink);
         assert_eq!(run.progress.len(), 6);
         // The core anti-collapse guarantee:
         for g in run.progress.iter().filter(|g| g.generation > 1) {
@@ -583,8 +664,8 @@ mod tests {
             max_generations: 4,
             seed: 7,
         };
-        let a = evolve_population(&cfg, &obs(), None);
-        let b = evolve_population(&cfg, &obs(), None);
+        let a = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink);
+        let b = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink);
         assert_eq!(a.progress, b.progress);
         assert_eq!(
             a.best.map(|x| x.fingerprint),
@@ -635,7 +716,9 @@ mod tests {
             seed: 99,
         };
         // Without a proposer the champion is a bare parameter-fit: derivation_rigor == 0.
-        let bare = evolve_population(&cfg, &obs(), None).best.unwrap();
+        let bare = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink)
+            .best
+            .unwrap();
         let bare_rigor = bare
             .scorecard
             .components
@@ -646,9 +729,14 @@ mod tests {
         assert_eq!(bare_rigor, 0.0, "pure evolution earns no derivation rigor");
 
         // With the proposer, the champion carries verified derivations + unification.
-        let rich = evolve_population(&cfg, &obs(), Some(&FixtureProposer))
-            .best
-            .expect("a champion");
+        let rich = evolve_population(
+            &cfg,
+            &obs(),
+            Some(&FixtureProposer),
+            &mut super::super::ledger_sink::NullSink,
+        )
+        .best
+        .expect("a champion");
         let pts = |n: &str| {
             rich.scorecard
                 .components

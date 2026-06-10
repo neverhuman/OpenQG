@@ -23,6 +23,15 @@ const SCREENING_REQUIRED_SCALE: f64 = 1e-3;
 /// A reason a theory was vetoed. `Vec<VetoReason>` empty ⇒ the theory passes the cascade.
 #[derive(Debug, Clone, PartialEq)]
 pub enum VetoReason {
+    /// V6: a novel-prediction witness declared numbers more than 3× the engine-clamped honesty
+    /// tolerance away from the machine-computed truth — fabrication, not rounding. A kill.
+    FabricatedNovelPrediction {
+        claim_id: String,
+        observable: String,
+        declared: f64,
+        computed: f64,
+        tolerance: f64,
+    },
     /// A Lagrangian-density term is not mass-dimension 4 (action not dimensionless).
     DimensionalInhomogeneity { term: String, mass_dimension: i32 },
     /// A term carries uncontracted Lorentz indices (not a scalar under the Lorentz group).

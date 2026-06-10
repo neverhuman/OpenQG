@@ -463,6 +463,22 @@ pub fn bind_modified_background(theory: &Theory) -> BindingOutcome {
     }
 }
 
+/// V6 per-witness verdict — scoring reads THIS, not ad-hoc Option flags.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NoveltyAuditVerdict {
+    /// Computed, declared numbers match the engine truth, and the prediction is distinct.
+    ComputedHonestDistinct,
+    /// Computed and honest, but the bound background predicts no detectable departure.
+    ComputedHonestNotDistinct,
+    /// Computed and the declared numbers are wrong beyond tolerance (≤3×: demoted to 0 novelty).
+    ComputedDishonest,
+    /// Computed and the declared numbers are FABRICATED (>3× tolerance): a kill, not a demotion.
+    Fabricated,
+    /// The observable is outside the model grammar — earns nothing.
+    Uncomputable,
+}
+
 /// One novel-prediction witness checked against the machine-computed truth: the model's prediction
 /// for the *bound* theory vs the ΛCDM baseline. Distinctness and honesty are computed, not declared.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -479,8 +495,11 @@ pub struct NovelPredictionAudit {
     pub computed_distinct: Option<bool>,
     /// Declared predicted AND baseline within `tolerance` of the computed values (None ⇒ uncomputable).
     pub honest: Option<bool>,
-    /// Honesty tolerance — the witness's own claimed experimental resolution.
+    /// Honesty tolerance — engine-clamped: min(min_detectable, 1% of the computed value),
+    /// floored at 1e-9. The witness no longer controls how easy lying is.
     pub tolerance: f64,
+    /// V6: the single verdict scoring reads.
+    pub verdict: NoveltyAuditVerdict,
 }
 
 /// Audit every NovelPrediction obligation against the forward model: predictions are computed for
@@ -513,14 +532,35 @@ pub fn audit_novel_predictions(
             }
             None => (None, None),
         };
-        let tolerance = w.min_detectable;
-        let (computed_distinct, honest) = match (computed_predicted, computed_baseline) {
-            (Some(cp), Some(cb)) => (
-                Some((cp - cb).abs() >= w.min_detectable),
-                Some((w.predicted - cp).abs() <= tolerance && (w.baseline - cb).abs() <= tolerance),
-            ),
-            _ => (None, None),
-        };
+        // V6: the honesty tolerance is ENGINE-clamped — the witness's min_detectable only ever
+        // tightens it relative to a 1% floor of the computed magnitude. Inflating min_detectable
+        // to make lying safe (review-06's cheat 4) no longer works.
+        let sigma_floor = |cp: f64| (0.01 * cp.abs()).max(1e-9);
+        let (computed_distinct, honest, tolerance, verdict) =
+            match (computed_predicted, computed_baseline) {
+                (Some(cp), Some(cb)) => {
+                    let tol = w.min_detectable.min(sigma_floor(cp)).max(1e-9);
+                    let distinct = (cp - cb).abs() >= w.min_detectable;
+                    let err = (w.predicted - cp).abs().max((w.baseline - cb).abs());
+                    let honest = err <= tol;
+                    let verdict = if err > 3.0 * tol {
+                        NoveltyAuditVerdict::Fabricated
+                    } else if !honest {
+                        NoveltyAuditVerdict::ComputedDishonest
+                    } else if distinct {
+                        NoveltyAuditVerdict::ComputedHonestDistinct
+                    } else {
+                        NoveltyAuditVerdict::ComputedHonestNotDistinct
+                    };
+                    (Some(distinct), Some(honest), tol, verdict)
+                }
+                _ => (
+                    None,
+                    None,
+                    w.min_detectable,
+                    NoveltyAuditVerdict::Uncomputable,
+                ),
+            };
         audits.push(NovelPredictionAudit {
             claim_id: o.claim_id.clone(),
             observable_raw: w.observable.clone(),
@@ -533,6 +573,7 @@ pub fn audit_novel_predictions(
             computed_distinct,
             honest,
             tolerance,
+            verdict,
         });
     }
     audits

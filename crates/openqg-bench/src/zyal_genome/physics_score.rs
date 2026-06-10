@@ -511,3 +511,107 @@ mod v6_covariance_tests {
         println!("delta_lnz: diagonal {dlnz_diag:.2} -> covariance {dlnz_cov:.2}");
     }
 }
+
+#[cfg(test)]
+mod v6_novelty_tests {
+    use super::*;
+    use crate::zyal_genome::theory_population::score_theory;
+    use openqg_core::theory::{DerivationObligation, DerivationObligationKind};
+    use openqg_core::{NovelPredictionWitness, Theory};
+
+    fn obs() -> Vec<ObservableRecord> {
+        ["fsigma8@0.51", "s8", "h0"]
+            .iter()
+            .enumerate()
+            .map(|(i, id)| ObservableRecord {
+                observable_id: id.to_string(),
+                kind: "growth".into(),
+                value: 0.46 + i as f64,
+                uncertainty: 0.03,
+                unit: "dimensionless".into(),
+                source: None,
+            })
+            .collect()
+    }
+
+    /// V6 P4: the α-jitter half-novelty faucet is closed — distinct-with-no-witness earns ZERO.
+    /// (The V5 champions banked 10 free points exactly here.)
+    #[test]
+    fn alpha_jitter_without_witness_earns_zero_novelty() {
+        let mut t = Theory::baseline_lcdm();
+        t.id = "alpha-jitter".into();
+        t.alpha.alpha_m = 0.05; // distinct via modifies_gravity
+        t.screening = Some("vainshtein".into());
+        t.screening_recovery = Some(0.999_999); // quantified — passes the unified gate
+        let observables = obs();
+        let sc = score_theory(&t, &observables, &[], baseline_log_likelihood(&observables));
+        let nov = sc
+            .components
+            .iter()
+            .find(|c| c.name == "novel_prediction")
+            .unwrap();
+        assert_eq!(
+            nov.points, 0.0,
+            "no witness => no novelty, got {}",
+            nov.points
+        );
+    }
+
+    /// V6 P4: declaring numbers >3× the engine-clamped tolerance from the computed truth is a
+    /// FABRICATION KILL, not a demotion.
+    #[test]
+    fn fabricated_witness_values_are_a_kill() {
+        let mut t = Theory::baseline_lcdm();
+        t.id = "fabricator".into();
+        t.background.mu0 = -0.1; // genuinely suppressed growth...
+        t.parameters.push(openqg_core::Parameter {
+            symbol: "geff_today".into(),
+            value: 0.9,
+            physical_meaning: "G_eff/G at a=1".into(),
+            provenance: openqg_core::Provenance::derived_certified(
+                "Planck 2018 mu0 parametrization",
+                openqg_core::DerivedCertificate {
+                    relation: "planck_mu0_geff".into(),
+                    inputs: vec![("mu0".into(), -0.1)],
+                    expected: 0.9,
+                    tolerance: 1e-9,
+                },
+            ),
+        }); // ...properly certified — so the FABRICATED WITNESS is what kills, nothing else
+        let obligations = vec![DerivationObligation {
+            claim_id: "fab-claim".into(),
+            kind: DerivationObligationKind::NovelPrediction,
+            detail: "fabricated suppression".into(),
+            certificate: None,
+            limit: None,
+            citation: None,
+            novel: Some(NovelPredictionWitness {
+                observable: "fsigma8@0.51".into(),
+                predicted: 0.20, // wildly false — the model computes ~0.44 for mu0=-0.1
+                baseline: 0.47,
+                min_detectable: 0.01,
+                falsifier: "DESI Y5 fsigma8".into(),
+            }),
+        }];
+        let observables = obs();
+        let sc = score_candidate(
+            &t,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+            &openqg_core::ClaimGraph { claims: vec![] },
+            &obligations,
+            &openqg_core::UnificationClaim { shared: vec![] },
+            &openqg_core::MapEvidenceStore::default(),
+            "schema.v1",
+        );
+        assert!(sc.disqualified, "fabrication must DQ");
+        assert!(
+            sc.kill_reasons
+                .iter()
+                .any(|k| k.contains("fabricated novel prediction")),
+            "kill reasons: {:?}",
+            sc.kill_reasons
+        );
+    }
+}

@@ -352,6 +352,24 @@ pub fn score(
     // so it is reported even on disqualified candidates.
     let physically_distinct = distinct_from_lcdm(theory) || binding_outcome.report.bound_non_gr;
 
+    // V6: audit the novel-prediction witnesses BEFORE the gate — fabrication (>3× the
+    // engine-clamped tolerance) is itself a kill, and audits are reported even on DQ.
+    let prediction_audits =
+        super::binding::audit_novel_predictions(&binding_outcome.theory.background, obligations);
+    for a in &prediction_audits {
+        if a.verdict == super::binding::NoveltyAuditVerdict::Fabricated {
+            kill.push(format!(
+                "fabricated novel prediction: claim {} declared {}={} but the model computes {} \
+                 (>3x the engine tolerance {})",
+                a.claim_id,
+                a.observable_raw,
+                a.declared_predicted,
+                a.computed_predicted.unwrap_or(f64::NAN),
+                a.tolerance,
+            ));
+        }
+    }
+
     if !kill.is_empty() {
         return ScorecardV4 {
             theory_id: theory.id.clone(),
@@ -365,7 +383,7 @@ pub fn score(
             free_dof: free,
             distinct_from_baseline: physically_distinct,
             binding: binding_outcome.report,
-            prediction_audits: Vec::new(),
+            prediction_audits,
             components: Vec::new(),
             total: 0.0,
             total_band: (0.0, 0.0),
@@ -396,24 +414,19 @@ pub fn score(
     //    own claimed resolution). A rediscovery earns 0; an unverifiable falsifier (an observable
     //    the model cannot predict) earns the old half-credit tier; a computable-but-wrong or
     //    dishonest declaration is demoted to 0 and flagged in the audits.
-    let prediction_audits =
-        super::binding::audit_novel_predictions(&binding_outcome.theory.background, obligations);
+    // V6 novelty: verdict-driven, no free half-credit. No witness ⇒ 0 (the V5 α-jitter faucet);
+    // uncomputable-only witnesses ⇒ 0 (the model can't check it ⇒ it earns nothing); full credit
+    // ONLY for a computed, honest, distinct prediction.
+    use super::binding::NoveltyAuditVerdict as NV;
     let nov_raw = if !physically_distinct {
         0.0
-    } else if prediction_audits.is_empty() {
-        0.5 // distinct, but no falsifiable prediction declared
     } else if prediction_audits
         .iter()
-        .any(|a| a.computed_distinct == Some(true) && a.honest == Some(true))
+        .any(|a| a.verdict == NV::ComputedHonestDistinct)
     {
         1.0
-    } else if prediction_audits
-        .iter()
-        .all(|a| a.computed_distinct.is_none())
-    {
-        0.5 // distinct, witnesses present but unverifiable by the background model
     } else {
-        0.0 // computable, but the prediction is not distinct or not honest — flagged
+        0.0
     };
     let c_nov = component("novel_prediction", nov_raw, nov_raw, nov_raw);
 

@@ -16,7 +16,8 @@ use serde_json::{json, Value};
 
 use openqg_core::ObservableRecord;
 
-use super::proposer::Proposer;
+use super::physics_score::baseline_log_likelihood;
+use super::proposer::{score_proposal, ProposalDoc, Proposer};
 use super::theory_population::{
     evolve_population, population_progress_ok, EvolveConfig, GenerationProgress, Individual,
 };
@@ -83,6 +84,12 @@ pub(crate) fn run_population(
         writeln!(pl, "{}", serde_json::to_string(&progress_value(g))?)?;
     }
 
+    // Proposal ledger — content-pinned audit/replay trail of every proposal that entered the run.
+    let mut led = fs::File::create(run_dir.join("proposal-ledger.jsonl"))?;
+    for rec in &run.live_proposals {
+        writeln!(led, "{}", serde_json::to_string(rec)?)?;
+    }
+
     // Champion.
     if let Some(best) = &run.best {
         fs::write(
@@ -135,6 +142,44 @@ pub(crate) fn run_population(
     )?;
 
     Ok(run_dir)
+}
+
+/// Replay a proposal ledger **without the LLM**: deserialize each recorded `ProposalDoc` and re-score
+/// it deterministically, confirming it reproduces the recorded total. This is what makes the live
+/// run's "replayable" claim true — the proposals are pinned in the ledger, so the verdict is
+/// reproducible from artifacts alone. Returns `(checked, mismatches)`.
+pub(crate) fn replay_ledger(ledger_path: &Path, observables_path: &Path) -> Result<(usize, usize)> {
+    let observables = load_observables(observables_path)?;
+    anyhow::ensure!(!observables.is_empty(), "no observables loaded");
+    let baseline_ll = baseline_log_likelihood(&observables);
+    let text = fs::read_to_string(ledger_path)
+        .with_context(|| format!("read ledger {}", ledger_path.display()))?;
+    let mut checked = 0usize;
+    let mut mismatches = 0usize;
+    for line in text.lines().filter(|l| !l.trim().is_empty()) {
+        let rec: Value = serde_json::from_str(line).context("parse ledger line")?;
+        let doc_val = rec.get("doc").cloned().unwrap_or(Value::Null);
+        let doc: ProposalDoc = match serde_json::from_value(doc_val) {
+            Ok(d) => d,
+            Err(e) => {
+                println!("  UNPARSEABLE ledger doc: {e}");
+                mismatches += 1;
+                continue;
+            }
+        };
+        let sc = score_proposal(&doc, &observables, baseline_ll);
+        let recorded = rec.get("total").and_then(Value::as_f64).unwrap_or(f64::NAN);
+        checked += 1;
+        if (sc.total - recorded).abs() > 1e-6 {
+            mismatches += 1;
+            println!(
+                "  MISMATCH gen {}: recorded {recorded} vs replay {}",
+                rec.get("generation").and_then(Value::as_u64).unwrap_or(0),
+                sc.total
+            );
+        }
+    }
+    Ok((checked, mismatches))
 }
 
 #[cfg(test)]

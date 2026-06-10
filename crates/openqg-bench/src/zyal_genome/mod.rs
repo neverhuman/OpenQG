@@ -290,6 +290,14 @@ pub enum GenomeCommand {
         #[arg(long)]
         proposal_file: Option<PathBuf>,
     },
+    /// V4.1: replay a proposal ledger WITHOUT the LLM — re-score each recorded proposal and confirm
+    /// it reproduces the recorded total. Makes a live run's "replayable" claim checkable from artifacts.
+    Replay {
+        #[arg(long)]
+        ledger: PathBuf,
+        #[arg(long)]
+        observables: PathBuf,
+    },
     Selftest,
 }
 
@@ -487,6 +495,19 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             }
             for r in &sc.kill_reasons {
                 println!("  KILL: {r}");
+            }
+            Ok(())
+        }
+        GenomeCommand::Replay {
+            ledger,
+            observables,
+        } => {
+            let (checked, mismatches) = replay_ledger(&ledger, &observables)?;
+            println!(
+                "replayed {checked} proposal(s) from ledger (no LLM); {mismatches} mismatch(es)"
+            );
+            if mismatches > 0 {
+                anyhow::bail!("ledger replay had {mismatches} mismatch(es) — run not reproducible");
             }
             Ok(())
         }

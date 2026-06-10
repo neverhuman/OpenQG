@@ -177,9 +177,26 @@ pub(crate) fn generate_whitepaper(
     let _ = writeln!(md);
 
     let _ = writeln!(md, "## Honesty & reproducibility\n");
+    if used_proposer {
+        let _ = writeln!(
+            md,
+            "- **Replayable (engine + scoring deterministic; proposals content-pinned).** The LLM \
+             proposals are non-deterministic, so they are recorded verbatim and hashed in \
+             `proposal-ledger.jsonl`; the run re-scores from that ledger **without re-calling the LLM** \
+             (`zyal genome replay --ledger proposal-ledger.jsonl`). This is NOT a from-seed replay — \
+             a fresh LLM call would propose something different."
+        );
+    } else {
+        let _ = writeln!(
+            md,
+            "- Deterministic: same seed reproduces this champion; the score replays without the LLM."
+        );
+    }
     let _ = writeln!(
         md,
-        "- Deterministic: same seed reproduces this champion; the score replays without the LLM."
+        "- Distinct from baseline: **{}** (`false` ⇒ observationally a ΛCDM rediscovery, however \
+         well-certified). Champion derivations/evidence are materialized under `evidence/`.",
+        sc.distinct_from_baseline
     );
     let _ = writeln!(
         md,
@@ -214,6 +231,49 @@ pub(crate) fn generate_whitepaper(
         .with_context(|| format!("create run dir {}", run_dir.display()))?;
     fs::write(run_dir.join("white-paper.md"), &md)?;
 
+    // Audit trail: the content-pinned proposal ledger (makes a live run replayable without the LLM),
+    // the champion's materialized evidence (so the cited derivations actually exist on disk), and the
+    // per-generation progress ledger.
+    {
+        use std::io::Write as _;
+        let mut led = fs::File::create(run_dir.join("proposal-ledger.jsonl"))?;
+        for rec in &run.live_proposals {
+            writeln!(led, "{}", serde_json::to_string(rec)?)?;
+        }
+        let mut pl = fs::File::create(run_dir.join("progress-ledger.jsonl"))?;
+        for g in &run.progress {
+            writeln!(
+                pl,
+                "{}",
+                json!({
+                    "generation": g.generation,
+                    "new_fingerprints": g.new_fingerprints,
+                    "reused_fingerprints": g.reused_fingerprints,
+                    "promote_lineage_only": g.promote_lineage_only,
+                })
+            )?;
+        }
+    }
+    // Materialize the champion's cited evidence to disk (path-hygiene: relative, no `..`).
+    if let Some(champ) = run
+        .live_proposals
+        .iter()
+        .find(|r| r.generation == champion.generation && r.theory_id == champion.theory.id)
+    {
+        if let Some(ev) = champ.doc.get("evidence").and_then(Value::as_object) {
+            for (path, content) in ev {
+                if path.contains("..") || std::path::Path::new(path).is_absolute() {
+                    continue;
+                }
+                let dest = run_dir.join("evidence").join(path);
+                if let Some(parent) = dest.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                fs::write(dest, content.as_str().unwrap_or_default())?;
+            }
+        }
+    }
+
     let json_doc = json!({
         "record_kind": "white_paper",
         "engine": "theory_population.v4",
@@ -230,10 +290,18 @@ pub(crate) fn generate_whitepaper(
             "id": champion.theory.id,
             "fingerprint": champion.fingerprint,
             "final_score_unit": final_score_unit(&sc),
+            "distinct_from_baseline": sc.distinct_from_baseline,
             "generation": champion.generation,
             "parent_ids": champion.parent_ids,
             "theory": serde_json::to_value(&champion.theory).unwrap_or(Value::Null),
             "scorecard": serde_json::to_value(&sc).unwrap_or(Value::Null),
+        },
+        "live_proposal_count": run.live_proposals.len(),
+        "audit_trail": {
+            "proposal_ledger": "proposal-ledger.jsonl",
+            "progress_ledger": "progress-ledger.jsonl",
+            "evidence_dir": "evidence/",
+            "replay": "zyal genome replay --ledger proposal-ledger.jsonl --observables <obs>",
         },
         "ranking": rows.iter().map(|r| json!({
             "entrant": r.entrant, "total": r.total, "disqualified": r.disqualified,

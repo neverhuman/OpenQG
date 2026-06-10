@@ -110,12 +110,28 @@ impl Default for EvolveConfig {
     }
 }
 
+/// One proposal (live LLM or fixture) as it entered the run — the audit + replay record. Storing the
+/// full [`super::proposer::ProposalDoc`] (`doc`) makes the run replayable without re-calling the LLM;
+/// `proposal_sha256` content-pins it.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct LiveProposalRecord {
+    pub generation: usize,
+    pub theory_id: String,
+    pub proposal_sha256: String,
+    pub disqualified: bool,
+    pub total: f64,
+    pub distinct_from_baseline: bool,
+    pub doc: serde_json::Value,
+}
+
 /// The outcome of a full population run.
 #[derive(Debug, Clone)]
 pub(crate) struct EvolutionRun {
     pub progress: Vec<GenerationProgress>,
     pub champions: Vec<Individual>,
     pub best: Option<Individual>,
+    /// Every proposal that entered the run, in order — the content-pinned audit + replay trail.
+    pub live_proposals: Vec<LiveProposalRecord>,
 }
 
 /// Score a bare theory candidate (no attached derivations) through the real physics + rubric.
@@ -184,23 +200,35 @@ fn proposal_individual(
     generation: usize,
     observables: &[ObservableRecord],
     baseline_ll: f64,
-) -> Option<Individual> {
+) -> Option<(Individual, LiveProposalRecord)> {
     let doc = proposer?.propose().ok()?;
     let sc = score_proposal(&doc, observables, baseline_ll);
+    // Audit/replay record: the full proposal + its content hash, before we drop the doc.
+    let canonical = serde_json::to_string(&doc).unwrap_or_default();
+    let record = LiveProposalRecord {
+        generation,
+        theory_id: doc.theory.id.clone(),
+        proposal_sha256: openqg_core::sha256_digest(canonical.as_bytes()),
+        disqualified: sc.disqualified,
+        total: sc.total,
+        distinct_from_baseline: sc.distinct_from_baseline,
+        doc: serde_json::to_value(&doc).unwrap_or(serde_json::Value::Null),
+    };
     let theory = doc.theory.clone();
     let parents = if generation == 1 {
         vec![]
     } else {
         vec![format!("proposer-g{}", generation - 1)]
     };
-    Some(individual_from_scorecard(
+    let ind = individual_from_scorecard(
         format!("g{generation:04}-proposer"),
         generation,
         "proposer",
         parents,
         theory,
         sc,
-    ))
+    );
+    Some((ind, record))
 }
 
 /// Seed generation 1 from the ΛCDM baseline plus low-rate mutations (so the initial pool is diverse
@@ -369,11 +397,13 @@ pub(crate) fn evolve_population(
     let mut seen: BTreeSet<String> = BTreeSet::new();
     let mut progress = Vec::new();
     let mut champions = Vec::new();
+    let mut live_proposals: Vec<LiveProposalRecord> = Vec::new();
 
     // Generation 1 — seed (+ optional proposal candidate).
     let mut pop = seed_population(config, observables, baseline_ll, &mut rng);
-    if let Some(ind) = proposal_individual(proposer, 1, observables, baseline_ll) {
+    if let Some((ind, rec)) = proposal_individual(proposer, 1, observables, baseline_ll) {
         pop.push(ind);
+        live_proposals.push(rec);
     }
     let mut fp_by_id: std::collections::BTreeMap<String, String> = pop
         .iter()
@@ -398,8 +428,11 @@ pub(crate) fn evolve_population(
                 baseline_ll,
             ));
         }
-        if let Some(ind) = proposal_individual(proposer, generation, observables, baseline_ll) {
+        if let Some((ind, rec)) =
+            proposal_individual(proposer, generation, observables, baseline_ll)
+        {
             next.push(ind);
+            live_proposals.push(rec);
         }
         fp_by_id = next
             .iter()
@@ -436,6 +469,7 @@ pub(crate) fn evolve_population(
         progress,
         champions,
         best,
+        live_proposals,
     }
 }
 

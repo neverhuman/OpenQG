@@ -171,7 +171,7 @@ fn distinct_from_lcdm(theory: &Theory) -> bool {
 /// parameters cost nothing. This is the parsimony/complexity ledger.
 fn free_dof(theory: &Theory) -> u32 {
     use super::Provenance::*;
-    theory
+    let param_dof = theory
         .parameters
         .iter()
         .filter(|p| {
@@ -182,6 +182,56 @@ fn free_dof(theory: &Theory) -> u32 {
                     ..
                 }
             )
+        })
+        .count() as u32;
+    param_dof + background_dof(theory)
+}
+
+/// V6: every standard background coordinate moved off the Planck-ΛCDM reference is a fitted
+/// degree of freedom and costs parsimony — UNLESS a verified relation certificate derives it
+/// (then the certificate's own inputs carry the cost). The V5 champions moved h/Ω_m/w0 for free;
+/// that drift is now an explicit, costed dial. MG background fields (mu0, fr_*, ndgp_omega_rc)
+/// are excluded here: truth-binding already kills any uncertified non-GR field
+/// (`UnexplainedModification`), and a certified one is derived, not free.
+pub fn background_dof(theory: &Theory) -> u32 {
+    let reference = crate::cosmology::CosmologyParams::planck_lcdm();
+    let bg = &theory.background;
+    // (drifted?, matching parameter symbol, scale from background units to parameter units)
+    let coords: [(f64, f64, Option<(&str, f64)>); 9] = [
+        (bg.h, reference.h, Some(("H0", 100.0))),
+        (bg.omega_m, reference.omega_m, Some(("Omega_m", 1.0))),
+        (bg.omega_b_h2, reference.omega_b_h2, None),
+        (bg.n_eff, reference.n_eff, None),
+        (bg.sum_mnu, reference.sum_mnu, None),
+        (bg.w0, reference.w0, Some(("w0", 1.0))),
+        (bg.wa, reference.wa, Some(("wa", 1.0))),
+        (bg.omega_k, reference.omega_k, None),
+        (bg.sigma8, reference.sigma8, Some(("sigma8", 1.0))),
+    ];
+    coords
+        .iter()
+        .filter(|(cur, refv, sym)| {
+            let drifted = (cur - refv).abs() > 1e-9;
+            if !drifted {
+                return false;
+            }
+            // A verified relation certificate that derives this exact value exempts the drift —
+            // the certificate's inputs are the costed dials. A bare `Fundamental` declaration
+            // does NOT exempt it (declaring a fitted dial "fundamental" was the V5 cheat class).
+            let certified = sym.map_or(false, |(symbol, scale)| {
+                theory.parameters.iter().any(|p| {
+                    p.symbol == symbol
+                        && (p.value - cur * scale).abs() <= 1e-6 * scale.max(1.0)
+                        && matches!(
+                            &p.provenance,
+                            super::Provenance::Derived {
+                                certificate: Some(cert),
+                                ..
+                            } if matches!(cert.check(), super::CertificateOutcome::Verified { .. })
+                        )
+                })
+            });
+            !certified
         })
         .count() as u32
 }

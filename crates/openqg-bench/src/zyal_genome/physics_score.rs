@@ -374,3 +374,36 @@ mod v6_gate_tests {
         assert!(kills.is_empty(), "clean theory killed: {kills:?}");
     }
 }
+
+#[cfg(test)]
+mod v6_drift_tests {
+    use openqg_core::{background_dof, Theory};
+
+    /// V6 P2: background drift is a costed degree of freedom. The V5 champions moved h/Ω_m/w0
+    /// with zero parsimony cost; each moved coordinate now counts.
+    #[test]
+    fn background_drift_costs_parsimony_dof() {
+        let mut t = Theory::baseline_lcdm();
+        assert_eq!(
+            background_dof(&t),
+            0,
+            "the un-drifted baseline costs nothing"
+        );
+        t.background.h = 0.7176;
+        t.background.omega_m = 0.2822;
+        t.background.w0 = -1.144;
+        assert_eq!(background_dof(&t), 3, "three moved dials = three dof");
+    }
+
+    /// And the vendored V5 champion itself pays: its drift is no longer invisible.
+    #[test]
+    fn the_v5_champion_pays_background_dof() {
+        let raw = include_str!("../../tests-fixtures/v5-champion-chunk1.json");
+        let theory: Theory = serde_json::from_str(raw).unwrap();
+        assert!(
+            background_dof(&theory) >= 3,
+            "the champion moved h/omega_m/w0 (+ sigma8/wa drift): got {}",
+            background_dof(&theory)
+        );
+    }
+}

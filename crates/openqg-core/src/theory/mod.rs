@@ -66,8 +66,8 @@ pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
 pub use scorecard::{
-    score, scorecard_receipt, DataFitOutcome, RubricComponent, RubricV4, ScorecardReceipt,
-    ScorecardV4,
+    background_dof, score, scorecard_receipt, DataFitOutcome, RubricComponent, RubricV4,
+    ScorecardReceipt, ScorecardV4,
 };
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{

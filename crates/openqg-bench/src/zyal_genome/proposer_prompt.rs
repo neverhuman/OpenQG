@@ -10,12 +10,14 @@ use serde_json::Value;
 
 use super::proposer::{fixture_proposal, ProposalDoc};
 
+#[allow(dead_code)] // jailgun-era artifact name, referenced by the offline prompt text
 pub(crate) const DOWNLOAD_TARGET: &str = "openqg-v4-proposal.json";
 
 /// Build the deterministic proposer prompt: it states the goal (a *derivation-rich, critic-proof*
 /// candidate), pins the exact `ProposalDoc` schema by example (the fixture proposal serialized), and
 /// the hard rules the deterministic oracle will enforce — so the model proposes in a shape that can
 /// actually pass the gates rather than be disqualified.
+#[allow(dead_code)] // the offline/raw-doc prompt (the router path uses the sketch prompt)
 pub(crate) fn build_proposer_prompt() -> String {
     // Compact (not pretty) example keeps the prompt small so the browser round-trip completes.
     let example = serde_json::to_string(&fixture_proposal()).unwrap_or_else(|_| "{}".to_string());

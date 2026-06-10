@@ -28,6 +28,7 @@ fn finite_or(x: f64, fallback: f64) -> f64 {
 /// The GR/ΛCDM baseline log-likelihood on `observables` — ε is measured as improvement over this,
 /// so the baseline sits near a neutral score rather than collapsing every candidate to ~0. Mirrors
 /// `theory_evolve::baseline_log_likelihood`.
+#[cfg_attr(not(test), allow(dead_code))] // diagonal helper kept for tests + tooling
 pub(crate) fn baseline_log_likelihood(observables: &[ObservableRecord]) -> f64 {
     baseline_log_likelihood_cov(observables, &[])
 }

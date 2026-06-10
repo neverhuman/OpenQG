@@ -128,6 +128,15 @@ pub(crate) struct ProposalAttemptRecord {
     pub raw_len: usize,
     pub elapsed_seconds: f64,
     pub winner: bool,
+    /// V6 router fields (empty/None for engine/fixture/jekko records).
+    #[serde(default)]
+    pub model: String,
+    #[serde(default)]
+    pub quality_band: Option<String>,
+    #[serde(default)]
+    pub mechanism_lane: Option<String>,
+    #[serde(default)]
+    pub upstream_repairs: u64,
 }
 
 impl ProposalAttemptRecord {
@@ -144,6 +153,10 @@ impl ProposalAttemptRecord {
             error: Some(format!("{error:#}")),
             kill_reasons: Vec::new(),
             total: None,
+            model: String::new(),
+            quality_band: None,
+            mechanism_lane: None,
+            upstream_repairs: 0,
             raw_sha256: String::new(),
             raw_len: 0,
             elapsed_seconds: 0.0,

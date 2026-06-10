@@ -12,23 +12,6 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_OUTPUT_ROOT: &str = "target/openqg/zyal-genome";
 const DEFAULT_SEED: u64 = 20260605;
-/// The jekko subprocess transport command (free jnoccio tokens). Scheduled for removal when the
-/// router-native proposer (direct HTTP to the jnoccio-fusion gateway) lands.
-pub(crate) const JEKKO_LIVE_COMMAND: &[&str] = &[
-    "rtk",
-    "jekko",
-    "run",
-    "--headless",
-    "--ephemeral",
-    "--print-logs",
-    "--provider",
-    "jnoccio",
-    "--model",
-    "jnoccio/jnoccio-fusion",
-    "--cwd",
-    "/home/ubuntu/openQG",
-];
-
 #[derive(Debug, Subcommand)]
 pub enum GenomeCommand {
     /// V4: run the real theory-population evolution engine (deterministic, physics-scored) and write
@@ -54,26 +37,29 @@ pub enum GenomeCommand {
         /// LLM-proposer path; no live infra).
         #[arg(long)]
         with_fixture_proposer: bool,
-        /// V5: inject jekko (free jnoccio API) proposals — the high-volume workhorse with
-        /// repair loops + best-of-K sampling. Requires `rtk jekko` available.
+        /// V6: inject router-native proposals (direct HTTP to the jnoccio-fusion gateway) — the
+        /// free-compute workhorse: server-side strict-schema validation, mechanism lanes,
+        /// quality-band rotation, repair loops + best-of-K sampling.
+        #[arg(long, alias = "with-jekko-proposer")]
+        with_router_proposer: bool,
+        /// With --with-router-proposer: a live slot on gen 1 and every Nth generation.
+        #[arg(long, default_value_t = 40, alias = "jekko-every")]
+        router_every: usize,
+        /// Best-of-K parallel samples per slot (each on its own mechanism lane).
+        #[arg(long, default_value_t = 4, alias = "jekko-samples")]
+        router_samples: usize,
+        /// Repair budget per sample (parse repair + at most one oracle repair).
+        #[arg(long, default_value_t = 2, alias = "jekko-repairs")]
+        router_repairs: usize,
+        /// Per-call HTTP timeout.
+        #[arg(long, default_value_t = 240, alias = "jekko-timeout-seconds")]
+        router_timeout_seconds: u64,
+        /// Quality-band rotation pool (comma-separated; "any" = all models).
+        #[arg(long, default_value = "top20,any,top50,any")]
+        router_bands: String,
+        /// Router base URL (env OPENQG_ROUTER_URL also works).
         #[arg(long)]
-        with_jekko_proposer: bool,
-        /// With --with-jekko-proposer: a jekko slot on gen 1 and every Nth generation.
-        #[arg(long, default_value_t = 40)]
-        jekko_every: usize,
-        /// Best-of-K parallel jekko samples per slot.
-        #[arg(long, default_value_t = 4)]
-        jekko_samples: usize,
-        /// Repair budget per sample (parse repairs + at most one oracle repair).
-        #[arg(long, default_value_t = 2)]
-        jekko_repairs: usize,
-        /// Per-call jekko timeout.
-        #[arg(long, default_value_t = 300)]
-        jekko_timeout_seconds: u64,
-        /// jnoccio quality band routing: "top20" or "none" (= all available models; more resilient
-        /// when the provider is degraded).
-        #[arg(long, default_value = "top20")]
-        jekko_quality_band: String,
+        router_url: Option<String>,
     },
     /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
     /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
@@ -118,26 +104,29 @@ pub enum GenomeCommand {
         /// LLM-proposer path; no live infra).
         #[arg(long)]
         with_fixture_proposer: bool,
-        /// V5: inject jekko (free jnoccio API) proposals — the high-volume workhorse with
-        /// repair loops + best-of-K sampling. Requires `rtk jekko` available.
+        /// V6: inject router-native proposals (direct HTTP to the jnoccio-fusion gateway) — the
+        /// free-compute workhorse: server-side strict-schema validation, mechanism lanes,
+        /// quality-band rotation, repair loops + best-of-K sampling.
+        #[arg(long, alias = "with-jekko-proposer")]
+        with_router_proposer: bool,
+        /// With --with-router-proposer: a live slot on gen 1 and every Nth generation.
+        #[arg(long, default_value_t = 40, alias = "jekko-every")]
+        router_every: usize,
+        /// Best-of-K parallel samples per slot (each on its own mechanism lane).
+        #[arg(long, default_value_t = 4, alias = "jekko-samples")]
+        router_samples: usize,
+        /// Repair budget per sample (parse repair + at most one oracle repair).
+        #[arg(long, default_value_t = 2, alias = "jekko-repairs")]
+        router_repairs: usize,
+        /// Per-call HTTP timeout.
+        #[arg(long, default_value_t = 240, alias = "jekko-timeout-seconds")]
+        router_timeout_seconds: u64,
+        /// Quality-band rotation pool (comma-separated; "any" = all models).
+        #[arg(long, default_value = "top20,any,top50,any")]
+        router_bands: String,
+        /// Router base URL (env OPENQG_ROUTER_URL also works).
         #[arg(long)]
-        with_jekko_proposer: bool,
-        /// With --with-jekko-proposer: a jekko slot on gen 1 and every Nth generation.
-        #[arg(long, default_value_t = 40)]
-        jekko_every: usize,
-        /// Best-of-K parallel jekko samples per slot.
-        #[arg(long, default_value_t = 4)]
-        jekko_samples: usize,
-        /// Repair budget per sample (parse repairs + at most one oracle repair).
-        #[arg(long, default_value_t = 2)]
-        jekko_repairs: usize,
-        /// Per-call jekko timeout.
-        #[arg(long, default_value_t = 300)]
-        jekko_timeout_seconds: u64,
-        /// jnoccio quality band routing: "top20" or "none" (= all available models; more resilient
-        /// when the provider is degraded).
-        #[arg(long, default_value = "top20")]
-        jekko_quality_band: String,
+        router_url: Option<String>,
     },
     /// Score a saved proposal JSON offline (e.g. an external/jailhard-review proposal) through the
     /// full deterministic oracle. No live calls.
@@ -189,12 +178,13 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             seed,
             run_id,
             with_fixture_proposer,
-            with_jekko_proposer,
-            jekko_every,
-            jekko_samples,
-            jekko_repairs,
-            jekko_timeout_seconds,
-            jekko_quality_band,
+            with_router_proposer,
+            router_every,
+            router_samples,
+            router_repairs,
+            router_timeout_seconds,
+            router_bands,
+            router_url,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -203,31 +193,33 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 seed,
             };
             let fixture = FixtureProposer;
-            let jekko = if with_jekko_proposer {
-                jekko_smoke(120)
-                    .context("jekko preflight smoke failed — is `rtk jekko` available?")?;
+            let router = if with_router_proposer {
+                let mut cfg = RouterConfig {
+                    timeout_seconds: router_timeout_seconds,
+                    samples: router_samples,
+                    repairs: router_repairs,
+                    bands: router_bands
+                        .split(',')
+                        .map(|b| b.trim().to_string())
+                        .filter(|b| !b.is_empty())
+                        .collect(),
+                    ..Default::default()
+                };
+                if let Some(url) = router_url {
+                    cfg.base_url = url;
+                }
+                router_preflight(&cfg).context("router preflight failed")?;
                 let obs_loaded = load_observables(&observables)?;
-                let baseline = baseline_log_likelihood(&obs_loaded);
+                let blocks = load_covariance_blocks(&covariance)?;
+                let baseline = baseline_log_likelihood_cov(&obs_loaded, &blocks);
                 let extra = build_proposer_extra_sections(&obs_loaded, &output_root);
-                Some(JekkoProposer::new(
-                    JekkoConfig {
-                        timeout_seconds: jekko_timeout_seconds,
-                        samples: jekko_samples,
-                        repairs: jekko_repairs,
-                        quality_band: (jekko_quality_band != "none")
-                            .then(|| jekko_quality_band.clone()),
-                        ..Default::default()
-                    },
-                    obs_loaded,
-                    baseline,
-                    extra,
-                ))
+                Some(RouterProposer::new(cfg, obs_loaded, baseline, extra))
             } else {
                 None
             };
             let budgeted;
-            let proposer: Option<&dyn Proposer> = if let Some(j) = jekko.as_ref() {
-                budgeted = BudgetedProposer::new(j as &dyn Proposer, jekko_every);
+            let proposer: Option<&dyn Proposer> = if let Some(r) = router.as_ref() {
+                budgeted = BudgetedProposer::new(r as &dyn Proposer, router_every);
                 Some(&budgeted)
             } else if with_fixture_proposer {
                 Some(&fixture)
@@ -284,12 +276,13 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             seed,
             run_id,
             with_fixture_proposer,
-            with_jekko_proposer,
-            jekko_every,
-            jekko_samples,
-            jekko_repairs,
-            jekko_timeout_seconds,
-            jekko_quality_band,
+            with_router_proposer,
+            router_every,
+            router_samples,
+            router_repairs,
+            router_timeout_seconds,
+            router_bands,
+            router_url,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("whitepaper-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -298,31 +291,33 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 seed,
             };
             let fixture = FixtureProposer;
-            let jekko = if with_jekko_proposer {
-                jekko_smoke(120)
-                    .context("jekko preflight smoke failed — is `rtk jekko` available?")?;
+            let router = if with_router_proposer {
+                let mut cfg = RouterConfig {
+                    timeout_seconds: router_timeout_seconds,
+                    samples: router_samples,
+                    repairs: router_repairs,
+                    bands: router_bands
+                        .split(',')
+                        .map(|b| b.trim().to_string())
+                        .filter(|b| !b.is_empty())
+                        .collect(),
+                    ..Default::default()
+                };
+                if let Some(url) = router_url {
+                    cfg.base_url = url;
+                }
+                router_preflight(&cfg).context("router preflight failed")?;
                 let obs_loaded = load_observables(&observables)?;
-                let baseline = baseline_log_likelihood(&obs_loaded);
+                let blocks = load_covariance_blocks(&covariance)?;
+                let baseline = baseline_log_likelihood_cov(&obs_loaded, &blocks);
                 let extra = build_proposer_extra_sections(&obs_loaded, &output_root);
-                Some(JekkoProposer::new(
-                    JekkoConfig {
-                        timeout_seconds: jekko_timeout_seconds,
-                        samples: jekko_samples,
-                        repairs: jekko_repairs,
-                        quality_band: (jekko_quality_band != "none")
-                            .then(|| jekko_quality_band.clone()),
-                        ..Default::default()
-                    },
-                    obs_loaded,
-                    baseline,
-                    extra,
-                ))
+                Some(RouterProposer::new(cfg, obs_loaded, baseline, extra))
             } else {
                 None
             };
             let budgeted;
-            let proposer: Option<&dyn Proposer> = if let Some(j) = jekko.as_ref() {
-                budgeted = BudgetedProposer::new(j as &dyn Proposer, jekko_every);
+            let proposer: Option<&dyn Proposer> = if let Some(r) = router.as_ref() {
+                budgeted = BudgetedProposer::new(r as &dyn Proposer, router_every);
                 Some(&budgeted)
             } else if with_fixture_proposer {
                 Some(&fixture)
@@ -436,14 +431,14 @@ mod whitepaper;
 pub(crate) use whitepaper::*;
 mod proposer;
 pub(crate) use proposer::*;
-mod live_attempt;
 mod proposer_prompt;
 pub(crate) use proposer_prompt::*;
+mod proposer_router;
+mod proposer_sketch;
+pub(crate) use proposer_router::*;
 mod proposer_memory;
 pub(crate) use proposer_memory::*;
 mod ledger_sink;
-mod proposer_jekko;
-pub(crate) use proposer_jekko::*;
 
 /// Assemble the V5 prompt extras: the computed DATA BRIEF (real pulls vs the ΛCDM baseline) plus
 /// the cross-run MEMORY section (top scorers, kill histogram, DO/DON'T) from prior run ledgers.

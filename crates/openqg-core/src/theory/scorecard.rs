@@ -21,7 +21,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    obligation_vetoes, run_veto_cascade, Claim, ClaimGraph, DerivationObligation, EvidenceStore,
+    obligation_vetoes, physics_kills, Claim, ClaimGraph, DerivationObligation, EvidenceStore,
     MaterializedEvidenceAudit, Theory, UnificationClaim,
 };
 
@@ -252,7 +252,7 @@ pub fn score(
     }
 
     // --- Gate 2: physical sanity (the deterministic veto cascade) ---
-    for v in run_veto_cascade(theory) {
+    for v in physics_kills(theory) {
         kill.push(format!("veto: {v:?}"));
     }
 

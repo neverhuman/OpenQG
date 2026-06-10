@@ -71,9 +71,13 @@ pub fn mutate(theory: &Theory, rng: &mut Rng, rate: f64) -> Theory {
     if rng.chance(rate) {
         t.background.w0 += 0.10 * rng.signed();
     }
-    // A gravity-modifying mutant can acquire screening to stay PPN-viable.
+    // V6: a gravity-modifying mutant must carry a QUANTIFIED screening claim to stay PPN-viable —
+    // a bare mechanism label was the V5 pass-token cheat (adjudication now demands the number).
+    // The recovery here is an explicit, costed modeling choice the oracle re-tests via the
+    // Cassini residual; mutants that modify gravity without it die at the unified gate.
     if t.modifies_gravity() && t.screening.is_none() && rng.chance(0.5) {
         t.screening = Some("vainshtein".into());
+        t.screening_recovery = Some(0.999_999);
     }
     // Bounded, deterministic id (lineage is not encoded in the id to avoid unbounded growth).
     let tag = rng.next_u64() & 0xffff;

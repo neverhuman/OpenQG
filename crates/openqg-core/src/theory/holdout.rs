@@ -7,7 +7,7 @@
 //! For the engine this is used as an honesty gate on a champion: evolve against the train split,
 //! then demand it still predicts the held-out split — anti-recitation / anti-overfit.
 
-use super::{run_veto_cascade, Theory};
+use super::{physics_kills, Theory};
 use crate::cosmology::{CosmologyParams, ForwardModel};
 use crate::scoring::score_metrics;
 use crate::types::ObservableRecord;
@@ -71,7 +71,7 @@ pub fn held_out_evaluate<M>(
 where
     M: ForwardModel<Theory = CosmologyParams>,
 {
-    if !run_veto_cascade(theory).is_empty() {
+    if !physics_kills(theory).is_empty() {
         return HeldOutScore {
             vetoed: true,
             train_log_likelihood: f64::NEG_INFINITY,

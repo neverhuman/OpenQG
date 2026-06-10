@@ -326,3 +326,51 @@ mod tests {
         assert!(sc.distinct_from_baseline);
     }
 }
+
+#[cfg(test)]
+mod v6_gate_tests {
+    use openqg_core::{physics_kills, Theory, VetoReason};
+
+    /// THE V6 acceptance regression (review-01's go/no-go): the V5 campaign champion — a
+    /// 54.999-point candidate with unprovenanced alpha drift, a bare screening label
+    /// (screening_recovery=null), and a drifted background — must be rejected by the unified
+    /// physics gate. If this candidate ever passes again, V6 has regressed to V5's exploit.
+    #[test]
+    fn the_v5_champion_is_rejected_by_the_unified_gate() {
+        let raw = include_str!("../../tests-fixtures/v5-champion-chunk1.json");
+        let theory: Theory = serde_json::from_str(raw).expect("the vendored champion parses");
+        let kills = physics_kills(&theory);
+        assert!(
+            kills
+                .iter()
+                .any(|k| matches!(k, VetoReason::ScreeningRecoveryUnquantified { .. })),
+            "expected ScreeningRecoveryUnquantified, got {kills:?}"
+        );
+    }
+
+    /// The inverse guard: a clean, *quantified* suppressed-growth theory (certified mu0 < 0, no
+    /// alpha modification, GR-physical background) must still pass — the gate kills exploits,
+    /// not legitimate phenomenology.
+    #[test]
+    fn a_quantified_suppressed_growth_theory_still_passes() {
+        let mut theory = Theory::baseline_lcdm();
+        theory.id = "v6-clean-suppressed-growth".into();
+        theory.background.mu0 = -0.1;
+        theory.parameters.push(openqg_core::Parameter {
+            symbol: "geff_today".into(),
+            value: 0.9,
+            physical_meaning: "G_eff/G at a=1 (suppressed growth)".into(),
+            provenance: openqg_core::Provenance::derived_certified(
+                "Planck 2018 mu0 parametrization",
+                openqg_core::DerivedCertificate {
+                    relation: "planck_mu0_geff".into(),
+                    inputs: vec![("mu0".into(), -0.1)],
+                    expected: 0.9,
+                    tolerance: 1e-9,
+                },
+            ),
+        });
+        let kills = physics_kills(&theory);
+        assert!(kills.is_empty(), "clean theory killed: {kills:?}");
+    }
+}

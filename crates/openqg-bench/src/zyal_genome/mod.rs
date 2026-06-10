@@ -135,6 +135,15 @@ pub enum GenomeCommand {
         #[arg(long)]
         proposal_file: PathBuf,
     },
+    /// V6: re-score a bare Theory JSON (e.g. a prior campaign's champion) through the CURRENT
+    /// unified gate (bind + physics_kills + full scorecard). The acceptance tool: prior champions
+    /// must be disqualified or honestly re-cost under V6.
+    Rescore {
+        #[arg(long)]
+        theory: PathBuf,
+        #[arg(long)]
+        observables: PathBuf,
+    },
     /// V4.1: replay a proposal ledger WITHOUT the LLM — re-score each recorded proposal and confirm
     /// it reproduces the recorded total. Makes a live run's "replayable" claim checkable from artifacts.
     Replay {
@@ -312,6 +321,34 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             }
             for r in &sc.kill_reasons {
                 println!("  KILL: {r}");
+            }
+            Ok(())
+        }
+        GenomeCommand::Rescore {
+            theory,
+            observables,
+        } => {
+            let obs = load_observables(&observables)?;
+            anyhow::ensure!(!obs.is_empty(), "no observables loaded");
+            let raw = fs::read_to_string(&theory)
+                .with_context(|| format!("read theory file {}", theory.display()))?;
+            let t: openqg_core::Theory = serde_json::from_str(&raw)
+                .with_context(|| format!("parse theory JSON {}", theory.display()))?;
+            let kills = openqg_core::physics_kills(&t);
+            let sc = score_theory(&t, &obs, baseline_log_likelihood(&obs));
+            println!(
+                "rescore `{}`: total {:.1}/100, disqualified={}",
+                t.id, sc.total, sc.disqualified
+            );
+            for c in &sc.components {
+                println!("  {}: {:.1}/{:.0}", c.name, c.points, c.weight);
+            }
+            if kills.is_empty() {
+                println!("  unified gate: PASS (no physics kills)");
+            } else {
+                for k in &kills {
+                    println!("  KILL: {k:?}");
+                }
             }
             Ok(())
         }

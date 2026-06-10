@@ -8,7 +8,7 @@
 //!   makes the engine chase real, derivable physics rather than a better curve fit — see
 //!   `docs/research/automated-theory-discovery.md` §2 (the AI-Descartes ε/β split).
 
-use super::vetoes::run_veto_cascade;
+use super::vetoes::physics_kills;
 use super::{Theory, VetoReason};
 use crate::cosmology::{CosmologyParams, ForwardModel};
 use crate::scoring::score_metrics;
@@ -86,7 +86,7 @@ where
     M: ForwardModel<Theory = CosmologyParams>,
 {
     let beta = derivation_score(theory);
-    let veto_reasons = run_veto_cascade(theory);
+    let veto_reasons = physics_kills(theory);
     if !veto_reasons.is_empty() {
         return Evaluation {
             vetoed: true,

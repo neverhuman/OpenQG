@@ -177,7 +177,7 @@ pub(crate) struct EvolutionRun {
 }
 
 /// Score a bare theory candidate (no attached derivations) through the real physics + rubric.
-fn score_theory(
+pub(crate) fn score_theory(
     theory: &Theory,
     observables: &[ObservableRecord],
     baseline_ll: f64,

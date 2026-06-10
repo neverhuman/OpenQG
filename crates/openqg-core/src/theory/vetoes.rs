@@ -347,6 +347,16 @@ pub fn tensor_speed_excess_at(theory: &Theory, z: f64) -> f64 {
 ///
 /// Adjudication is *additional* to triage: a candidate must pass both. We do not re-run the cheap
 /// metadata checks here (the search loop already did), so the two paths compose without overlap.
+/// V6 unified physics gate: triage cascade kills PLUS promotability adjudication.
+/// The V5 exploit was a champion that passed triage while failing the stricter checks the code
+/// itself said a promotable candidate must clear (quantified screening, the real GW170817 bound,
+/// physical background at every probe). No candidate may score while this returns reasons.
+pub fn physics_kills(theory: &Theory) -> Vec<VetoReason> {
+    let mut reasons = run_veto_cascade(theory);
+    reasons.extend(adjudicate(theory));
+    reasons
+}
+
 pub fn adjudicate(theory: &Theory) -> Vec<VetoReason> {
     let mut reasons = Vec::new();
 

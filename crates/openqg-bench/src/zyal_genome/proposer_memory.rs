@@ -196,6 +196,19 @@ fn top_scorer_entry(record: &Value) -> Option<(f64, String, Option<String>)> {
     if !total.is_finite() {
         return None;
     }
+    // V6 (review-10): memory must be PROMOTABLE-gated — a ledger entry scored under an older,
+    // weaker rubric can only become a DO-example if its theory survives the CURRENT unified
+    // physics gate. The V5 champions (bare screening labels, unexplained drift) die here.
+    if let Some(theory_value) = record.pointer("/doc/theory") {
+        match serde_json::from_value::<openqg_core::Theory>(theory_value.clone()) {
+            Ok(theory) => {
+                if !openqg_core::physics_kills(&theory).is_empty() {
+                    return None;
+                }
+            }
+            Err(_) => return None, // unparseable under the current schema ⇒ not promotable
+        }
+    }
     let theory_id = record.get("theory_id").and_then(Value::as_str)?;
     let generation = record
         .get("generation")
@@ -226,6 +239,39 @@ fn read_jsonl_records(path: &Path, into: &mut Vec<Value>) {
         }
         if let Ok(value) = serde_json::from_str::<Value>(line) {
             into.push(value);
+        }
+    }
+}
+
+/// Coarse mechanism family of a ledger proposal (for the diversity histogram).
+fn mechanism_family(record: &Value) -> &'static str {
+    let bg = record.pointer("/doc/theory/background");
+    let drag = bg
+        .and_then(|b| b.get("drag_a"))
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    if drag > 0.0 {
+        return "dark_scattering";
+    }
+    let mg = bg
+        .and_then(|b| b.get("mg_family"))
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    match mg {
+        "ndgp" => "ndgp",
+        "fr_hu_sawicki" => "fr",
+        _ => {
+            let mu0 = bg
+                .and_then(|b| b.get("mu0"))
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            if mu0 < 0.0 {
+                "planck_mu0_suppressed"
+            } else if mu0 > 0.0 {
+                "planck_mu0_enhanced"
+            } else {
+                "lcdm_adjacent"
+            }
         }
     }
 }
@@ -284,6 +330,19 @@ pub(crate) fn assemble_memory(runs_root: &Path, current_records: &[Value]) -> Pr
     });
     let top: Vec<String> = scorers.into_iter().take(3).map(|(_, line)| line).collect();
 
+    // V6 (review-10): mechanism-family histogram over promotable top scorers — the monoculture
+    // diagnostic. 49/49 identical μ0 ideas in V5; the directive pushes the NEXT proposal out of
+    // the dominant family.
+    let mut families: std::collections::BTreeMap<&'static str, usize> =
+        std::collections::BTreeMap::new();
+    for r in &records {
+        if r.get("disqualified").and_then(Value::as_bool) != Some(false) {
+            continue;
+        }
+        let fam = mechanism_family(r);
+        *families.entry(fam).or_insert(0) += 1;
+    }
+
     // DO/DON'T synthesis: a static base set (lessons already paid for), plus histogram-driven
     // lines for the failure classes this corpus actually exhibits.
     let mut dont_lines = vec![
@@ -306,6 +365,16 @@ pub(crate) fn assemble_memory(runs_root: &Path, current_records: &[Value]) -> Pr
     }
     if has_class("parse_error") {
         do_lines.push("emit ONE valid JSON object, all magnitudes as numbers".to_string());
+    }
+    // The diversity directive: when one family dominates the promotable pool, push outward.
+    if let Some((dominant, count)) = families.iter().max_by_key(|(_, c)| **c) {
+        let total: usize = families.values().sum();
+        if total >= 3 && *count * 2 > total {
+            do_lines.push(format!(
+                "propose a mechanism OUTSIDE the `{dominant}` family ({count}/{total} of \
+                 promotable proposals already are `{dominant}`)"
+            ));
+        }
     }
 
     ProposerMemory {

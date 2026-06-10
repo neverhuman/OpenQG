@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 
 use openqg_core::theory::{
     Claim, ClaimGraph, ClaimKind, DerivationObligation, DerivationObligationKind,
-    DerivedCertificate, EvidenceRef, EvidenceTier, MapEvidenceStore, Parameter, Provenance,
-    ScorecardV4, Sector, SharedParam, Theory, UnificationClaim,
+    DerivedCertificate, EvidenceRef, EvidenceTier, MapEvidenceStore, NovelPredictionWitness,
+    Parameter, Provenance, ScorecardV4, Sector, SharedParam, Theory, UnificationClaim,
 };
 use openqg_core::ObservableRecord;
 
@@ -190,7 +190,7 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
         statement: "G_eff/G is derived from the nDGP braneworld function, not fitted".into(),
         // sha256 left empty ⇒ the scorer binds it from the supplied content.
         evidence: vec![EvidenceRef::new(evidence_path, "", EvidenceTier::T2)],
-        obligations: vec!["ob-geff".into()],
+        obligations: vec!["ob-geff".into(), "ob-novel".into()],
         depends_on: vec![],
     };
 
@@ -201,6 +201,25 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
         certificate: Some(cert),
         limit: None,
         citation: Some("Koyama & Maartens 2006".into()),
+        novel: None,
+    };
+
+    // A verified falsifiable prediction: nDGP's enhanced growth suppresses/lifts fσ8 vs ΛCDM by a
+    // DESI/Euclid-detectable amount — the distinctness the novelty dimension requires.
+    let novel_obligation = DerivationObligation {
+        claim_id: "ob-novel".into(),
+        kind: DerivationObligationKind::NovelPrediction,
+        detail: "nDGP growth deviation in fσ8 relative to ΛCDM".into(),
+        certificate: None,
+        limit: None,
+        citation: None,
+        novel: Some(NovelPredictionWitness {
+            observable: "fsigma8_z051".into(),
+            predicted: 0.49,
+            baseline: 0.46,
+            min_detectable: 0.01,
+            falsifier: "DESI/Euclid RSD fσ8 at z=0.51".into(),
+        }),
     };
 
     // H0 is shared across Background and Growth (both fundamental) — a genuine, hidden-knob-free
@@ -216,7 +235,7 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
     ProposalDoc {
         theory,
         claims: vec![claim],
-        obligations: vec![obligation],
+        obligations: vec![obligation, novel_obligation],
         unification,
         evidence,
     }

@@ -108,6 +108,7 @@ fn gr_limit_obligation(claim_id: &str) -> DerivationObligation {
             bound: 1e-6,
         }),
         citation: None,
+        novel: None,
     }
 }
 
@@ -201,6 +202,91 @@ pub fn human_contenders() -> ContenderSuite {
                     gr_limit_obligation("uni-ob-gr"),
                 ],
                 unification: uni,
+                data_fit: Some(tie_fit()),
+            },
+            ExpectedVerdict::Survives,
+        ));
+    }
+
+    // 3. A REAL modified-gravity program (V4.1 reference, not a ΛCDM strawman): nDGP linear coupling
+    //    G_eff/G = 7/6, value-certified on a non-trivial relation, plus a verified falsifiable fσ8
+    //    prediction. The rubric must rank this *above* the ΛCDM-recovering baselines — it is the
+    //    "distinct physics beats rediscovery" exemplar.
+    {
+        let ev_bg = bind(
+            &mut store,
+            "ndgp/bg.json",
+            b"{\"E2\":1.0}\n",
+            EvidenceTier::T2,
+        );
+        let ev_gr = bind(
+            &mut store,
+            "ndgp/growth.jsonl",
+            b"{\"fs8\":0.42}\n",
+            EvidenceTier::T3,
+        );
+        let cert = super::DerivedCertificate {
+            relation: "ndgp_geff_over_g".into(),
+            inputs: vec![("beta".into(), 2.0)],
+            expected: 1.0 + 1.0 / 6.0,
+            tolerance: 1e-9,
+        };
+        let mut theory = Theory::baseline_lcdm();
+        theory.id = "real_modification_program".into();
+        theory.parameters.push(Parameter {
+            symbol: "geff_over_g".into(),
+            value: 1.0 + 1.0 / 6.0,
+            physical_meaning: "nDGP normal-branch linear effective gravitational coupling".into(),
+            provenance: Provenance::derived_certified(
+                "nDGP braneworld linear coupling",
+                cert.clone(),
+            ),
+        });
+        let cg = ClaimGraph {
+            claims: vec![Claim {
+                id: "ndgp-geff".into(),
+                sector: Sector::Growth,
+                kind: ClaimKind::Physics,
+                statement: "G_eff/G is derived from the nDGP braneworld function, not fitted"
+                    .into(),
+                evidence: vec![ev_bg, ev_gr],
+                obligations: vec!["ndgp-ob-num".into(), "ndgp-ob-novel".into()],
+                depends_on: vec![],
+            }],
+        };
+        let obligations = vec![
+            DerivationObligation {
+                claim_id: "ndgp-ob-num".into(),
+                kind: DerivationObligationKind::NumericWitness,
+                detail: "recompute G_eff/G from the nDGP closed form".into(),
+                certificate: Some(cert),
+                limit: None,
+                citation: Some("Koyama & Maartens 2006".into()),
+                novel: None,
+            },
+            DerivationObligation {
+                claim_id: "ndgp-ob-novel".into(),
+                kind: DerivationObligationKind::NovelPrediction,
+                detail: "suppressed fσ8 relative to ΛCDM".into(),
+                certificate: None,
+                limit: None,
+                citation: None,
+                novel: Some(super::NovelPredictionWitness {
+                    observable: "fsigma8_z051".into(),
+                    predicted: 0.42,
+                    baseline: 0.46,
+                    min_detectable: 0.01,
+                    falsifier: "DESI/Euclid RSD fσ8 at z=0.51".into(),
+                }),
+            },
+        ];
+        entries.push((
+            Contender {
+                name: "real_modification_program".into(),
+                theory,
+                claim_graph: cg,
+                obligations,
+                unification: UnificationClaim { shared: vec![] },
                 data_fit: Some(tie_fit()),
             },
             ExpectedVerdict::Survives,
@@ -475,6 +561,33 @@ mod tests {
         assert!(
             uni_pts(&uni) > uni_pts(&lcdm),
             "shared-parameter program must earn more unification credit than bare ΛCDM"
+        );
+    }
+
+    #[test]
+    fn real_modification_is_distinct_and_outscores_lcdm_baselines() {
+        let suite = human_contenders();
+        let score_of = |name: &str| -> ScorecardV4 {
+            let (c, _) = suite.entries.iter().find(|(c, _)| c.name == name).unwrap();
+            score_contender(c, &suite.store)
+        };
+        let real = score_of("real_modification_program");
+        let lcdm = score_of("gr_lcdm");
+        let uni = score_of("shared_parameter_program");
+        assert!(
+            real.distinct_from_baseline,
+            "the nDGP program must be physically distinct from ΛCDM"
+        );
+        assert!(
+            !lcdm.distinct_from_baseline && !uni.distinct_from_baseline,
+            "the ΛCDM-recovering baselines must be flagged not-distinct"
+        );
+        assert!(
+            real.total > lcdm.total && real.total > uni.total,
+            "a real modification ({}) must outscore the ΛCDM baselines ({}, {})",
+            real.total,
+            lcdm.total,
+            uni.total
         );
     }
 

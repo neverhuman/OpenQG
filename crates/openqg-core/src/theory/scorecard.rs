@@ -54,18 +54,20 @@ pub struct RubricComponent {
     pub band: (f64, f64),
 }
 
-/// The fixed V4 rubric: five weighted components summing to exactly 100. Veto-survival is a *gate*,
-/// not a component. (Novel-falsifiable-prediction and adversarial-survival enter through the
-/// obligation set and the robustness component / decoy-league gate respectively.)
+/// The fixed V4 rubric: six weighted components summing to exactly 100. Veto-survival is a *gate*,
+/// not a component. `novel_prediction` scores distinctness-from-ΛCDM + a verified falsifiable
+/// prediction (V4.1 — closes the "rediscover ΛCDM and score high" hole); `data_fit` now credits only
+/// *beating* the baseline, not tying it.
 pub struct RubricV4;
 
 impl RubricV4 {
-    pub const WEIGHTS: [(&'static str, f64); 5] = [
-        ("derivation_rigor", 25.0),
-        ("data_fit", 25.0),
-        ("unification", 20.0),
-        ("robustness_under_judge", 15.0),
-        ("parsimony", 15.0),
+    pub const WEIGHTS: [(&'static str, f64); 6] = [
+        ("derivation_rigor", 20.0),
+        ("data_fit", 20.0),
+        ("novel_prediction", 20.0),
+        ("unification", 15.0),
+        ("robustness_under_judge", 13.0),
+        ("parsimony", 12.0),
     ];
 
     /// Total of the weights — asserted to be 100 by [`assert_weights_sum_to_100`].
@@ -98,6 +100,9 @@ pub struct ScorecardV4 {
     pub unification_claimed: bool,
     pub no_hidden_knob: bool,
     pub free_dof: u32,
+    /// V4.1: whether the candidate makes a physical departure from ΛCDM/GR. `false` ⇒ a
+    /// rediscovery, however well-certified. Reported even on disqualified candidates.
+    pub distinct_from_baseline: bool,
     pub components: Vec<RubricComponent>,
     pub total: f64,
     pub total_band: (f64, f64),
@@ -117,9 +122,40 @@ fn clamp01(x: f64) -> f64 {
     x.max(0.0).min(1.0)
 }
 
-/// Logistic squash centred so Δln Z = 0 (ties ΛCDM) → 0.5; scale 5 nats.
+/// Logistic squash centred so `x = 0 → 0.5`; `scale` in nats.
 fn logistic(x: f64, scale: f64) -> f64 {
     1.0 / (1.0 + (-x / scale).exp())
+}
+
+/// One-sided data-fit credit: **tying ΛCDM (Δln Z ≤ 0) earns 0**; only positive evidence over the
+/// baseline climbs toward 1 (Δln Z = 1 ⇒ ~0.10, large ⇒ →1). This is the V4.1 fix for "ΛCDM
+/// equivalence banks half credit" — a model that does not beat the baseline earns no data points.
+fn data_fit_raw(delta_lnz: f64) -> f64 {
+    clamp01(2.0 * logistic(delta_lnz, 5.0) - 1.0)
+}
+
+/// Whether a theory makes a *physical* departure from ΛCDM/GR — the distinctness signal that
+/// separates a real candidate from a relabelled ΛCDM. True iff its linear gravity is modified
+/// (`modifies_gravity`) OR it carries a *verified* certified-derived parameter on a known
+/// modified-gravity relation whose value departs from that relation's GR-limit value. A theory that
+/// only "derives" definitions (H0=100h, flat closure) and sits at every GR limit is **not** distinct.
+fn distinct_from_lcdm(theory: &Theory) -> bool {
+    if theory.modifies_gravity() {
+        return true;
+    }
+    use super::Provenance::Derived;
+    theory.parameters.iter().any(|p| {
+        if let Derived {
+            certificate: Some(c),
+            ..
+        } = &p.provenance
+        {
+            if let Some(gr) = super::certificate::relation_gr_value(&c.relation) {
+                return c.verify() && (c.expected - gr).abs() > 1e-6;
+            }
+        }
+        false
+    })
 }
 
 /// Count genuine free degrees of freedom: a `Free` parameter, or a `Derived` parameter whose value
@@ -172,7 +208,7 @@ fn derivation_rigor_raw(cg: &ClaimGraph, obligations: &[DerivationObligation]) -
             .iter()
             .filter(|o| c.obligations.contains(&o.claim_id))
             .filter(|o| o.check().is_verified())
-            .map(|o| o.kind.rigor_weight())
+            .map(|o| o.effective_rigor_weight())
             .fold(0.0_f64, f64::max);
         acc += best;
     }
@@ -235,6 +271,8 @@ pub fn score(
 
     let free = free_dof(theory);
     let digest = cg.digest();
+    // V4.1 distinctness — computed before the gate so it is reported even on disqualified candidates.
+    let physically_distinct = distinct_from_lcdm(theory);
 
     if !kill.is_empty() {
         return ScorecardV4 {
@@ -247,6 +285,7 @@ pub fn score(
             unification_claimed,
             no_hidden_knob,
             free_dof: free,
+            distinct_from_baseline: physically_distinct,
             components: Vec::new(),
             total: 0.0,
             total_band: (0.0, 0.0),
@@ -258,10 +297,10 @@ pub fn score(
     let dr = derivation_rigor_raw(cg, obligations);
     let c_dr = component("derivation_rigor", dr, dr, dr);
 
-    // 2. Data fit — logistic in Δln Z; ties ΛCDM (Δln Z = 0) → 0.5. None ⇒ 0 with full band.
+    // 2. Data fit — one-sided: tying ΛCDM (Δln Z ≤ 0) → 0; only beating it earns credit. None ⇒ 0.
     let c_df = match data_fit {
         Some(f) => {
-            let raw = logistic(f.delta_lnz, 5.0);
+            let raw = data_fit_raw(f.delta_lnz);
             // boundary-hit / sub-coverage widen the band downward (the fit is suspect).
             let suspect = f.boundary_hit || f.coverage < 1.0 - 1e-9;
             let lo = if suspect { raw * 0.6 } else { raw };
@@ -269,6 +308,20 @@ pub fn score(
         }
         None => component("data_fit", 0.0, 0.0, 1.0),
     };
+
+    // 3. Novel prediction — distinctness from ΛCDM + a verified falsifiable prediction. A
+    //    rediscovery (not distinct) earns 0 no matter how well-certified; distinct-but-no-falsifier
+    //    earns half; distinct + a verified NovelPrediction obligation earns full.
+    let declared_novel = obligations.iter().any(|o| {
+        o.kind == super::obligation::DerivationObligationKind::NovelPrediction
+            && o.check().is_verified()
+    });
+    let nov_raw = match (physically_distinct, declared_novel) {
+        (true, true) => 1.0,
+        (true, false) => 0.5,
+        _ => 0.0,
+    };
+    let c_nov = component("novel_prediction", nov_raw, nov_raw, nov_raw);
 
     // 3. Unification — credit for a genuine, hidden-knob-free shared-parameter claim + self-consistency.
     let uni_raw = {
@@ -298,7 +351,7 @@ pub fn score(
     let pars_raw = 1.0 / (1.0 + free as f64);
     let c_par = component("parsimony", pars_raw, pars_raw, pars_raw);
 
-    let components = vec![c_dr, c_df, c_uni, c_rob, c_par];
+    let components = vec![c_dr, c_df, c_nov, c_uni, c_rob, c_par];
     let total: f64 = components.iter().map(|c| c.points).sum();
     let band_lo: f64 = components.iter().map(|c| c.band.0).sum();
     let band_hi: f64 = components.iter().map(|c| c.band.1).sum();
@@ -313,6 +366,7 @@ pub fn score(
         unification_claimed,
         no_hidden_knob,
         free_dof: free,
+        distinct_from_baseline: physically_distinct,
         components,
         total,
         total_band: (band_lo, band_hi),
@@ -395,6 +449,7 @@ mod tests {
                 bound: 1e-6,
             }),
             citation: None,
+            novel: None,
         };
         let store = MemStore(BTreeMap::from([("bg.json".to_string(), bytes)]));
         (
@@ -428,7 +483,7 @@ mod tests {
         assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
         assert!(sc.total > 0.0 && sc.total <= 100.0);
         assert!(sc.total_band.0 <= sc.total && sc.total <= sc.total_band.1 + 1e-9);
-        assert_eq!(sc.components.len(), 5);
+        assert_eq!(sc.components.len(), 6);
     }
 
     #[test]
@@ -505,7 +560,107 @@ mod tests {
         assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
         let df = sc.components.iter().find(|c| c.name == "data_fit").unwrap();
         assert_eq!(df.points, 0.0);
-        assert_eq!(df.band, (0.0, 25.0));
+        assert_eq!(df.band, (0.0, 20.0));
+    }
+
+    #[test]
+    fn tie_data_fit_scores_zero() {
+        let (t, cg, obs, uni, store) = fixture();
+        let tie = DataFitOutcome {
+            delta_aic: 0.0,
+            delta_lnz: 0.0,
+            generalization_gap: 0.01,
+            coverage: 1.0,
+            boundary_hit: false,
+        };
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(tie));
+        assert!(!sc.disqualified);
+        let df = sc.components.iter().find(|c| c.name == "data_fit").unwrap();
+        assert_eq!(df.points, 0.0, "tying ΛCDM (Δln Z=0) earns no data credit");
+    }
+
+    #[test]
+    fn lcdm_rediscovery_is_not_distinct_and_scores_no_novelty() {
+        // The baseline fixture is pure ΛCDM with only a GR-limit obligation: not distinct.
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified);
+        assert!(
+            !sc.distinct_from_baseline,
+            "a ΛCDM rediscovery must be flagged not-distinct"
+        );
+        let nov = sc
+            .components
+            .iter()
+            .find(|c| c.name == "novel_prediction")
+            .unwrap();
+        assert_eq!(nov.points, 0.0);
+    }
+
+    #[test]
+    fn a_real_modification_is_distinct_and_outscores_a_rediscovery() {
+        use crate::theory::{DerivedCertificate, NovelPredictionWitness};
+        let (mut t, mut cg, mut obs, uni, store) = fixture();
+        // A genuine modified-gravity parameter: G_eff/G = 7/6 via nDGP (departs from GR value 1).
+        let cert = DerivedCertificate {
+            relation: "ndgp_geff_over_g".into(),
+            inputs: vec![("beta".into(), 2.0)],
+            expected: 1.0 + 1.0 / 6.0,
+            tolerance: 1e-9,
+        };
+        t.parameters.push(Parameter {
+            symbol: "geff_over_g".into(),
+            value: 1.0 + 1.0 / 6.0,
+            physical_meaning: "nDGP linear coupling".into(),
+            provenance: Provenance::derived_certified("nDGP braneworld", cert),
+        });
+        // A verified falsifiable prediction on fσ8.
+        cg.claims[0].obligations.push("ob-novel".into());
+        obs.push(DerivationObligation {
+            claim_id: "ob-novel".into(),
+            kind: DerivationObligationKind::NovelPrediction,
+            detail: "fσ8 suppression".into(),
+            certificate: None,
+            limit: None,
+            citation: None,
+            novel: Some(NovelPredictionWitness {
+                observable: "fsigma8_z051".into(),
+                predicted: 0.42,
+                baseline: 0.46,
+                min_detectable: 0.01,
+                falsifier: "DESI/Euclid fσ8".into(),
+            }),
+        });
+        let modi = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!modi.disqualified, "{:?}", modi.kill_reasons);
+        assert!(modi.distinct_from_baseline);
+        let nov = modi
+            .components
+            .iter()
+            .find(|c| c.name == "novel_prediction")
+            .unwrap();
+        assert_eq!(
+            nov.points, 20.0,
+            "distinct + verified falsifier ⇒ full novelty"
+        );
+
+        // It must outscore a pure-ΛCDM rediscovery scored the same way.
+        let (t0, cg0, obs0, uni0, store0) = fixture();
+        let redisc = score(
+            &t0,
+            &cg0,
+            &obs0,
+            &uni0,
+            &store0,
+            "schema.v1",
+            Some(good_fit()),
+        );
+        assert!(
+            modi.total > redisc.total,
+            "real modification {} must beat rediscovery {}",
+            modi.total,
+            redisc.total
+        );
     }
 
     #[test]

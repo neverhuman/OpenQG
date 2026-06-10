@@ -163,6 +163,7 @@ mod tests {
                 bound: 1e-6,
             }),
             citation: None,
+            novel: None,
         };
         (
             ClaimGraph {

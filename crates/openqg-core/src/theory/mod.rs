@@ -39,8 +39,8 @@ pub use adversary::{Adversary, Decoy, DecoyKind};
 pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
 pub use certificate::{
-    registered_relations, relation_registry, relation_signature, CertificateOutcome,
-    DerivedCertificate,
+    registered_relations, relation_gr_value, relation_registry, relation_rigor_weight,
+    relation_signature, CertificateOutcome, DerivedCertificate,
 };
 pub use claim_graph::{
     claim_graph_digest, Claim, ClaimGraph, ClaimId, ClaimKind, Sector, SharedParam,
@@ -61,7 +61,7 @@ pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, Model
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use obligation::{
     dimensional_consistency, falsifier, limit_recovers_gr, DerivationObligation,
-    DerivationObligationKind, LimitWitness, ObligationOutcome,
+    DerivationObligationKind, LimitWitness, NovelPredictionWitness, ObligationOutcome,
 };
 pub use pareto::{dominates, objectives, pareto_front, Objectives};
 pub use proposal::{

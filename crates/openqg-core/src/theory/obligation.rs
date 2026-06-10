@@ -37,6 +37,10 @@ pub enum DerivationObligationKind {
     LeanSketch,
     /// A textual attestation that the claim matches a published result (low rigor: just a citation).
     LiteratureEquivalence,
+    /// A *falsifiable novel prediction* distinguishing the theory from the ΛCDM/SM baseline: a named
+    /// observable whose predicted value departs from the baseline by a testable amount, plus the
+    /// experiment that would refute it. Feeds the **novelty** dimension, not derivation rigor.
+    NovelPrediction,
 }
 
 impl DerivationObligationKind {
@@ -56,7 +60,43 @@ impl DerivationObligationKind {
             DerivationObligationKind::LeanSketch => 0.0,
             // A citation is an attestation, not a derivation.
             DerivationObligationKind::LiteratureEquivalence => 0.3,
+            // A prediction is novelty evidence, not rigor — it earns nothing on the rigor axis.
+            DerivationObligationKind::NovelPrediction => 0.0,
         }
+    }
+}
+
+/// A witness that the theory makes a *falsifiable novel prediction*: a named observable whose
+/// predicted value departs from the baseline (ΛCDM/SM) by at least the cited experiment's detectable
+/// resolution, with the measurement that would refute it. The oracle checks the *form* of a testable,
+/// non-degenerate prediction (finite numbers, a real gap, a named falsifier) — **not** that the
+/// predicted number is physically correct (that is the data layer's job).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NovelPredictionWitness {
+    /// The observable the prediction concerns (e.g. "fsigma8_z051").
+    pub observable: String,
+    /// The theory's predicted value for that observable.
+    pub predicted: f64,
+    /// The baseline (ΛCDM) value for the same observable.
+    pub baseline: f64,
+    /// The smallest deviation the cited experiment can resolve (must be finite and `> 0`).
+    pub min_detectable: f64,
+    /// The measurement/experiment that would falsify the prediction.
+    pub falsifier: String,
+}
+
+impl NovelPredictionWitness {
+    /// True iff this is a well-formed, testable, non-degenerate prediction: all numbers finite, a
+    /// positive detectable resolution, a non-empty observable + falsifier, and a predicted deviation
+    /// from baseline that meets or exceeds that resolution.
+    pub fn verifies(&self) -> bool {
+        !self.observable.trim().is_empty()
+            && !self.falsifier.trim().is_empty()
+            && self.predicted.is_finite()
+            && self.baseline.is_finite()
+            && self.min_detectable.is_finite()
+            && self.min_detectable > 0.0
+            && (self.predicted - self.baseline).abs() >= self.min_detectable
     }
 }
 
@@ -122,6 +162,9 @@ pub struct DerivationObligation {
     /// Citation backing a [`DerivationObligationKind::LiteratureEquivalence`] attestation.
     #[serde(default)]
     pub citation: Option<String>,
+    /// Falsifiable-prediction witness for [`DerivationObligationKind::NovelPrediction`].
+    #[serde(default)]
+    pub novel: Option<NovelPredictionWitness>,
 }
 
 impl DerivationObligation {
@@ -199,6 +242,62 @@ impl DerivationObligation {
                         .into(),
                 }
             }
+            DerivationObligationKind::NovelPrediction => match &self.novel {
+                Some(w) if w.verifies() => ObligationOutcome::Verified {
+                    detail: format!(
+                        "novel falsifiable prediction on '{}': |Δ| {} >= resolution {}; falsifier: {}",
+                        w.observable,
+                        (w.predicted - w.baseline).abs(),
+                        w.min_detectable,
+                        w.falsifier
+                    ),
+                },
+                Some(_) => ObligationOutcome::Failed {
+                    detail: format!(
+                        "novel-prediction witness for '{}' is degenerate (Δ below detectable / missing fields)",
+                        self.claim_id
+                    ),
+                    counterexample: Some(
+                        "predicted deviation does not exceed the stated detectable resolution".into(),
+                    ),
+                },
+                None => ObligationOutcome::Failed {
+                    detail: format!(
+                        "novel-prediction obligation '{}' requires a NovelPredictionWitness",
+                        self.claim_id
+                    ),
+                    counterexample: None,
+                },
+            },
+        }
+    }
+
+    /// The rigor this obligation *actually* earns: the kind weight scaled by the depth of the
+    /// relation it is witnessed on. A `NumericWitness`/`SymbolicIdentity`/witnessed-`Dimensional` on a
+    /// trivial identity (e.g. `h0_from_h`, `flat_universe_omega_lambda`) earns **0**; on a genuine
+    /// modified-gravity relation it earns the kind weight. `Limit`/`LiteratureEquivalence`/stub kinds
+    /// are independent of the certificate registry and keep their kind weight. This closes the
+    /// "recompute a definition and call it a derivation" hole — see
+    /// [`super::certificate::relation_rigor_weight`].
+    pub fn effective_rigor_weight(&self) -> f64 {
+        use DerivationObligationKind::*;
+        match self.kind {
+            NumericWitness | SymbolicIdentity => {
+                self.kind.rigor_weight()
+                    * self
+                        .certificate
+                        .as_ref()
+                        .map(|c| super::certificate::relation_rigor_weight(&c.relation))
+                        .unwrap_or(0.0)
+            }
+            Dimensional => match &self.certificate {
+                Some(c) => {
+                    self.kind.rigor_weight()
+                        * super::certificate::relation_rigor_weight(&c.relation)
+                }
+                None => self.kind.rigor_weight(),
+            },
+            _ => self.kind.rigor_weight(),
         }
     }
 
@@ -388,6 +487,7 @@ mod tests {
             certificate: None,
             limit: None,
             citation: None,
+            novel: None,
         }
     }
 
@@ -406,6 +506,68 @@ mod tests {
             DerivationObligationKind::LiteratureEquivalence.rigor_weight()
                 < DerivationObligationKind::Dimensional.rigor_weight()
         );
+        // A novel prediction earns no rigor (it feeds the novelty dimension instead).
+        assert_eq!(
+            DerivationObligationKind::NovelPrediction.rigor_weight(),
+            0.0
+        );
+    }
+
+    #[test]
+    fn effective_rigor_zeros_trivial_relations_keeps_real_ones() {
+        // A NumericWitness on a trivial identity earns ZERO effective rigor (definition, not derivation).
+        let mut trivial = obligation(DerivationObligationKind::NumericWitness);
+        trivial.certificate = Some(DerivedCertificate {
+            relation: "h0_from_h".into(),
+            inputs: vec![("h".into(), 0.674)],
+            expected: 67.4,
+            tolerance: 1e-6,
+        });
+        assert!(trivial.check().is_verified(), "the cert still verifies");
+        assert_eq!(trivial.effective_rigor_weight(), 0.0, "but earns no rigor");
+
+        // A NumericWitness on a real modified-gravity relation keeps full effective rigor.
+        let mut real = obligation(DerivationObligationKind::NumericWitness);
+        real.certificate = Some(ndgp_cert(1.0 + 1.0 / 6.0, 1e-9));
+        assert!(real.check().is_verified());
+        assert_eq!(real.effective_rigor_weight(), 1.0);
+
+        // A GR-recovery Limit obligation is registry-independent and keeps its kind weight.
+        let mut lim = obligation(DerivationObligationKind::Limit);
+        lim.limit = Some(LimitWitness {
+            name: "gr".into(),
+            residual: 0.0,
+            bound: 1e-6,
+        });
+        assert_eq!(lim.effective_rigor_weight(), 0.9);
+    }
+
+    #[test]
+    fn novel_prediction_verifies_and_fails() {
+        let mut o = obligation(DerivationObligationKind::NovelPrediction);
+        // A testable deviation beyond resolution verifies.
+        o.novel = Some(NovelPredictionWitness {
+            observable: "fsigma8_z051".into(),
+            predicted: 0.42,
+            baseline: 0.46,
+            min_detectable: 0.01,
+            falsifier: "DESI/Euclid fσ8 at z=0.51".into(),
+        });
+        assert!(o.check().is_verified(), "{:?}", o.check());
+
+        // A deviation below the detectable resolution is degenerate ⇒ Failed.
+        o.novel = Some(NovelPredictionWitness {
+            observable: "fsigma8_z051".into(),
+            predicted: 0.4601,
+            baseline: 0.46,
+            min_detectable: 0.01,
+            falsifier: "DESI/Euclid".into(),
+        });
+        assert!(!o.check().is_verified());
+
+        // No witness ⇒ Failed.
+        o.novel = None;
+        assert!(!o.check().is_verified());
     }
 
     #[test]
@@ -599,6 +761,7 @@ mod tests {
                 bound: 1e-6,
             }),
             citation: Some("Koyama & Maartens, JCAP 0601:016 (2006)".into()),
+            novel: None,
         };
         let json = serde_json::to_string(&o).expect("serialize");
         let back: DerivationObligation = serde_json::from_str(&json).expect("deserialize");

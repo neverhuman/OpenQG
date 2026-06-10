@@ -122,6 +122,40 @@ pub fn registered_relations() -> Vec<&'static str> {
     ]
 }
 
+/// How much *derivation* a verified certificate on this relation represents, in `[0,1]`.
+///
+/// This is the fix for the "definition wearing a derived label" gaming surface: recomputing a
+/// definition or an algebraic closure is a tautology, not a derivation. `h0_from_h` (H0 = 100·h, a
+/// unit definition) and `flat_universe_omega_lambda` (Ω_Λ = 1 − ΣΩ, flat closure) therefore earn
+/// **zero** rigor — they keep their value-binding/veto role (a fitted H0 inconsistent with h is
+/// still caught) but contribute nothing to derivation_rigor. The genuine closed-form
+/// modified-gravity relations earn full weight. An unknown name earns zero (it is not a known,
+/// machine-checkable derivation).
+pub fn relation_rigor_weight(name: &str) -> f64 {
+    match name {
+        "h0_from_h" | "flat_universe_omega_lambda" => 0.0,
+        "ndgp_geff_over_g"
+        | "fr_largescale_geff_over_g"
+        | "fr_alpha_m"
+        | "coupled_de_geff_over_g" => 1.0,
+        _ => 0.0,
+    }
+}
+
+/// The GR/ΛCDM-limit value of a *modification* relation — the value the derived quantity takes when
+/// the modification vanishes — or `None` for trivial definitions that have no GR limit. Used to
+/// decide whether a certified-derived parameter actually *departs* from GR (i.e. is physically
+/// distinct from ΛCDM) rather than sitting at the GR point.
+pub fn relation_gr_value(name: &str) -> Option<f64> {
+    Some(match name {
+        "ndgp_geff_over_g" => 1.0,          // β → ∞
+        "coupled_de_geff_over_g" => 1.0,    // β → 0
+        "fr_largescale_geff_over_g" => 1.0, // outside the Compton wavelength
+        "fr_alpha_m" => 0.0,                // f_R → 0
+        _ => return None,                   // h0_from_h / flat_universe_omega_lambda: no GR limit
+    })
+}
+
 /// A one-line input-signature hint per relation (for proposer prompts / diagnostics).
 pub fn relation_signature(name: &str) -> Option<&'static str> {
     Some(match name {
@@ -263,6 +297,25 @@ mod tests {
         // β = 2 ⇒ G_eff/G = 1 + 1/6 = 1.16666...
         let c = cert("ndgp_geff_over_g", &[("beta", 2.0)], 1.0 + 1.0 / 6.0, 1e-9);
         assert!(c.verify(), "{:?}", c.check());
+    }
+
+    #[test]
+    fn relation_rigor_weight_zeros_trivial_definitions() {
+        // Definitions / closure algebra earn no rigor; real modified-gravity relations earn full.
+        assert_eq!(relation_rigor_weight("h0_from_h"), 0.0);
+        assert_eq!(relation_rigor_weight("flat_universe_omega_lambda"), 0.0);
+        assert_eq!(relation_rigor_weight("ndgp_geff_over_g"), 1.0);
+        assert_eq!(relation_rigor_weight("coupled_de_geff_over_g"), 1.0);
+        assert_eq!(relation_rigor_weight("not_a_relation"), 0.0);
+    }
+
+    #[test]
+    fn relation_gr_value_known_for_modifications_only() {
+        assert_eq!(relation_gr_value("ndgp_geff_over_g"), Some(1.0));
+        assert_eq!(relation_gr_value("fr_alpha_m"), Some(0.0));
+        // Trivial definitions have no GR limit.
+        assert_eq!(relation_gr_value("h0_from_h"), None);
+        assert_eq!(relation_gr_value("flat_universe_omega_lambda"), None);
     }
 
     #[test]

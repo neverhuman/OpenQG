@@ -2,8 +2,8 @@ use anyhow::Result;
 
 use crate::{
     bench as bench_ops, data as data_ops, release as release_ops, schema as schema_ops,
-    score as score_ops, security as security_ops, theory_evolve as theory_ops,
-    theory_league as theory_league_ops, zyal as zyal_ops, zyal_genome as zyal_genome_ops,
+    score as score_ops, security as security_ops, theory_league as theory_league_ops,
+    zyal as zyal_ops, zyal_genome as zyal_genome_ops,
 };
 
 use super::{bench, commands::Commands, data, release, schema, score, security, theory, zyal};
@@ -60,27 +60,6 @@ pub fn run(command: Commands) -> Result<()> {
             zyal::ZyalCommand::Genome { command } => zyal_genome_ops::run(command),
         },
         Commands::Theory { command } => match command {
-            theory::TheoryCommand::Evolve {
-                observables,
-                proposals,
-                proposer_cmd,
-                output_root,
-                run_id,
-                checkpoint_every,
-                generations,
-                population,
-                seed,
-            } => theory_ops::run_evolve(
-                &observables,
-                proposals.as_deref(),
-                proposer_cmd.as_deref(),
-                &output_root,
-                &run_id,
-                checkpoint_every,
-                generations,
-                population,
-                seed,
-            ),
             theory::TheoryCommand::League {
                 observables,
                 covariance,

@@ -11,34 +11,25 @@
 //! This is the true, structural enforcement of the repo's "whitebox theories only" rule and the
 //! "derived, not fit" preference — see `docs/research/automated-theory-discovery.md` §2/§4.
 
-pub mod adversary;
-pub mod anchors;
-pub mod assessment;
 pub mod binding;
 pub mod certificate;
 pub mod claim_graph;
 pub mod contenders;
 pub mod evaluate;
 pub mod evidence;
-pub mod evolve;
 pub mod fingerprint;
 pub mod holdout;
 pub mod league;
 pub mod mutation;
 pub mod obligation;
-pub mod pareto;
 pub mod proposal;
 pub mod recombine_proof;
-pub mod robustness;
 pub mod scorecard;
 pub mod sectors;
 pub mod unification;
 pub mod unification_data;
 pub mod vetoes;
 
-pub use adversary::{Adversary, Decoy, DecoyKind};
-pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
-pub use assessment::{assess, CandidateAssessment};
 pub use binding::{
     audit_novel_predictions, bind_modified_background, BindingOutcome, BindingReport, FieldBinding,
     NovelPredictionAudit,
@@ -59,7 +50,6 @@ pub use evaluate::{derivation_score, evaluate, Evaluation};
 pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
 };
-pub use evolve::{evolve, evolve_run, Cell, Champion, EvolutionResult, GenerationReport};
 pub use fingerprint::claim_fingerprint;
 pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
 pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, ModelClass};
@@ -68,7 +58,6 @@ pub use obligation::{
     dimensional_consistency, falsifier, limit_recovers_gr, DerivationObligation,
     DerivationObligationKind, LimitWitness, NovelPredictionWitness, ObligationOutcome,
 };
-pub use pareto::{dominates, objectives, pareto_front, Objectives};
 pub use proposal::{
     parse_proposal, proposal_into_theory, proposal_receipt, proposal_to_theory, ProposalReceipt,
     TheoryProposal,
@@ -76,7 +65,6 @@ pub use proposal::{
 pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
-pub use robustness::perturbation_robustness;
 pub use scorecard::{
     score, scorecard_receipt, DataFitOutcome, RubricComponent, RubricV4, ScorecardReceipt,
     ScorecardV4,

@@ -267,6 +267,8 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::zyal_genome::physics_score::baseline_log_likelihood;
+    use crate::zyal_genome::proposer_prompt::parse_proposal_response;
 
     fn obs() -> Vec<ObservableRecord> {
         ["bao_dv_z038", "bao_dv_z051", "fsigma8_z038", "fsigma8_z051"]
@@ -320,7 +322,8 @@ mod tests {
         let doc = fixture_proposal();
         let json = serde_json::to_string(&doc).unwrap();
         let observables = obs();
-        let sc = parse_and_score(&json, &observables).unwrap();
+        let doc2 = parse_proposal_response(&json).unwrap();
+        let sc = score_proposal(&doc2, &observables, baseline_log_likelihood(&observables));
         assert!(!sc.disqualified);
         // The fixture proposer satisfies the Proposer trait too.
         let from_trait = FixtureProposer.propose().unwrap();

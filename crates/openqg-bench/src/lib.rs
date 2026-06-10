@@ -6,7 +6,6 @@ pub mod release;
 pub mod schema;
 pub mod score;
 pub mod security;
-pub mod theory_evolve;
 pub mod theory_league;
 pub mod util;
 pub mod zyal;

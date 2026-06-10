@@ -45,8 +45,10 @@ struct RankRow {
     entrant: String,
     total: f64,
     disqualified: bool,
+    distinct: bool,
     derivation: f64,
     data_fit: f64,
+    novelty: f64,
     unification: f64,
     robustness: f64,
     parsimony: f64,
@@ -57,8 +59,10 @@ fn rank_row(entrant: &str, sc: &ScorecardV4) -> RankRow {
         entrant: entrant.to_string(),
         total: sc.total,
         disqualified: sc.disqualified,
+        distinct: sc.distinct_from_baseline,
         derivation: component_points(sc, "derivation_rigor"),
         data_fit: component_points(sc, "data_fit"),
+        novelty: component_points(sc, "novel_prediction"),
         unification: component_points(sc, "unification"),
         robustness: component_points(sc, "robustness_under_judge"),
         parsimony: component_points(sc, "parsimony"),
@@ -156,18 +160,29 @@ pub(crate) fn generate_whitepaper(
     }
     let _ = writeln!(md);
 
-    let _ = writeln!(md, "## Ranking vs human contenders (identical rubric)\n");
-    let _ = writeln!(md, "| Rank | Entrant | Total | Derivation | DataFit | Unification | Robustness | Parsimony | DQ |");
-    let _ = writeln!(md, "|---:|---|---:|---:|---:|---:|---:|---:|:--:|");
+    let _ = writeln!(
+        md,
+        "## Ranking vs contenders (identical rubric)\n\n_The human entrants are **ΛCDM-recovering \
+         baselines** (string/M-theory, LQG, … make no distinct low-energy prediction); \
+         `real_modification_program` is a genuine nDGP modification. `Dist` = makes a physical \
+         departure from ΛCDM._\n"
+    );
+    let _ = writeln!(md, "| Rank | Entrant | Total | Dist | Derivation | DataFit | Novelty | Unification | Robustness | Parsimony | DQ |");
+    let _ = writeln!(
+        md,
+        "|---:|---|---:|:--:|---:|---:|---:|---:|---:|---:|:--:|"
+    );
     for (i, r) in rows.iter().enumerate() {
         let _ = writeln!(
             md,
-            "| {} | {} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {} |",
+            "| {} | {} | {:.1} | {} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {} |",
             i + 1,
             r.entrant,
             r.total,
+            if r.distinct { "✓" } else { "—" },
             r.derivation,
             r.data_fit,
+            r.novelty,
             r.unification,
             r.robustness,
             r.parsimony,
@@ -305,7 +320,9 @@ pub(crate) fn generate_whitepaper(
         },
         "ranking": rows.iter().map(|r| json!({
             "entrant": r.entrant, "total": r.total, "disqualified": r.disqualified,
-            "derivation_rigor": r.derivation, "data_fit": r.data_fit, "unification": r.unification,
+            "distinct_from_baseline": r.distinct,
+            "derivation_rigor": r.derivation, "data_fit": r.data_fit,
+            "novel_prediction": r.novelty, "unification": r.unification,
             "robustness_under_judge": r.robustness, "parsimony": r.parsimony,
         })).collect::<Vec<_>>(),
         "observables_count": n_obs,
@@ -350,7 +367,11 @@ mod tests {
         let md = fs::read_to_string(run_dir.join("white-paper.md")).unwrap();
         assert!(md.contains("Candidate Theory Report"));
         assert!(md.contains("Per-dimension scorecard"));
-        assert!(md.contains("Ranking vs human contenders"));
+        assert!(md.contains("Ranking vs contenders"));
+        assert!(
+            md.contains("Novelty"),
+            "ranking must show the novelty dimension"
+        );
         assert!(md.contains("evolved champion"));
         assert!(
             md.contains("pure parameter evolution"),

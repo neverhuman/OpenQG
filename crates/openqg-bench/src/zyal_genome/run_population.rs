@@ -8,7 +8,6 @@
 //! stage loop in `run_variant.rs`.
 
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -19,7 +18,7 @@ use openqg_core::ObservableRecord;
 use super::physics_score::baseline_log_likelihood;
 use super::proposer::{score_proposal, ProposalDoc, Proposer};
 use super::theory_population::{
-    evolve_population, population_progress_ok, EvolveConfig, GenerationProgress, Individual,
+    evolve_population, population_progress_ok, EvolveConfig, Individual,
 };
 
 /// Read JSONL observables (one [`ObservableRecord`] per non-empty line).
@@ -30,17 +29,6 @@ pub(crate) fn load_observables(path: &Path) -> Result<Vec<ObservableRecord>> {
         .filter(|l| !l.trim().is_empty())
         .map(|l| serde_json::from_str(l).with_context(|| format!("parse observable: {l}")))
         .collect()
-}
-
-fn progress_value(g: &GenerationProgress) -> Value {
-    json!({
-        "record_kind": "generation_progress",
-        "generation": g.generation,
-        "new_fingerprints": g.new_fingerprints,
-        "reused_fingerprints": g.reused_fingerprints,
-        "distinct_lineages": g.distinct_lineages,
-        "promote_lineage_only": g.promote_lineage_only,
-    })
 }
 
 fn champion_value(i: &Individual) -> Value {

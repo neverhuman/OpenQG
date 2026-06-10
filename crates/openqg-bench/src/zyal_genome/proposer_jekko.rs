@@ -25,11 +25,11 @@ use anyhow::{anyhow, Result};
 
 use openqg_core::ObservableRecord;
 
-use super::jailgun_live::run_live_call_attempt_env;
+use super::live_attempt::run_live_call_attempt_env;
+use super::live_attempt::LiveAttempt;
 use super::proposer::{score_proposal, ProposalDoc, Proposer};
-use super::proposer_jailgun::parse_proposal_response;
+use super::proposer_prompt::parse_proposal_response;
 use super::theory_population::ProposalAttemptRecord;
-use super::LiveAttempt;
 
 /// Injected transport: `(prompt, attempt_number) -> LiveAttempt`. Production wraps
 /// [`run_live_call_attempt_env`]; tests inject closures.
@@ -383,7 +383,7 @@ impl Proposer for JekkoProposer {
     fn propose(&self) -> Result<ProposalDoc> {
         let base_prompt = format!(
             "{}\n{}",
-            super::proposer_jailgun::build_proposer_prompt(),
+            super::proposer_prompt::build_proposer_prompt(),
             self.extra_sections
         );
         let k = self.cfg.samples.max(1);

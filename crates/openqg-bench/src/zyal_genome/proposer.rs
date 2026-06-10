@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use openqg_core::theory::{
@@ -24,7 +24,7 @@ use openqg_core::theory::{
 };
 use openqg_core::ObservableRecord;
 
-use super::physics_score::{baseline_log_likelihood, score_candidate};
+use super::physics_score::score_candidate;
 
 const EVIDENCE_SCHEMA: &str = "proposer-evidence.v1";
 
@@ -47,12 +47,6 @@ pub(crate) struct ProposalDoc {
     /// Cited evidence: path → exact content bytes (as a string).
     #[serde(default)]
     pub evidence: BTreeMap<String, String>,
-}
-
-/// Parse a proposal from raw JSON (the LLM's output). A parse error is returned as `Err` so the
-/// caller can record it as a vetoed verdict rather than crash (mirrors `proposal_receipt`).
-pub(crate) fn parse_proposal_doc(json: &str) -> Result<ProposalDoc> {
-    serde_json::from_str(json).context("parse proposal document")
 }
 
 /// Adjudicate a proposal veto-first through the real oracle. Builds the evidence store from the
@@ -92,13 +86,6 @@ pub(crate) fn score_proposal(
         &store,
         EVIDENCE_SCHEMA,
     )
-}
-
-/// Convenience: parse + score in one call, computing the baseline internally.
-pub(crate) fn parse_and_score(json: &str, observables: &[ObservableRecord]) -> Result<ScorecardV4> {
-    let doc = parse_proposal_doc(json)?;
-    let baseline_ll = baseline_log_likelihood(observables);
-    Ok(score_proposal(&doc, observables, baseline_ll))
 }
 
 /// A source of proposals. The deterministic [`FixtureProposer`] is used in tests and offline; the
@@ -174,66 +161,6 @@ impl Proposer for BudgetedProposer<'_> {
 
     fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
         self.inner.drain_attempts()
-    }
-}
-
-/// Routes per generation across the two live backends: jailgun (billable browser-ChatGPT,
-/// diversity) every `jailgun_every` takes precedence; jekko (free jnoccio API, the workhorse)
-/// fires on generation 1 and every `jekko_every`; all other generations are typed skips.
-pub(crate) struct CompositeProposer<'a> {
-    jekko: Option<(&'a dyn Proposer, usize)>,
-    jailgun: Option<(&'a dyn Proposer, usize)>,
-    generation: std::cell::Cell<usize>,
-    last_fired: std::cell::Cell<u8>, // 0 none / 1 jekko / 2 jailgun
-}
-
-impl<'a> CompositeProposer<'a> {
-    pub(crate) fn new(
-        jekko: Option<(&'a dyn Proposer, usize)>,
-        jailgun: Option<(&'a dyn Proposer, usize)>,
-    ) -> Self {
-        Self {
-            jekko: jekko.map(|(p, g)| (p, g.max(1))),
-            jailgun: jailgun.map(|(p, j)| (p, j.max(1))),
-            generation: std::cell::Cell::new(0),
-            last_fired: std::cell::Cell::new(0),
-        }
-    }
-}
-
-impl Proposer for CompositeProposer<'_> {
-    fn propose(&self) -> Result<ProposalDoc> {
-        // The engine calls propose() exactly once per generation.
-        let g = self.generation.get() + 1;
-        self.generation.set(g);
-        if let Some((p, j)) = self.jailgun {
-            if g > 1 && g % j == 0 {
-                self.last_fired.set(2);
-                return p.propose();
-            }
-        }
-        if let Some((p, gg)) = self.jekko {
-            if g == 1 || g % gg == 0 {
-                self.last_fired.set(1);
-                return p.propose();
-            }
-        }
-        self.last_fired.set(0);
-        Err(anyhow::Error::new(ProposeSkip))
-    }
-
-    fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
-        match self.last_fired.get() {
-            1 => self
-                .jekko
-                .map(|(p, _)| p.drain_attempts())
-                .unwrap_or_default(),
-            2 => self
-                .jailgun
-                .map(|(p, _)| p.drain_attempts())
-                .unwrap_or_default(),
-            _ => Vec::new(),
-        }
     }
 }
 

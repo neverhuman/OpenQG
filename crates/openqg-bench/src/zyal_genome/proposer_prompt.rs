@@ -1,0 +1,240 @@
+//! Shared proposer prompt + response parsing (V6).
+//!
+//! Extracted from the retired jailgun proposer so every LLM backend (jekko subprocess today, the
+//! router-native proposer next) shares ONE physics contract: the rules the oracle enforces, the
+//! authoritative relation registry, and the tolerant-parse + lossless-repair pipeline that turns a
+//! model response into a typed [`ProposalDoc`].
+
+use anyhow::{Context, Result};
+use serde_json::Value;
+
+use super::proposer::{fixture_proposal, ProposalDoc};
+
+pub(crate) const DOWNLOAD_TARGET: &str = "openqg-v4-proposal.json";
+
+/// Build the deterministic proposer prompt: it states the goal (a *derivation-rich, critic-proof*
+/// candidate), pins the exact `ProposalDoc` schema by example (the fixture proposal serialized), and
+/// the hard rules the deterministic oracle will enforce — so the model proposes in a shape that can
+/// actually pass the gates rather than be disqualified.
+pub(crate) fn build_proposer_prompt() -> String {
+    // Compact (not pretty) example keeps the prompt small so the browser round-trip completes.
+    let example = serde_json::to_string(&fixture_proposal()).unwrap_or_else(|_| "{}".to_string());
+    // The authoritative registry: the LLM otherwise invents relation names the oracle cannot
+    // recompute (UnknownRelation kill), so we pin the exact set + their input signatures.
+    let relations = openqg_core::theory::registered_relations()
+        .iter()
+        .map(|r| {
+            format!(
+                "  - {r}  [{}]",
+                openqg_core::theory::relation_signature(r).unwrap_or("")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "You are proposing ONE candidate component of a unified theory of physics for the OpenQG \
+engine. Your proposal is adjudicated by a DETERMINISTIC oracle — you do not score it, and any \
+cheating is disqualified. To earn credit you MUST:\n\
+\n\
+1. Make every parameter DERIVED, not fitted: each parameter's `provenance` is either \
+`\"fundamental\"` or a `derived` object `{{\"derived\":{{\"mechanism\":\"...\",\"certificate\":{{...}}}}}}` \
+whose certificate names a closed-form relation from the AVAILABLE RELATIONS list below (any other \
+relation name is an UnknownRelation KILL). A free/uncertified knob is KILLED.\n\
+2. Attach, for each physics claim, at least one derivation OBLIGATION that VERIFIES (a \
+`numeric_witness` carrying the same certificate, or a `limit` witness whose residual is within its \
+bound). An unobligated physics claim is KILLED.\n\
+3. Provide the actual CONTENT of every cited piece of evidence in the `evidence` map (path → text). \
+Citing evidence you do not supply is laundering and is KILLED.\n\
+4. If you claim UNIFICATION, every free degree of freedom must be a shared parameter (no hidden \
+sector-private knob), or it is KILLED.\n\
+5. The theory must pass the physical veto cascade (dimensionally homogeneous terms, no ghost, GR \
+recovery / screening for any gravity modification).\n\
+6. ALL numeric fields MUST be JSON NUMBERS, never strings or labels: every parameter `value`, every \
+term `coefficient`/exponent, and every certificate `inputs` value / `expected` / `tolerance` must \
+look like `1.16667`, not `\"ndgp\"` or `\"1.16667\"`. Identifiers (relation names, symbols) are \
+strings; physical magnitudes are numbers.\n\
+7. Each claim's `sector` MUST be EXACTLY one of: `background`, `growth`, `tensor_sector`, \
+`screening_ppn`, `bbn`, `particle`, `quantum`. Do NOT invent sectors like `gravity`, `stability`, or \
+`unification` (gravity modifications go in `growth` or `tensor_sector`; a unification statement is \
+expressed via the top-level `unification.shared` list, not a claim sector). Each claim `kind` is \
+`physics` or `engineering`.\n\
+8. BE PHYSICALLY DISTINCT FROM ΛCDM. A theory observationally identical to ΛCDM (every \
+modified-gravity knob at its GR value — `geff_over_g` = 1, `alpha_*` = 0) earns ZERO novelty and \
+ZERO data credit and is flagged not-distinct. To be distinct, carry a value-certified derived \
+parameter on a modification relation AT A VALUE THAT DEPARTS FROM ITS GR LIMIT (e.g. nDGP \
+`geff_over_g` = 7/6 via `ndgp_geff_over_g` with beta=2, NOT beta→∞ which gives the GR value 1). \
+Re-deriving definitions (H0=100h, flat closure) is NOT distinctness and earns NO rigor.\n\
+9. MAKE A NOVEL FALSIFIABLE PREDICTION. Attach an obligation of kind `novel_prediction` with a \
+`novel` object {{\"observable\":\"fsigma8_z051\",\"predicted\":<your value>,\"baseline\":<ΛCDM value>,\
+\"min_detectable\":<experiment resolution>,\"falsifier\":\"which measurement refutes it\"}} where \
+|predicted − baseline| >= min_detectable. Tying ΛCDM on the data earns 0 — only a real, testable \
+deviation scores. Wire its claim id into a physics claim's `obligations`.\n\
+10. THE ENGINE COMPUTES THE TRUTH (V5). Your certified modification is TRUTH-BOUND into the \
+background the model integrates, and your `novel.predicted`/`baseline` are honesty attestations \
+checked against the MACHINE-COMPUTED values within your own `min_detectable` — a fabricated number \
+demotes novelty to ZERO. Your data fit is then computed from the bound physics: the modification \
+you certify is the modification you are scored on.\n\
+11. CONSISTENCY IS A KILL GATE. Do NOT set background MG fields (`mu0`, `ndgp_omega_rc`, `fr_*`, \
+`mg_family`) without a matching verified certificate (UnexplainedModification = kill). Do NOT \
+declare values that conflict with what your certificate derives (ConflictingModification = kill). \
+A certified modification the engine cannot compute (e.g. ghost-branch beta <= 1, or a regime flag \
+with no amplitude) is UnimplementedModification = kill.\n\
+12. AIM AT THE TENSIONS. The growth data (fσ8, S8) sit LOW relative to Planck-ΛCDM — growth must \
+be SUPPRESSED to fit better. `geff_over_g > 1` (nDGP/f(R)/coupled-DE) ENHANCES growth and worsens \
+the fit. The registered suppressed-growth direction is `planck_mu0_geff` with NEGATIVE `mu0` \
+(e.g. mu0 = -0.1 ⇒ G_eff/G = 0.9). A theory that genuinely improves the combined fit earns real \
+data credit; see the DATA BRIEF below for the actual pulls.\n\
+\n\
+AVAILABLE RELATIONS — the ONLY relation names the oracle can recompute; use these EXACT names and \
+supply the exact named inputs (a certificate's `expected` is recomputed from `inputs` and must match):\n\
+{relations}\n\
+Note: `screening` is a single STRING label (e.g. \"vainshtein\"), and `screening_recovery` is a single \
+NUMBER (the GR-recovery residual, ~0), not objects.\n\
+\n\
+Return EXACTLY one downloadable JSON artifact named `{DOWNLOAD_TARGET}` and nothing else — no prose, \
+no markdown fences. It must match this schema (here is a complete, valid example you should improve \
+upon, NOT copy verbatim):\n\
+\n\
+{example}\n"
+    )
+}
+
+/// Extract a [`ProposalDoc`] from a raw model/artifact response: tolerate Markdown code fences and
+/// leading/trailing prose by slicing the outermost `{ ... }` JSON object, then parse strictly.
+pub(crate) fn parse_proposal_response(raw: &str) -> Result<ProposalDoc> {
+    let trimmed = raw.trim();
+    // Strip a ```json ... ``` fence if present.
+    let body = if let Some(rest) = trimmed.strip_prefix("```") {
+        let rest = rest.strip_prefix("json").unwrap_or(rest);
+        rest.rsplit_once("```").map(|(a, _)| a).unwrap_or(rest)
+    } else {
+        trimmed
+    };
+    // Slice the outermost JSON object.
+    let start = body
+        .find('{')
+        .context("no JSON object found in proposal response")?;
+    let end = body
+        .rfind('}')
+        .context("no closing brace in proposal response")?;
+    anyhow::ensure!(end > start, "malformed JSON object in proposal response");
+    let mut value: Value =
+        serde_json::from_str(&body[start..=end]).context("parse proposal JSON")?;
+    repair_proposal_value(&mut value);
+    serde_json::from_value(value).context("parse proposal document")
+}
+
+/// Project the rich shapes the LLM tends to emit onto our strict schema slots — lossless w.r.t. the
+/// schema, which only HAS a string/number there: `theory.screening` object → its `mechanism` string;
+/// `theory.screening_recovery` object → its `residual` number. The physics claims, parameters,
+/// certificates, terms, etc. are left untouched and adjudicated strictly.
+fn repair_proposal_value(value: &mut Value) {
+    let Some(theory) = value.get_mut("theory").and_then(Value::as_object_mut) else {
+        return;
+    };
+    // V5: normalize invented mg_family labels onto the real enum. The Planck-μ0 parametrization IS
+    // `none` in our schema (the scale-free μ0 path); fr/ndgp typos map to their families. This is
+    // lossless — the binding/consistency gates still verify the physics afterwards.
+    if let Some(bg) = theory.get_mut("background").and_then(Value::as_object_mut) {
+        if let Some(fam) = bg.get("mg_family").and_then(Value::as_str) {
+            let canon = match fam {
+                "none" | "fr_hu_sawicki" | "ndgp" => None,
+                f if f.contains("fr") => Some("fr_hu_sawicki"),
+                f if f.contains("dgp") => Some("ndgp"),
+                _ => Some("none"), // planck_mu0 / mu0 / inventions → the μ0 path
+            };
+            if let Some(c) = canon {
+                bg.insert("mg_family".into(), Value::String(c.to_string()));
+            }
+        }
+    }
+    if theory
+        .get("screening")
+        .map(Value::is_object)
+        .unwrap_or(false)
+    {
+        let mech = theory["screening"]
+            .get("mechanism")
+            .and_then(Value::as_str)
+            .map(|s| Value::String(s.to_string()))
+            .unwrap_or(Value::Null);
+        theory.insert("screening".into(), mech);
+    }
+    if theory
+        .get("screening_recovery")
+        .map(Value::is_object)
+        .unwrap_or(false)
+    {
+        let num = theory["screening_recovery"]
+            .get("residual")
+            .filter(|v| v.is_number())
+            .cloned()
+            .unwrap_or(Value::Null);
+        theory.insert("screening_recovery".into(), num);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_proposer_prompt_pins_the_schema_and_rules() {
+        let p = build_proposer_prompt();
+        assert!(p.contains(DOWNLOAD_TARGET));
+        assert!(p.contains("DETERMINISTIC oracle"));
+        assert!(p.contains("provenance"));
+        assert!(p.contains("obligation") || p.contains("OBLIGATION"));
+        // The embedded example is a valid ProposalDoc.
+        assert!(
+            p.contains("ndgp_geff_over_g"),
+            "prompt should embed the schema-by-example"
+        );
+    }
+
+    #[test]
+    fn parse_response_handles_a_plain_json_proposal() {
+        let json = serde_json::to_string(&fixture_proposal()).unwrap();
+        let doc = parse_proposal_response(&json).expect("parse plain json");
+        assert_eq!(doc.theory.id, fixture_proposal().theory.id);
+    }
+
+    #[test]
+    fn parse_response_handles_markdown_fences_and_prose() {
+        let json = serde_json::to_string(&fixture_proposal()).unwrap();
+        let wrapped = format!("Here is my proposal:\n```json\n{json}\n```\nThanks!");
+        let doc = parse_proposal_response(&wrapped).expect("parse fenced json");
+        assert_eq!(doc.theory.id, fixture_proposal().theory.id);
+    }
+
+    #[test]
+    fn repair_normalizes_rich_screening_shapes() {
+        // The LLM tends to emit screening as a rich object; repair projects it onto our schema slots.
+        let mut v: Value =
+            serde_json::from_str(&serde_json::to_string(&fixture_proposal()).unwrap()).unwrap();
+        v["theory"]["screening"] = serde_json::json!({"mechanism": "vainshtein", "active": true});
+        v["theory"]["screening_recovery"] =
+            serde_json::json!({"residual": 1.0e-12, "bound": 1.0e-6});
+        let raw = serde_json::to_string(&v).unwrap();
+        let doc = parse_proposal_response(&raw).expect("repair should normalize rich screening");
+        assert_eq!(doc.theory.screening.as_deref(), Some("vainshtein"));
+        assert_eq!(doc.theory.screening_recovery, Some(1.0e-12));
+    }
+
+    #[test]
+    fn the_prompt_lists_the_real_registry_relations() {
+        let p = build_proposer_prompt();
+        assert!(p.contains("AVAILABLE RELATIONS"));
+        assert!(
+            p.contains("h0_from_h"),
+            "prompt must list the real registry relations"
+        );
+        assert!(p.contains("flat_universe_omega_lambda"));
+    }
+
+    #[test]
+    fn parse_response_rejects_garbage() {
+        assert!(parse_proposal_response("no json here").is_err());
+        assert!(parse_proposal_response("{not valid json").is_err());
+    }
+}

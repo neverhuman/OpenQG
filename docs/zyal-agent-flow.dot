@@ -1,0 +1,60 @@
+digraph zyal {
+  rankdir=TB; bgcolor="white"; compound=true; nodesep=0.9; ranksep=0.7;
+  graph [fontname="Helvetica", margin=0.25];
+  node  [shape=plaintext, fontname="Helvetica"];
+  edge  [fontname="Helvetica", penwidth=1.8, arrowsize=0.9, fontsize=10];
+  labelloc="t"; fontsize=23; fontname="Helvetica-Bold";
+  label=<<FONT POINT-SIZE="23"><B>OpenQG &#183; ZYAL Genome &#8212; Agent Flow</B></FONT><BR/><FONT POINT-SIZE="12" COLOR="#334155">variant: jailgun-only &#160;&#183;&#160; mode: live-selective &#160;&#183;&#160; real ChatGPT via authenticated browser (CDP) &#160;&#183;&#160; M6 sealed-nondeterminism receipts</FONT><BR/> >;
+
+  pipe [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="7" COLOR="#1f3a5f" WIDTH="250">
+    <TR><TD BGCOLOR="#1f3a5f"><FONT COLOR="white" POINT-SIZE="13"><B>Per-generation pipeline</B></FONT></TD></TR>
+    <TR><TD PORT="orch" BGCOLOR="#dce6f4" ALIGN="LEFT" BALIGN="LEFT"><B>ZYAL Genome Orchestrator</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">preflight: jailgun /api/health &#183; accounts &#183; MCP tools &#183; routing</FONT></TD></TR>
+    <TR><TD PORT="s00" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>00 &#183; atlas</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">research synthesis</FONT></TD></TR>
+    <TR><TD PORT="s01" BGCOLOR="#eef1f3" ALIGN="LEFT" BALIGN="LEFT"><B>01 &#183; decompose-known</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">split solved structure</FONT></TD></TR>
+    <TR><TD PORT="s02" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>02 &#183; decompose-failed</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">hard-stage repair</FONT></TD></TR>
+    <TR><TD PORT="s03" BGCOLOR="#eef1f3" ALIGN="LEFT" BALIGN="LEFT"><B>03 &#183; generate-genes</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">synthesize candidate genes</FONT></TD></TR>
+    <TR><TD PORT="s04" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>04 &#183; repair-genes</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">hard-stage repair</FONT></TD></TR>
+    <TR><TD PORT="s05" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>05 &#183; compatibility</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">hard-stage repair</FONT></TD></TR>
+    <TR><TD PORT="s06" BGCOLOR="#eef1f3" ALIGN="LEFT" BALIGN="LEFT"><B>06 &#183; assemble-modules</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">compose theory modules</FONT></TD></TR>
+    <TR><TD PORT="s07" BGCOLOR="#eef1f3" ALIGN="LEFT" BALIGN="LEFT"><B>07 &#183; macro-test</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">score vs observables</FONT></TD></TR>
+    <TR><TD PORT="s08" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>08 &#183; failure-slicing</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">hard-stage repair</FONT></TD></TR>
+    <TR><TD PORT="s09" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>09 &#183; selection-mutation</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">hard-stage repair</FONT></TD></TR>
+    <TR><TD PORT="s10" BGCOLOR="#fbe3d6" ALIGN="LEFT" BALIGN="LEFT"><B>10 &#183; promotion</B> &#160;<FONT COLOR="#c1440e" POINT-SIZE="9"><B>&#9679; LIVE</B></FONT><BR/><FONT POINT-SIZE="9" COLOR="#334155">promotion judging</FONT></TD></TR>
+  </TABLE>>];
+  back [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="7" COLOR="#1f7a4d" WIDTH="250">
+    <TR><TD BGCOLOR="#1f7a4d"><FONT COLOR="white" POINT-SIZE="13"><B>LIVE jailgun backend &#183; per hard stage</B></FONT></TD></TR>
+    <TR><TD PORT="b1" BGCOLOR="#dcefe3" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>1</B></FONT> &#160;<B>openqg-bench builds prompt</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">prompt.md &#183; prompt_ref &#183; ARTIFACT_REPAIR_ATTEMPTS=0</FONT></TD></TR>
+    <TR><TD PORT="b2" BGCOLOR="#dcefe3" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>2</B></FONT> &#160;<B>MCP &#8594; jailgun.run</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">POST /mcp &#183; JSON-RPC tools/call &#183; tabs=1</FONT></TD></TR>
+    <TR><TD PORT="b3" BGCOLOR="#dcefe3" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>3</B></FONT> &#160;<B>jailgun-server orchestrator</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">lease account &#183; spawn run &#183; Hello&#8594;BridgeReady</FONT></TD></TR>
+    <TR><TD PORT="b4" BGCOLOR="#dcefe3" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>4</B></FONT> &#160;<B>chrome-bridge (Node+Playwright)</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">connectOverCDP 127.0.0.1:9224/9225 (Xvfb :99)</FONT></TD></TR>
+    <TR><TD PORT="b5" BGCOLOR="#eef1f3" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>5</B></FONT> &#160;<B>Managed Chrome &#8212; authenticated</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">persistent profile acct-19ae9aed / acct-4690d657</FONT></TD></TR>
+    <TR><TD PORT="b6" BGCOLOR="#ece3fb" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>6</B></FONT> &#160;<B>ChatGPT (chatgpt.com)</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">submit prompt &#8594; poll completion &#183; pro-extended</FONT></TD></TR>
+    <TR><TD PORT="b7" BGCOLOR="#dcefe3" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>7</B></FONT> &#160;<B>capture &#8594; parse</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">raw-output &#8594; parsed-summary.json (ok | timeout)</FONT></TD></TR>
+    <TR><TD PORT="b8" BGCOLOR="#f7edd2" ALIGN="LEFT" BALIGN="LEFT"><FONT COLOR="#c1440e"><B>8</B></FONT> &#160;<B>seal call &#8594; ledgers</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">receipt.json &#183; live-call-ledger.jsonl</FONT></TD></TR>
+    <TR><TD PORT="bfb" BGCOLOR="#eef1f3" ALIGN="LEFT" BALIGN="LEFT"><B>fallback (soft / not live)</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">scripted-wrapper &#183; jnoccio (top-20% band)</FONT></TD></TR>
+  </TABLE>>];
+  eval [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="7" COLOR="#334155" WIDTH="270">
+    <TR><TD BGCOLOR="#334155"><FONT COLOR="white" POINT-SIZE="13"><B>Scoring &#183; adversary &#183; promotion &#183; outputs</B></FONT></TD></TR>
+    <TR><TD PORT="e1" BGCOLOR="#dcf0f2" ALIGN="LEFT" BALIGN="LEFT"><B>Scoring &amp; MAP-Elites QD archive</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">local &#183; interface &#183; macro &#183; innovation &#183; novelty &#8722; failure_penalty<BR/>islands (diversity) &#183; novelty archive &#183; Pareto frontier</FONT></TD></TR>
+    <TR><TD PORT="e2" BGCOLOR="#f6dce8" ALIGN="LEFT" BALIGN="LEFT"><B>Adversary / Judge (co-evolving)</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">frontier: GrayBox &#183; Overfit &#183; Unfalsifiable<BR/>honesty rollback (anchor survival floor) &#183; live critic lowers-only</FONT></TD></TR>
+    <TR><TD PORT="e3" BGCOLOR="#f7edd2" ALIGN="LEFT" BALIGN="LEFT"><B>ProposalReceipt &#183; sealed (M6)</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">sha256(model output) + oracle verdict<BR/>parse &#8594; derivation-check &#8594; veto cascade &#183; replay without model</FONT></TD></TR>
+    <TR><TD PORT="e4" BGCOLOR="#e6ebf1" ALIGN="LEFT" BALIGN="LEFT"><B>Selection &#8594; Promotion</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">champion per generation (promote_lineage)<BR/>promotion-ledger / generation-ledger &#183; quality gate</FONT></TD></TR>
+    <TR><TD PORT="e5" BGCOLOR="#e6ebf1" ALIGN="LEFT" BALIGN="LEFT"><B>Outputs / Evidence (per run)</B><BR/><FONT POINT-SIZE="9" COLOR="#334155">run-summary &#183; metrics-timeseries<BR/>live-call-ledger (1 record / real ChatGPT call)<BR/>quality-gate &#183; pareto-snapshot &#183; champion</FONT></TD></TR>
+  </TABLE>>];
+  legend [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#94a3b8"><TR><TD BGCOLOR="#475569"><FONT COLOR="white"><B>Legend</B></FONT></TD><TD BGCOLOR="#dce6f4"><FONT POINT-SIZE="10">Orchestrator</FONT></TD><TD BGCOLOR="#fbe3d6"><FONT POINT-SIZE="10">Hard stage &#8594; LIVE</FONT></TD><TD BGCOLOR="#eef1f3"><FONT POINT-SIZE="10">Deterministic</FONT></TD><TD BGCOLOR="#dcefe3"><FONT POINT-SIZE="10">Jailgun backend</FONT></TD><TD BGCOLOR="#ece3fb"><FONT POINT-SIZE="10">ChatGPT</FONT></TD><TD BGCOLOR="#dcf0f2"><FONT POINT-SIZE="10">Scoring/archive</FONT></TD><TD BGCOLOR="#f6dce8"><FONT POINT-SIZE="10">Adversary/judge</FONT></TD><TD BGCOLOR="#f7edd2"><FONT POINT-SIZE="10">Receipts (M6)</FONT></TD><TD BGCOLOR="#e6ebf1"><FONT POINT-SIZE="10">Outputs</FONT></TD><TD><FONT POINT-SIZE="9">solid = control/data flow &#160; dashed = feedback/seal &#160; dotted = generation loop</FONT></TD></TR></TABLE>>];
+
+  { rank=same; pipe; back; eval; }
+  pipe -> back [style=invis];
+  back -> eval [style=invis];
+
+  // cross-lane control / data flow
+  pipe:s04:e -> back:b1:w [color="#c1440e", xlabel="  every LIVE stage\n  calls backend  ", fontcolor="#c1440e"];
+  back:b8:e  -> eval:e1:w [color="#1f7a4d", xlabel="  parsed score  ", fontcolor="#1f7a4d"];
+  back:b8:e  -> eval:e3:w [color="#9a6b00", style=dashed];
+  eval:e2:e  -> eval:e1:e [color="#9a1750", style=dashed, xlabel=" feeds\n selection "];
+  eval:e4:w  -> pipe:orch:e [color="#1f3a5f", style=dotted, xlabel=" loop: next generation\n (islands &#183; novelty) "];
+
+  pipe -> legend [style=invis];
+  back -> legend [style=invis];
+  eval -> legend [style=invis];
+}

@@ -248,6 +248,8 @@ fn propose_one_sample(
     let mut prompt = base_prompt.to_string();
     let mut repair_kind: Option<String> = None;
     let mut oracle_repaired = false;
+    let mut empty_retried = false;
+    let empty_backoff_seconds: u64 = 8;
     let mut best: Option<(ProposalDoc, f64, bool, usize)> = None; // doc, total, dq, record idx
 
     let mut attempt_index = 0usize;
@@ -285,11 +287,30 @@ fn propose_one_sample(
         if attempt.status() != "ok" && attempt.status() != "success" {
             rec.outcome = "llm_error".into();
             rec.error = Some(format!(
-                "status {}: {}",
+                "status {}: {} | stderr: {}",
                 attempt.status(),
-                attempt.error().unwrap_or("no detail")
+                attempt.error().unwrap_or("no detail"),
+                truncate_raw(attempt.stderr_excerpt(), 240, 0)
             ));
             records.push(rec);
+            break;
+        }
+        // Near-empty stdout is a TRANSPORT failure (contention / silent provider error), not a
+        // model-JSON failure: retry once with a short backoff, without burning the parse-repair
+        // budget on an empty output.
+        if raw.trim().len() < 50 {
+            rec.outcome = "empty_output".into();
+            rec.error = Some(format!(
+                "stdout {} bytes | stderr: {}",
+                raw.len(),
+                truncate_raw(attempt.stderr_excerpt(), 240, 0)
+            ));
+            records.push(rec);
+            if !empty_retried {
+                empty_retried = true;
+                std::thread::sleep(Duration::from_secs(empty_backoff_seconds));
+                continue; // same prompt, same attempt_index semantics (free transport retry)
+            }
             break;
         }
         match extract_proposal_from_noisy_stdout(&raw) {
@@ -554,7 +575,8 @@ mod tests {
             let mut n = calls.lock().unwrap();
             *n += 1;
             Ok(fake_attempt(if *n == 1 {
-                "definitely { not json"
+                "the model wrote a long apologetic paragraph instead of JSON { sorry, here is \
+                 my reasoning about modified gravity but no valid object follows the brace"
             } else {
                 &json
             }))

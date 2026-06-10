@@ -860,6 +860,9 @@ impl LiveAttempt {
     pub(crate) fn elapsed_seconds(&self) -> f64 {
         self.elapsed_seconds
     }
+    pub(crate) fn stderr_excerpt(&self) -> &str {
+        &self.stderr
+    }
     pub(crate) fn metadata(&self) -> &Value {
         &self.metadata
     }

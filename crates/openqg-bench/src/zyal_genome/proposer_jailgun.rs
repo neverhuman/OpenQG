@@ -157,6 +157,22 @@ fn repair_proposal_value(value: &mut Value) {
     let Some(theory) = value.get_mut("theory").and_then(Value::as_object_mut) else {
         return;
     };
+    // V5: normalize invented mg_family labels onto the real enum. The Planck-μ0 parametrization IS
+    // `none` in our schema (the scale-free μ0 path); fr/ndgp typos map to their families. This is
+    // lossless — the binding/consistency gates still verify the physics afterwards.
+    if let Some(bg) = theory.get_mut("background").and_then(Value::as_object_mut) {
+        if let Some(fam) = bg.get("mg_family").and_then(Value::as_str) {
+            let canon = match fam {
+                "none" | "fr_hu_sawicki" | "ndgp" => None,
+                f if f.contains("fr") => Some("fr_hu_sawicki"),
+                f if f.contains("dgp") => Some("ndgp"),
+                _ => Some("none"), // planck_mu0 / mu0 / inventions → the μ0 path
+            };
+            if let Some(c) = canon {
+                bg.insert("mg_family".into(), Value::String(c.to_string()));
+            }
+        }
+    }
     if theory
         .get("screening")
         .map(Value::is_object)

@@ -204,19 +204,35 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
         novel: None,
     };
 
-    // A verified falsifiable prediction: nDGP's enhanced growth suppresses/lifts fσ8 vs ΛCDM by a
-    // DESI/Euclid-detectable amount — the distinctness the novelty dimension requires.
+    // A verified falsifiable prediction — V5: the witness numbers are ENGINE-COMPUTED from the
+    // truth-bound background (normal-branch nDGP ENHANCES growth), because the scorecard audits
+    // declared values against the model and demotes dishonest ones to zero novelty.
+    let (predicted, baseline) = {
+        use openqg_core::cosmology::{BackgroundForwardModel, CosmologyParams, ForwardModel};
+        let bound = openqg_core::theory::bind_modified_background(&theory).theory;
+        let model = BackgroundForwardModel;
+        let ids = vec!["fsigma8@0.51".to_string()];
+        let p = model
+            .predict(&bound.background, &ids)
+            .expect("fixture predict")[0]
+            .value;
+        let b = model
+            .predict(&CosmologyParams::planck_lcdm(), &ids)
+            .expect("fixture predict")[0]
+            .value;
+        (p, b)
+    };
     let novel_obligation = DerivationObligation {
         claim_id: "ob-novel".into(),
         kind: DerivationObligationKind::NovelPrediction,
-        detail: "nDGP growth deviation in fσ8 relative to ΛCDM".into(),
+        detail: "nDGP growth enhancement in fσ8 relative to ΛCDM (engine-computed)".into(),
         certificate: None,
         limit: None,
         citation: None,
         novel: Some(NovelPredictionWitness {
             observable: "fsigma8_z051".into(),
-            predicted: 0.49,
-            baseline: 0.46,
+            predicted,
+            baseline,
             min_detectable: 0.01,
             falsifier: "DESI/Euclid RSD fσ8 at z=0.51".into(),
         }),

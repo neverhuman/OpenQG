@@ -125,7 +125,7 @@ pub(crate) fn run_population(
     let summary = json!({
         "record_kind": "run_summary",
         "run_id": run_id,
-        "engine": "theory_population.v4",
+        "engine": "theory_population.v5",
         "generation_count": config.max_generations,
         "population_size": config.population_size,
         "seed": config.seed,

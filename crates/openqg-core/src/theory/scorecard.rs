@@ -103,6 +103,14 @@ pub struct ScorecardV4 {
     /// V4.1: whether the candidate makes a physical departure from ΛCDM/GR. `false` ⇒ a
     /// rediscovery, however well-certified. Reported even on disqualified candidates.
     pub distinct_from_baseline: bool,
+    /// V5: what the truth-binder did — which background fields the certified claims set, with
+    /// sources and fidelity caveats. Empty for unbound (GR) candidates.
+    #[serde(default)]
+    pub binding: super::binding::BindingReport,
+    /// V5: each novel-prediction witness audited against the machine-computed truth (the model's
+    /// prediction for the bound background vs the ΛCDM baseline) — declared vs computed on record.
+    #[serde(default)]
+    pub prediction_audits: Vec<super::binding::NovelPredictionAudit>,
     pub components: Vec<RubricComponent>,
     pub total: f64,
     pub total_band: (f64, f64),
@@ -271,8 +279,13 @@ pub fn score(
 
     let free = free_dof(theory);
     let digest = cg.digest();
-    // V4.1 distinctness — computed before the gate so it is reported even on disqualified candidates.
-    let physically_distinct = distinct_from_lcdm(theory);
+    // V5 truth-binding: translate certified MG claims into the background the model computes.
+    // (Binding vetoes already flowed into `kill` via Gate 2's cascade — this re-bind is the cheap,
+    // pure call that yields the report + bound background for the audits below.)
+    let binding_outcome = super::binding::bind_modified_background(theory);
+    // V4.1/V5 distinctness — declared certs OR a bound non-GR background; computed before the gate
+    // so it is reported even on disqualified candidates.
+    let physically_distinct = distinct_from_lcdm(theory) || binding_outcome.report.bound_non_gr;
 
     if !kill.is_empty() {
         return ScorecardV4 {
@@ -286,6 +299,8 @@ pub fn score(
             no_hidden_knob,
             free_dof: free,
             distinct_from_baseline: physically_distinct,
+            binding: binding_outcome.report,
+            prediction_audits: Vec::new(),
             components: Vec::new(),
             total: 0.0,
             total_band: (0.0, 0.0),
@@ -309,17 +324,31 @@ pub fn score(
         None => component("data_fit", 0.0, 0.0, 1.0),
     };
 
-    // 3. Novel prediction — distinctness from ΛCDM + a verified falsifiable prediction. A
-    //    rediscovery (not distinct) earns 0 no matter how well-certified; distinct-but-no-falsifier
-    //    earns half; distinct + a verified NovelPrediction obligation earns full.
-    let declared_novel = obligations.iter().any(|o| {
-        o.kind == super::obligation::DerivationObligationKind::NovelPrediction
-            && o.check().is_verified()
-    });
-    let nov_raw = match (physically_distinct, declared_novel) {
-        (true, true) => 1.0,
-        (true, false) => 0.5,
-        _ => 0.0,
+    // 3. Novel prediction — V5: distinctness and honesty are MACHINE-COMPUTED, never declared.
+    //    Each NovelPrediction witness is audited against the forward model's prediction for the
+    //    BOUND background vs the ΛCDM baseline: full credit only when the computed deviation is
+    //    detectable AND the declared numbers agree with the computed truth (within the witness's
+    //    own claimed resolution). A rediscovery earns 0; an unverifiable falsifier (an observable
+    //    the model cannot predict) earns the old half-credit tier; a computable-but-wrong or
+    //    dishonest declaration is demoted to 0 and flagged in the audits.
+    let prediction_audits =
+        super::binding::audit_novel_predictions(&binding_outcome.theory.background, obligations);
+    let nov_raw = if !physically_distinct {
+        0.0
+    } else if prediction_audits.is_empty() {
+        0.5 // distinct, but no falsifiable prediction declared
+    } else if prediction_audits
+        .iter()
+        .any(|a| a.computed_distinct == Some(true) && a.honest == Some(true))
+    {
+        1.0
+    } else if prediction_audits
+        .iter()
+        .all(|a| a.computed_distinct.is_none())
+    {
+        0.5 // distinct, witnesses present but unverifiable by the background model
+    } else {
+        0.0 // computable, but the prediction is not distinct or not honest — flagged
     };
     let c_nov = component("novel_prediction", nov_raw, nov_raw, nov_raw);
 
@@ -367,6 +396,8 @@ pub fn score(
         no_hidden_knob,
         free_dof: free,
         distinct_from_baseline: physically_distinct,
+        binding: binding_outcome.report,
+        prediction_audits,
         components,
         total,
         total_band: (band_lo, band_hi),
@@ -614,19 +645,36 @@ mod tests {
             physical_meaning: "nDGP linear coupling".into(),
             provenance: Provenance::derived_certified("nDGP braneworld", cert),
         });
-        // A verified falsifiable prediction on fσ8.
+        // A verified falsifiable prediction on fσ8 — V5: the witness numbers are computed from the
+        // bound background through the actual model (declared values must match the truth).
+        let (predicted, baseline) = {
+            use crate::cosmology::{BackgroundForwardModel, CosmologyParams, ForwardModel};
+            let bound = crate::theory::bind_modified_background(&t).theory;
+            let model = BackgroundForwardModel;
+            let ids = vec!["fsigma8@0.51".to_string()];
+            let p = model.predict(&bound.background, &ids).unwrap()[0].value;
+            let b = model
+                .predict(&CosmologyParams::planck_lcdm(), &ids)
+                .unwrap()[0]
+                .value;
+            (p, b)
+        };
+        assert!(
+            predicted > baseline + 0.01,
+            "normal-branch nDGP must ENHANCE growth detectably: {predicted} vs {baseline}"
+        );
         cg.claims[0].obligations.push("ob-novel".into());
         obs.push(DerivationObligation {
             claim_id: "ob-novel".into(),
             kind: DerivationObligationKind::NovelPrediction,
-            detail: "fσ8 suppression".into(),
+            detail: "fσ8 enhancement (normal-branch nDGP)".into(),
             certificate: None,
             limit: None,
             citation: None,
             novel: Some(NovelPredictionWitness {
                 observable: "fsigma8_z051".into(),
-                predicted: 0.42,
-                baseline: 0.46,
+                predicted,
+                baseline,
                 min_detectable: 0.01,
                 falsifier: "DESI/Euclid fσ8".into(),
             }),
@@ -634,6 +682,10 @@ mod tests {
         let modi = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
         assert!(!modi.disqualified, "{:?}", modi.kill_reasons);
         assert!(modi.distinct_from_baseline);
+        // The truth-audit must be on record: computed values present and honest.
+        assert_eq!(modi.prediction_audits.len(), 1);
+        assert_eq!(modi.prediction_audits[0].honest, Some(true));
+        assert_eq!(modi.prediction_audits[0].computed_distinct, Some(true));
         let nov = modi
             .components
             .iter()
@@ -641,7 +693,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             nov.points, 20.0,
-            "distinct + verified falsifier ⇒ full novelty"
+            "distinct + computed-honest falsifier ⇒ full novelty"
         );
 
         // It must outscore a pure-ΛCDM rediscovery scored the same way.

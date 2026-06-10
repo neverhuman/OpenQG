@@ -983,6 +983,8 @@ mod proposer;
 pub(crate) use proposer::*;
 mod proposer_jailgun;
 pub(crate) use proposer_jailgun::*;
+mod proposer_memory;
+pub(crate) use proposer_memory::*;
 mod preflight;
 pub(crate) use preflight::*;
 mod quality_gate;

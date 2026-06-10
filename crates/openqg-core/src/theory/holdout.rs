@@ -50,7 +50,9 @@ fn log_likelihood(
         return (0.0, 1.0);
     }
     let ids: Vec<String> = obs.iter().map(|o| o.observable_id.clone()).collect();
-    let preds = match model.predict(&theory.background, &ids) {
+    // V5: predict on the truth-bound background (keeps train/holdout consistent with evaluate).
+    let bound = super::binding::bind_modified_background(theory).theory;
+    let preds = match model.predict(&bound.background, &ids) {
         Ok(p) => p,
         Err(_) => return (f64::NEG_INFINITY, 0.0),
     };

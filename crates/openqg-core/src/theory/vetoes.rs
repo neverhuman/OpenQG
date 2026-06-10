@@ -100,6 +100,27 @@ pub enum VetoReason {
     /// A required physical-*limit* obligation FAILED — the theory does not recover its reference
     /// (GR/QM/QFT/SM/ΛCDM) in the stated limit to within the bound.
     LimitFailure { obligation: String, detail: String },
+
+    // --- V5 truth-binding reasons (claims must have computable consequences) ---
+    /// The theory is distinct from ΛCDM via verified certificates, but the bound background still
+    /// computes GR growth (an unbindable relation or an inversion domain error) — the claimed
+    /// modification has no computable consequence, which is exactly the credit-without-risk
+    /// arbitrage V5 closes.
+    UnimplementedModification {
+        relation: String,
+        symbol: String,
+        detail: String,
+    },
+    /// A non-GR modified-gravity background field is supported by NO verified MG certificate — an
+    /// uncertified modification is a fitting knob in disguise (FreeParameter severity).
+    UnexplainedModification { field: String, value: f64 },
+    /// Relation-derived and declared values for the same background field disagree — the theory
+    /// asserts two inconsistent values of one physical constant.
+    ConflictingModification {
+        field: String,
+        certificate_value: f64,
+        declared_value: f64,
+    },
 }
 
 impl VetoReason {
@@ -245,6 +266,11 @@ pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
             modification_scale: scale,
         });
     }
+
+    // 8. V5 truth-binding: certified modifications must bind into a background the forward model
+    //    can compute (unbindable / conflicting / unexplained modifications are kills). Pure
+    //    algebra — no ODE solve — cheap enough for triage.
+    reasons.extend(super::binding::bind_modified_background(theory).vetoes);
 
     reasons
 }

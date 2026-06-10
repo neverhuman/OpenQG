@@ -56,7 +56,7 @@ impl CosmologyParams {
     }
 
     /// dln E/dN by symmetric finite difference (E is smooth in N = ln a).
-    fn dln_e_dn(&self, a: f64) -> f64 {
+    pub fn dln_e_dn(&self, a: f64) -> f64 {
         let h = 1.0e-4_f64;
         let ap = a * h.exp();
         let am = a * (-h).exp();

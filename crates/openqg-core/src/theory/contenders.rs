@@ -254,6 +254,22 @@ pub fn human_contenders() -> ContenderSuite {
                 depends_on: vec![],
             }],
         };
+        // V5: the witness numbers are ENGINE-COMPUTED, not invented — the truth-audit checks the
+        // declared values against the model's prediction for the bound background, so the honest
+        // reference contender derives its own falsifiable prediction from the physics (normal-
+        // branch nDGP ENHANCES growth — the deviation is positive).
+        let (predicted, baseline) = {
+            use crate::cosmology::{BackgroundForwardModel, CosmologyParams, ForwardModel};
+            let bound = super::binding::bind_modified_background(&theory).theory;
+            let model = BackgroundForwardModel;
+            let ids = vec!["fsigma8@0.51".to_string()];
+            let p = model.predict(&bound.background, &ids).expect("predict")[0].value;
+            let b = model
+                .predict(&CosmologyParams::planck_lcdm(), &ids)
+                .expect("predict")[0]
+                .value;
+            (p, b)
+        };
         let obligations = vec![
             DerivationObligation {
                 claim_id: "ndgp-ob-num".into(),
@@ -267,14 +283,14 @@ pub fn human_contenders() -> ContenderSuite {
             DerivationObligation {
                 claim_id: "ndgp-ob-novel".into(),
                 kind: DerivationObligationKind::NovelPrediction,
-                detail: "suppressed fσ8 relative to ΛCDM".into(),
+                detail: "enhanced fσ8 relative to ΛCDM (normal-branch nDGP)".into(),
                 certificate: None,
                 limit: None,
                 citation: None,
                 novel: Some(super::NovelPredictionWitness {
                     observable: "fsigma8_z051".into(),
-                    predicted: 0.42,
-                    baseline: 0.46,
+                    predicted,
+                    baseline,
                     min_detectable: 0.01,
                     falsifier: "DESI/Euclid RSD fσ8 at z=0.51".into(),
                 }),

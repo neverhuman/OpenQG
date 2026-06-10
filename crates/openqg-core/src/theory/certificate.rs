@@ -101,6 +101,8 @@ type Relation = fn(&DerivedCertificate) -> Result<f64, String>;
 pub fn relation_registry(name: &str) -> Option<Relation> {
     match name {
         "ndgp_geff_over_g" => Some(ndgp_geff_over_g),
+        "ndgp_beta_from_omega_rc" => Some(ndgp_beta_from_omega_rc),
+        "planck_mu0_geff" => Some(planck_mu0_geff),
         "fr_largescale_geff_over_g" => Some(fr_largescale_geff_over_g),
         "fr_alpha_m" => Some(fr_alpha_m),
         "coupled_de_geff_over_g" => Some(coupled_de_geff_over_g),
@@ -118,7 +120,9 @@ pub fn registered_relations() -> Vec<&'static str> {
         "fr_alpha_m",
         "fr_largescale_geff_over_g",
         "h0_from_h",
+        "ndgp_beta_from_omega_rc",
         "ndgp_geff_over_g",
+        "planck_mu0_geff",
     ]
 }
 
@@ -135,9 +139,14 @@ pub fn relation_rigor_weight(name: &str) -> f64 {
     match name {
         "h0_from_h" | "flat_universe_omega_lambda" => 0.0,
         "ndgp_geff_over_g"
+        | "ndgp_beta_from_omega_rc"
         | "fr_largescale_geff_over_g"
         | "fr_alpha_m"
         | "coupled_de_geff_over_g" => 1.0,
+        // Honest accounting: μ(a=1) = 1 + μ0 is a *cited phenomenological parametrization*
+        // (Planck 2018), not a mechanism — it is near-definitional, so it earns only partial
+        // rigor. It still binds the value (a fitted G_eff/G inconsistent with μ0 is caught).
+        "planck_mu0_geff" => 0.3,
         _ => 0.0,
     }
 }
@@ -152,7 +161,11 @@ pub fn relation_gr_value(name: &str) -> Option<f64> {
         "coupled_de_geff_over_g" => 1.0,    // β → 0
         "fr_largescale_geff_over_g" => 1.0, // outside the Compton wavelength
         "fr_alpha_m" => 0.0,                // f_R → 0
-        _ => return None,                   // h0_from_h / flat_universe_omega_lambda: no GR limit
+        "planck_mu0_geff" => 1.0,           // μ0 = 0 ⇒ G_eff/G = 1 (GR)
+        // ndgp_beta_from_omega_rc has *no finite* GR value: the GR limit is β → ∞ (Ω_rc → 0),
+        // not a number β can sit at. A certified β therefore cannot establish GR-distinctness by
+        // itself — pair it with ndgp_geff_over_g (whose GR value is 1) for that.
+        _ => return None, // also h0_from_h / flat_universe_omega_lambda: no GR limit
     })
 }
 
@@ -160,6 +173,12 @@ pub fn relation_gr_value(name: &str) -> Option<f64> {
 pub fn relation_signature(name: &str) -> Option<&'static str> {
     Some(match name {
         "ndgp_geff_over_g" => "inputs {beta}; G_eff/G = 1 + 1/(3·beta)",
+        "ndgp_beta_from_omega_rc" => {
+            "inputs {omega_rc, omega_m, [omega_r, omega_k, w0]}; beta(a=1) = 1 + (1+D1/3)/sqrt(omega_rc)"
+        }
+        "planck_mu0_geff" => {
+            "inputs {mu0 > -1, negative allowed}; G_eff/G = 1 + mu0 (Planck 2018 MG parametrization)"
+        }
         "fr_largescale_geff_over_g" => {
             "inputs {regime: 1.0 inside / 0.0 outside Compton}; 4/3 or 1"
         }
@@ -192,6 +211,69 @@ fn ndgp_geff_over_g(c: &DerivedCertificate) -> Result<f64, String> {
         return Err(format!("nDGP β must be finite and non-zero, got {beta}"));
     }
     Ok(1.0 + 1.0 / (3.0 * beta))
+}
+
+/// nDGP braneworld function β at a = 1 (today), closed form from the background budget (V5):
+///     Ω_de = 1 − Ω_m − Ω_r − Ω_k                                   (flat-closure dark energy)
+///     D1   = dlnE/dN |_{a=1} = −½ (3Ω_m + 4Ω_r + 2Ω_k + 3(1+w0)Ω_de)   (E(a=1) = 1)
+///     β    = 1 + (1/√Ω_rc) (1 + D1/3),
+/// which is exactly `NdgpParams::beta` (sectors/ndgp.rs), β = 1 + (E/√Ω_rc)(1 + (dlnE/dN)/3),
+/// evaluated at a = 1 where E = 1. Reference: Koyama & Maartens, JCAP 0601:016 (2006),
+/// arXiv:astro-ph/0511634; Bose et al. 2018, arXiv:1606.02520 (Ω_rc ≡ 1/(4H₀²r_c²) convention,
+/// so 2 H₀ r_c = 1/√Ω_rc).
+///
+/// Inputs: `omega_rc` (required, finite, > 0), `omega_m` (required, finite, ≥ 0); optional
+/// `omega_r`, `omega_k` (default 0) and `w0` (default −1). Domain errors for Ω_rc ≤ 0,
+/// any non-finite input, or Ω_de < 0.
+fn ndgp_beta_from_omega_rc(c: &DerivedCertificate) -> Result<f64, String> {
+    let omega_rc = c.required("omega_rc", "dimensionless crossover Ω_rc = 1/(4H₀²r_c²)")?;
+    let omega_m = c.required("omega_m", "matter density parameter today")?;
+    let omega_r = c.input("omega_r").unwrap_or(0.0);
+    let omega_k = c.input("omega_k").unwrap_or(0.0);
+    let w0 = c.input("w0").unwrap_or(-1.0);
+    if !omega_rc.is_finite() || omega_rc <= 0.0 {
+        return Err(format!(
+            "nDGP Ω_rc must be finite and positive, got {omega_rc}"
+        ));
+    }
+    if !omega_m.is_finite() || omega_m < 0.0 {
+        return Err(format!(
+            "Ω_m must be finite and non-negative, got {omega_m}"
+        ));
+    }
+    if !(omega_r.is_finite() && omega_k.is_finite() && w0.is_finite()) {
+        return Err(format!(
+            "Ω_r, Ω_k, w0 must all be finite, got ({omega_r}, {omega_k}, {w0})"
+        ));
+    }
+    let omega_de = 1.0 - omega_m - omega_r - omega_k;
+    if !omega_de.is_finite() || omega_de < 0.0 {
+        return Err(format!(
+            "flat-closure Ω_de = 1 − Ω_m − Ω_r − Ω_k must be non-negative, got {omega_de}"
+        ));
+    }
+    // dlnE/dN at a = 1 (E = 1): −½ Σ_i (3(1+w_i)) Ω_i with w_m = 0, w_r = 1/3, w_k = −1/3.
+    let d1 = -0.5 * (3.0 * omega_m + 4.0 * omega_r + 2.0 * omega_k + 3.0 * (1.0 + w0) * omega_de);
+    Ok(1.0 + (1.0 / omega_rc.sqrt()) * (1.0 + d1 / 3.0))
+}
+
+/// Planck-2018 modified-gravity μ0 parametrization evaluated today (V5):
+///     G_eff/G (a=1) = μ(a=1) = 1 + μ0,
+/// where the engine's growth code implements the time dependence μ(a) = 1 + μ0·Ω_DE(a)/Ω_DE0 (so
+/// at a = 1 the ratio is exactly 1 and G_eff/G = 1 + μ0). Reference: Planck 2018 results VI,
+/// arXiv:1807.06209 (and Planck 2015 XIV, arXiv:1502.01590), modified-gravity parametrization.
+///
+/// Input: `mu0` (required, finite, > −1 so G_eff stays positive). NEGATIVE μ0 is explicitly
+/// allowed — that is the *suppressed-growth* direction (G_eff/G < 1), which the parametrization
+/// covers symmetrically with the enhanced-growth direction. μ0 = 0 is GR.
+fn planck_mu0_geff(c: &DerivedCertificate) -> Result<f64, String> {
+    let mu0 = c.required("mu0", "Planck 2018 μ0 (G_eff/G − 1 today)")?;
+    if !mu0.is_finite() || mu0 <= -1.0 {
+        return Err(format!(
+            "μ0 must be finite and > −1 (G_eff must stay positive), got {mu0}"
+        ));
+    }
+    Ok(1.0 + mu0)
 }
 
 /// f(R) effective gravitational coupling in the small-scale / large-k quasi-static limit, i.e. for
@@ -306,6 +388,10 @@ mod tests {
         assert_eq!(relation_rigor_weight("flat_universe_omega_lambda"), 0.0);
         assert_eq!(relation_rigor_weight("ndgp_geff_over_g"), 1.0);
         assert_eq!(relation_rigor_weight("coupled_de_geff_over_g"), 1.0);
+        // V5: the β(a=1) closed form is a genuine mechanism (full weight); the Planck μ0
+        // parametrization is cited but near-definitional (partial weight).
+        assert_eq!(relation_rigor_weight("ndgp_beta_from_omega_rc"), 1.0);
+        assert_eq!(relation_rigor_weight("planck_mu0_geff"), 0.3);
         assert_eq!(relation_rigor_weight("not_a_relation"), 0.0);
     }
 
@@ -313,6 +399,10 @@ mod tests {
     fn relation_gr_value_known_for_modifications_only() {
         assert_eq!(relation_gr_value("ndgp_geff_over_g"), Some(1.0));
         assert_eq!(relation_gr_value("fr_alpha_m"), Some(0.0));
+        // V5: GR at μ0 = 0 ⇒ G_eff/G = 1.
+        assert_eq!(relation_gr_value("planck_mu0_geff"), Some(1.0));
+        // V5: β's GR limit is β → ∞, not a finite value — no GR point to compare against.
+        assert_eq!(relation_gr_value("ndgp_beta_from_omega_rc"), None);
         // Trivial definitions have no GR limit.
         assert_eq!(relation_gr_value("h0_from_h"), None);
         assert_eq!(relation_gr_value("flat_universe_omega_lambda"), None);
@@ -472,5 +562,145 @@ mod tests {
                 "registered relation {name} must resolve"
             );
         }
+        // V5: both new relations are registered, and the list stays sorted.
+        let names = registered_relations();
+        assert!(names.contains(&"ndgp_beta_from_omega_rc"));
+        assert!(names.contains(&"planck_mu0_geff"));
+        let mut sorted = names.clone();
+        sorted.sort_unstable();
+        assert_eq!(names, sorted, "registered_relations must stay sorted");
+    }
+
+    #[test]
+    fn ndgp_beta_from_omega_rc_roundtrips_planck_background() {
+        // Planck-ish flat background: Ω_m = 0.315, Ω_r = Ω_k = 0, w0 = −1 ⇒ Ω_de = 0.685,
+        // D1 = −½·(3·0.315 + 3·0·0.685) = −0.4725, 1 + D1/3 = 0.8425. For β = 2 we need
+        // √Ω_rc = 0.8425 ⇒ Ω_rc = 0.70980625; the relation must recompute β ≈ 2 within 1e-9.
+        // (Cross-checked against NdgpParams::beta = 1 + (E/√Ω_rc)(1 + dlnE_dN/3) at E(a=1) = 1.)
+        let c = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.70980625), ("omega_m", 0.315)],
+            2.0,
+            1e-9,
+        );
+        assert!(c.verify(), "{:?}", c.check());
+        // The same inputs cannot certify a different β (a fitted β wearing a derived label).
+        let wrong = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.70980625), ("omega_m", 0.315)],
+            2.5,
+            1e-3,
+        );
+        assert!(!wrong.verify());
+        assert!(matches!(
+            wrong.check(),
+            CertificateOutcome::ValueMismatch { .. }
+        ));
+    }
+
+    #[test]
+    fn ndgp_beta_optional_inputs_default_and_w0_enters() {
+        // Explicit defaults (Ω_r = Ω_k = 0, w0 = −1) must agree with the omitted-input form.
+        let implicit = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.70980625), ("omega_m", 0.315)],
+            2.0,
+            1e-9,
+        );
+        let explicit = cert(
+            "ndgp_beta_from_omega_rc",
+            &[
+                ("omega_rc", 0.70980625),
+                ("omega_m", 0.315),
+                ("omega_r", 0.0),
+                ("omega_k", 0.0),
+                ("w0", -1.0),
+            ],
+            2.0,
+            1e-9,
+        );
+        assert!(implicit.verify(), "{:?}", implicit.check());
+        assert!(explicit.verify(), "{:?}", explicit.check());
+        // w0 ≠ −1 shifts D1: w0 = −0.9 ⇒ D1 = −½(0.945 + 0.3·0.685) = −0.57525,
+        // β = 1 + (1 − 0.19175)/0.8425.
+        let beta_w = 1.0 + (1.0 - 0.57525 / 3.0) / 0.8425;
+        let c = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.70980625), ("omega_m", 0.315), ("w0", -0.9)],
+            beta_w,
+            1e-9,
+        );
+        assert!(c.verify(), "{:?}", c.check());
+    }
+
+    #[test]
+    fn ndgp_beta_domain_errors() {
+        // Ω_rc = 0 is the GR limit (β → ∞), not a finite closed form ⇒ domain error.
+        let zero = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.0), ("omega_m", 0.315)],
+            2.0,
+            1e-3,
+        );
+        assert!(matches!(
+            zero.check(),
+            CertificateOutcome::MissingOrInvalidInput { .. }
+        ));
+        // Negative Ω_rc is unphysical.
+        let neg = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", -0.5), ("omega_m", 0.315)],
+            2.0,
+            1e-3,
+        );
+        assert!(matches!(
+            neg.check(),
+            CertificateOutcome::MissingOrInvalidInput { .. }
+        ));
+        // Ω_de < 0 (over-full budget) breaks the flat closure.
+        let overfull = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.71), ("omega_m", 1.5)],
+            2.0,
+            1e-3,
+        );
+        assert!(matches!(
+            overfull.check(),
+            CertificateOutcome::MissingOrInvalidInput { .. }
+        ));
+        // Non-finite input never produces a closed form.
+        let nan = cert(
+            "ndgp_beta_from_omega_rc",
+            &[("omega_rc", 0.71), ("omega_m", f64::NAN)],
+            2.0,
+            1e-3,
+        );
+        assert!(matches!(
+            nan.check(),
+            CertificateOutcome::MissingOrInvalidInput { .. }
+        ));
+    }
+
+    #[test]
+    fn planck_mu0_verifies_both_signs() {
+        // Suppressed-growth direction (negative μ0 explicitly allowed): μ0 = −0.1 ⇒ G_eff/G = 0.9.
+        let neg = cert("planck_mu0_geff", &[("mu0", -0.1)], 0.9, 1e-12);
+        assert!(neg.verify(), "{:?}", neg.check());
+        // Enhanced direction: μ0 = 0.2 ⇒ G_eff/G = 1.2.
+        let pos = cert("planck_mu0_geff", &[("mu0", 0.2)], 1.2, 1e-12);
+        assert!(pos.verify(), "{:?}", pos.check());
+        // A claimed G_eff/G inconsistent with μ0 is a mismatch.
+        assert!(!cert("planck_mu0_geff", &[("mu0", 0.2)], 1.0, 1e-3).verify());
+    }
+
+    #[test]
+    fn planck_mu0_below_minus_one_is_domain_error() {
+        // μ0 ≤ −1 ⇒ G_eff ≤ 0: outside the physical domain.
+        let c = cert("planck_mu0_geff", &[("mu0", -1.2)], -0.2, 1e-3);
+        assert!(matches!(
+            c.check(),
+            CertificateOutcome::MissingOrInvalidInput { .. }
+        ));
+        assert!(!c.verify());
     }
 }

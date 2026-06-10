@@ -119,7 +119,7 @@ pub(crate) fn run_trust_gate(
         .with_context(|| format!("create run dir {}", run_dir.display()))?;
     let value = json!({
         "record_kind": "trust_gate",
-        "engine": "theory_population.v4",
+        "engine": "theory_population.v5",
         "config": { "population_size": config.population_size, "max_generations": config.max_generations, "seed": config.seed },
         "checks": {
             "decoy_false_positive_rate": report.decoy_false_positive_rate,

@@ -14,6 +14,7 @@
 pub mod adversary;
 pub mod anchors;
 pub mod assessment;
+pub mod binding;
 pub mod certificate;
 pub mod claim_graph;
 pub mod contenders;
@@ -38,6 +39,10 @@ pub mod vetoes;
 pub use adversary::{Adversary, Decoy, DecoyKind};
 pub use anchors::{anchor_set, miscalibrated, Anchor, AnchorKind};
 pub use assessment::{assess, CandidateAssessment};
+pub use binding::{
+    audit_novel_predictions, bind_modified_background, BindingOutcome, BindingReport, FieldBinding,
+    NovelPredictionAudit,
+};
 pub use certificate::{
     registered_relations, relation_gr_value, relation_registry, relation_rigor_weight,
     relation_signature, CertificateOutcome, DerivedCertificate,

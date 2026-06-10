@@ -291,7 +291,7 @@ pub(crate) fn generate_whitepaper(
 
     let json_doc = json!({
         "record_kind": "white_paper",
-        "engine": "theory_population.v4",
+        "engine": "theory_population.v5",
         "config": { "seed": config.seed, "max_generations": config.max_generations, "population_size": config.population_size },
         "trust_gate": {
             "passed": trust.passed,

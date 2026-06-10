@@ -102,7 +102,10 @@ where
         .iter()
         .map(|o| o.observable_id.clone())
         .collect();
-    let predictions = match model.predict(&theory.background, &ids) {
+    // V5: predict on the truth-BOUND background, so certified modifications actually drive
+    // the computed observables (binding is pure + idempotent; vetoes already ran above).
+    let bound = super::binding::bind_modified_background(theory).theory;
+    let predictions = match model.predict(&bound.background, &ids) {
         Ok(p) => p,
         // A forward-model failure (e.g. a pathological background) is a lethal candidate.
         Err(_) => {

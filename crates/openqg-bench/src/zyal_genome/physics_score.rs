@@ -253,4 +253,76 @@ mod tests {
         );
         assert_eq!(a, b);
     }
+
+    /// V5 "breakthrough is possible" smoke test: the real growth/lensing data sit LOW relative to
+    /// Planck-ΛCDM, so a *certified suppressed-growth* theory (planck_mu0_geff, μ0 = −0.1) must be
+    /// truth-bound by the engine and genuinely BEAT the ΛCDM baseline on the data (ε > 0 ⇒
+    /// data_fit > 0). This is the assertion that the V5 rubric can reward a real tension-improving
+    /// candidate — not just flag rediscoveries.
+    #[test]
+    fn suppressed_growth_genuinely_beats_lcdm_on_real_tension_data() {
+        use openqg_core::theory::{evaluate, DerivedCertificate, Provenance};
+
+        // Real records (growth-rsd.jsonl + wl-s8.jsonl, cited sources in the fixtures).
+        let tension: Vec<ObservableRecord> = [
+            ("fsigma8@0.067", 0.423, 0.055),
+            ("fsigma8@0.38", 0.497, 0.045),
+            ("fsigma8@0.51", 0.458, 0.038),
+            ("fsigma8@0.61", 0.436, 0.034),
+            ("fsigma8@1.48", 0.462, 0.045),
+            ("s8", 0.776, 0.017),
+        ]
+        .iter()
+        .map(|(id, v, u)| ObservableRecord {
+            observable_id: (*id).into(),
+            kind: "growth".into(),
+            value: *v,
+            uncertainty: *u,
+            unit: "dimensionless".into(),
+            source: None,
+        })
+        .collect();
+
+        let base_ll = baseline_log_likelihood(&tension);
+
+        // A certified suppressed-growth theory: G_eff/G = 0.9 via the Planck-2018 μ0 parametrization.
+        let mut t = Theory::baseline_lcdm();
+        t.id = "suppressed-growth-smoke".into();
+        let cert = DerivedCertificate {
+            relation: "planck_mu0_geff".into(),
+            inputs: vec![("mu0".into(), -0.1)],
+            expected: 0.9,
+            tolerance: 1e-9,
+        };
+        t.parameters.push(openqg_core::theory::Parameter {
+            symbol: "geff_over_g".into(),
+            value: 0.9,
+            physical_meaning: "suppressed effective coupling (Planck-2018 μ0 parametrization)"
+                .into(),
+            provenance: Provenance::derived_certified("Planck 2018 MG μ0", cert),
+        });
+
+        let model = BackgroundForwardModel;
+        let eval = evaluate(&t, &tension, &model, base_ll);
+        assert!(!eval.vetoed, "{:?}", eval.veto_reasons);
+        let epsilon = eval
+            .epsilon_delta_log_likelihood
+            .expect("scored candidate has epsilon");
+        assert!(
+            epsilon > 0.0,
+            "suppressed growth must BEAT the ΛCDM baseline on low-fσ8/S8 data (ε = {epsilon})"
+        );
+
+        // And the rubric must pay for it: data_fit > 0 through the full scorecard path.
+        let (cg, obs_list, uni, store) = fixture_graph();
+        let sc = score_candidate(&t, &tension, base_ll, &cg, &obs_list, &uni, &store, "s");
+        assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
+        let df = sc.components.iter().find(|c| c.name == "data_fit").unwrap();
+        assert!(
+            df.points > 0.0,
+            "a genuinely better fit must earn data_fit credit: {:?}",
+            df
+        );
+        assert!(sc.distinct_from_baseline);
+    }
 }

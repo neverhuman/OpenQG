@@ -29,6 +29,15 @@ use super::{
 /// (covariance-aware ΔAIC / Δln Z vs ΛCDM) and `held_out_evaluate` (sealed-holdout generalization
 /// gap). `None` passed to [`score`] means "no data fit available" → the DataFit component scores 0
 /// with a maximal uncertainty band (we never invent a fit).
+/// V6: which likelihood scored the data — independent Gaussians or covariance-aware blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum LikelihoodMode {
+    #[default]
+    Diagonal,
+    Covariance,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct DataFitOutcome {
     /// ΔAIC vs the ΛCDM reference (negative = candidate preferred).
@@ -41,6 +50,12 @@ pub struct DataFitOutcome {
     pub coverage: f64,
     /// True if the best fit landed on a prior bound (the fit is suspect → wider band).
     pub boundary_hit: bool,
+    /// V6: a headline Δln Z must state its likelihood mode.
+    #[serde(default)]
+    pub likelihood_mode: LikelihoodMode,
+    /// V6: how many covariance blocks entered the likelihood (0 = pure diagonal).
+    #[serde(default)]
+    pub covariance_block_count: u32,
 }
 
 /// One weighted rubric dimension. `raw ∈ [0,1]`, `points = raw·weight`, `band` is the
@@ -549,6 +564,8 @@ mod tests {
             generalization_gap: 0.01,
             coverage: 1.0,
             boundary_hit: false,
+            likelihood_mode: LikelihoodMode::Diagonal,
+            covariance_block_count: 0,
         }
     }
 
@@ -653,6 +670,8 @@ mod tests {
             generalization_gap: 0.01,
             coverage: 1.0,
             boundary_hit: false,
+            likelihood_mode: LikelihoodMode::Diagonal,
+            covariance_block_count: 0,
         };
         let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(tie));
         assert!(!sc.disqualified);

@@ -75,8 +75,10 @@ pub(crate) fn generate_whitepaper(
     output_root: &Path,
     config: EvolveConfig,
     run_id: &str,
+    covariance: &[PathBuf],
     proposer: Option<&dyn super::proposer::Proposer>,
 ) -> Result<PathBuf> {
+    let blocks = super::run_population::load_covariance_blocks(covariance)?;
     let observables = load_observables(observables_path)?;
     anyhow::ensure!(!observables.is_empty(), "no observables loaded");
     let n_obs = observables.len();
@@ -84,7 +86,7 @@ pub(crate) fn generate_whitepaper(
 
     let run_dir_early = output_root.join("runs").join(run_id);
     let mut sink = super::ledger_sink::RunDirSink::create(&run_dir_early, 25)?;
-    let run = evolve_population(&config, &observables, proposer, &mut sink);
+    let run = evolve_population(&config, &observables, &blocks, proposer, &mut sink);
     drop(sink);
     let champion: Individual = run
         .best
@@ -343,7 +345,7 @@ mod tests {
             max_generations: 5,
             seed: 555,
         };
-        let run_dir = generate_whitepaper(&obs, &tmp, cfg, "wp-test", None).unwrap();
+        let run_dir = generate_whitepaper(&obs, &tmp, cfg, "wp-test", &[], None).unwrap();
 
         let md = fs::read_to_string(run_dir.join("white-paper.md")).unwrap();
         assert!(md.contains("Candidate Theory Report"));

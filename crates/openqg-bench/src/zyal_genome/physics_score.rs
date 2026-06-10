@@ -11,10 +11,11 @@
 
 use openqg_core::cosmology::BackgroundForwardModel;
 use openqg_core::theory::{
-    alternating_holdout, evaluate, held_out_evaluate, score as scorecard_score, ClaimGraph,
-    DataFitOutcome, DerivationObligation, EvidenceStore, ScorecardV4, Theory, UnificationClaim,
+    alternating_holdout, evaluate_with_blocks, held_out_evaluate, score as scorecard_score,
+    ClaimGraph, DataFitOutcome, DerivationObligation, EvidenceStore, ScorecardV4, Theory,
+    UnificationClaim,
 };
-use openqg_core::{score_metrics, ObservableRecord};
+use openqg_core::ObservableRecord;
 
 fn finite_or(x: f64, fallback: f64) -> f64 {
     if x.is_finite() {
@@ -28,14 +29,30 @@ fn finite_or(x: f64, fallback: f64) -> f64 {
 /// so the baseline sits near a neutral score rather than collapsing every candidate to ~0. Mirrors
 /// `theory_evolve::baseline_log_likelihood`.
 pub(crate) fn baseline_log_likelihood(observables: &[ObservableRecord]) -> f64 {
+    baseline_log_likelihood_cov(observables, &[])
+}
+
+/// V6: the baseline must be scored in the SAME likelihood mode as the candidates, or Δln Z is
+/// meaningless across modes.
+pub(crate) fn baseline_log_likelihood_cov(
+    observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
+) -> f64 {
     use openqg_core::cosmology::{CosmologyParams, ForwardModel};
+    use openqg_core::scoring::{score_metrics_cov, LikelihoodData};
     let model = BackgroundForwardModel;
     let ids: Vec<String> = observables
         .iter()
         .map(|o| o.observable_id.clone())
         .collect();
     match model.predict(&CosmologyParams::planck_lcdm(), &ids) {
-        Ok(preds) => score_metrics(observables, &preds, 3, 0.0).0.log_likelihood,
+        Ok(preds) => {
+            let data = LikelihoodData {
+                observables: observables.to_vec(),
+                blocks: blocks.to_vec(),
+            };
+            score_metrics_cov(&data, &preds, 3, 0.0).0.log_likelihood
+        }
         Err(_) => 0.0,
     }
 }
@@ -46,6 +63,7 @@ pub(crate) fn baseline_log_likelihood(observables: &[ObservableRecord]) -> f64 {
 pub(crate) fn score_candidate(
     theory: &Theory,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_log_likelihood: f64,
     claim_graph: &ClaimGraph,
     obligations: &[DerivationObligation],
@@ -56,7 +74,7 @@ pub(crate) fn score_candidate(
     let model = BackgroundForwardModel;
 
     // Data fit (ε over baseline) + coverage from the deterministic forward model.
-    let eval = evaluate(theory, observables, &model, baseline_log_likelihood);
+    let eval = evaluate_with_blocks(theory, observables, blocks, &model, baseline_log_likelihood);
 
     // Generalization on an alternating sealed split (smaller gap ⇒ more predictive, less overfit).
     let heldout = alternating_holdout(observables.len());
@@ -79,6 +97,12 @@ pub(crate) fn score_candidate(
             // Evolved theories carry fixed values (not multistart-fitted), so there is no prior
             // boundary to hit.
             boundary_hit: false,
+            likelihood_mode: if blocks.is_empty() {
+                openqg_core::LikelihoodMode::Diagonal
+            } else {
+                openqg_core::LikelihoodMode::Covariance
+            },
+            covariance_block_count: blocks.len() as u32,
         })
     };
 
@@ -183,6 +207,7 @@ mod tests {
         let sc = score_candidate(
             &Theory::baseline_lcdm(),
             &observables,
+            &[],
             base_ll,
             &cg,
             &obs_list,
@@ -214,6 +239,7 @@ mod tests {
         let sc = score_candidate(
             &t,
             &observables,
+            &[],
             base_ll,
             &cg,
             &obs_list,
@@ -234,6 +260,7 @@ mod tests {
         let a = score_candidate(
             &Theory::baseline_lcdm(),
             &observables,
+            &[],
             base_ll,
             &cg,
             &obs_list,
@@ -244,6 +271,7 @@ mod tests {
         let b = score_candidate(
             &Theory::baseline_lcdm(),
             &observables,
+            &[],
             base_ll,
             &cg,
             &obs_list,
@@ -315,7 +343,17 @@ mod tests {
 
         // And the rubric must pay for it: data_fit > 0 through the full scorecard path.
         let (cg, obs_list, uni, store) = fixture_graph();
-        let sc = score_candidate(&t, &tension, base_ll, &cg, &obs_list, &uni, &store, "s");
+        let sc = score_candidate(
+            &t,
+            &tension,
+            &[],
+            base_ll,
+            &cg,
+            &obs_list,
+            &uni,
+            &store,
+            "s",
+        );
         assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
         let df = sc.components.iter().find(|c| c.name == "data_fit").unwrap();
         assert!(
@@ -405,5 +443,71 @@ mod v6_drift_tests {
             "the champion moved h/omega_m/w0 (+ sigma8/wa drift): got {}",
             background_dof(&theory)
         );
+    }
+}
+
+#[cfg(test)]
+mod v6_covariance_tests {
+    use super::*;
+    use crate::zyal_genome::run_population::{load_covariance_blocks, load_observables};
+    use crate::zyal_genome::theory_population::score_theory;
+    use std::path::PathBuf;
+
+    /// The honest empirical outcome (review-04 hedged for exactly this): even the FULL published
+    /// Planck distance-prior 3×3 (R, ℓ_A, ω_b h²) + DESI per-tracer blocks cannot close the
+    /// h/Ω_m degeneracy valley — correlated residuals along the degeneracy are CHEAPER than the
+    /// diagonal treatment pretended (diag +54.9 → cov +68.8 nats). The diagonal likelihood was
+    /// over-stating the compressed CMB's constraining power. "That would not validate the champion
+    /// as a theory; it would validate the evidence-set diagnosis" — the valley is genuinely open
+    /// until richer data (full spectra / SNe with covariance) is admitted; V6's job is to ACCOUNT
+    /// honestly: the shift now pays +3 parsimony dof and the likelihood mode is on the record.
+    #[test]
+    fn covariance_mode_is_recorded_and_the_compressed_cmb_cannot_close_the_valley() {
+        let obs = load_observables(&PathBuf::from(
+            "../../data/fixtures/cosmology/tier1-multisector.jsonl",
+        ))
+        .expect("observables");
+        let blocks = load_covariance_blocks(&[
+            PathBuf::from("../../data/fixtures/cosmology/covariance/planck18-distance-priors.json"),
+            PathBuf::from("../../data/fixtures/cosmology/covariance/desi-dr1-bao.json"),
+        ])
+        .expect("covariance fixtures");
+        assert!(blocks.len() >= 6, "expected planck + 5 DESI blocks");
+
+        // The degeneracy move WITHOUT the screening/alpha exploit baggage (pure background shift).
+        let mut t = Theory::baseline_lcdm();
+        t.id = "degeneracy-direction".into();
+        t.background.h = 0.7176;
+        t.background.omega_m = 0.2822;
+        t.background.w0 = -1.144;
+
+        let base_diag = baseline_log_likelihood(&obs);
+        let sc_diag = score_theory(&t, &obs, &[], base_diag);
+        let base_cov = baseline_log_likelihood_cov(&obs, &blocks);
+        let sc_cov = score_theory(&t, &obs, &blocks, base_cov);
+
+        let dlnz_diag = sc_diag.data_fit.map(|d| d.delta_lnz).unwrap_or(0.0);
+        let dlnz_cov = sc_cov.data_fit.map(|d| d.delta_lnz).unwrap_or(0.0);
+        // The blocks must actually engage (different number), both finite — and the empirical
+        // direction is recorded: the true covariance REOPENS the valley relative to diagonal.
+        assert!(dlnz_diag.is_finite() && dlnz_cov.is_finite());
+        assert!(
+            (dlnz_cov - dlnz_diag).abs() > 1.0,
+            "blocks must change the likelihood: diag {dlnz_diag:.2} vs cov {dlnz_cov:.2}"
+        );
+        assert!(
+            dlnz_cov > dlnz_diag,
+            "the recorded empirical direction (see doc): diag {dlnz_diag:.2} vs cov {dlnz_cov:.2}"
+        );
+        // And the mode is on the record — a headline number can never hide its likelihood again.
+        assert_eq!(
+            sc_cov.data_fit.unwrap().likelihood_mode,
+            openqg_core::LikelihoodMode::Covariance
+        );
+        assert_eq!(
+            sc_cov.data_fit.unwrap().covariance_block_count as usize,
+            blocks.len()
+        );
+        println!("delta_lnz: diagonal {dlnz_diag:.2} -> covariance {dlnz_cov:.2}");
     }
 }

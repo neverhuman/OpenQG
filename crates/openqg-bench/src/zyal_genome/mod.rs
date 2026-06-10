@@ -36,6 +36,10 @@ pub enum GenomeCommand {
     Population {
         #[arg(long)]
         observables: PathBuf,
+        /// Covariance fixture JSONs (single- or multi-block) — correlated-survey blocks for the
+        /// V6 covariance-aware likelihood. Omit for a pure diagonal likelihood.
+        #[arg(long)]
+        covariance: Vec<PathBuf>,
         #[arg(long, default_value = DEFAULT_OUTPUT_ROOT)]
         output_root: PathBuf,
         #[arg(long, default_value_t = 8)]
@@ -76,6 +80,10 @@ pub enum GenomeCommand {
     TrustGate {
         #[arg(long)]
         observables: PathBuf,
+        /// Covariance fixture JSONs (single- or multi-block) — correlated-survey blocks for the
+        /// V6 covariance-aware likelihood. Omit for a pure diagonal likelihood.
+        #[arg(long)]
+        covariance: Vec<PathBuf>,
         #[arg(long, default_value = DEFAULT_OUTPUT_ROOT)]
         output_root: PathBuf,
         #[arg(long, default_value_t = 6)]
@@ -92,6 +100,10 @@ pub enum GenomeCommand {
     Whitepaper {
         #[arg(long)]
         observables: PathBuf,
+        /// Covariance fixture JSONs (single- or multi-block) — correlated-survey blocks for the
+        /// V6 covariance-aware likelihood. Omit for a pure diagonal likelihood.
+        #[arg(long)]
+        covariance: Vec<PathBuf>,
         #[arg(long, default_value = DEFAULT_OUTPUT_ROOT)]
         output_root: PathBuf,
         #[arg(long, default_value_t = 8)]
@@ -132,6 +144,10 @@ pub enum GenomeCommand {
     Propose {
         #[arg(long)]
         observables: PathBuf,
+        /// Covariance fixture JSONs (single- or multi-block) — correlated-survey blocks for the
+        /// V6 covariance-aware likelihood. Omit for a pure diagonal likelihood.
+        #[arg(long)]
+        covariance: Vec<PathBuf>,
         #[arg(long)]
         proposal_file: PathBuf,
     },
@@ -143,6 +159,10 @@ pub enum GenomeCommand {
         theory: PathBuf,
         #[arg(long)]
         observables: PathBuf,
+        /// Covariance fixture JSONs (single- or multi-block) — correlated-survey blocks for the
+        /// V6 covariance-aware likelihood. Omit for a pure diagonal likelihood.
+        #[arg(long)]
+        covariance: Vec<PathBuf>,
     },
     /// V4.1: replay a proposal ledger WITHOUT the LLM — re-score each recorded proposal and confirm
     /// it reproduces the recorded total. Makes a live run's "replayable" claim checkable from artifacts.
@@ -151,6 +171,10 @@ pub enum GenomeCommand {
         ledger: PathBuf,
         #[arg(long)]
         observables: PathBuf,
+        /// Covariance fixture JSONs (single- or multi-block) — correlated-survey blocks for the
+        /// V6 covariance-aware likelihood. Omit for a pure diagonal likelihood.
+        #[arg(long)]
+        covariance: Vec<PathBuf>,
     },
 }
 
@@ -158,6 +182,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
     match command {
         GenomeCommand::Population {
             observables,
+            covariance,
             output_root,
             max_generations,
             population_size,
@@ -209,12 +234,20 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             } else {
                 None
             };
-            let dir = run_population(&observables, &output_root, config, &run_id, proposer)?;
+            let dir = run_population(
+                &observables,
+                &output_root,
+                config,
+                &run_id,
+                &covariance,
+                proposer,
+            )?;
             println!("wrote v4 population run to {}", dir.display());
             Ok(())
         }
         GenomeCommand::TrustGate {
             observables,
+            covariance: _,
             output_root,
             max_generations,
             population_size,
@@ -244,6 +277,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
         }
         GenomeCommand::Whitepaper {
             observables,
+            covariance,
             output_root,
             max_generations,
             population_size,
@@ -295,7 +329,14 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             } else {
                 None
             };
-            let dir = generate_whitepaper(&observables, &output_root, config, &run_id, proposer)?;
+            let dir = generate_whitepaper(
+                &observables,
+                &output_root,
+                config,
+                &run_id,
+                &covariance,
+                proposer,
+            )?;
             println!(
                 "wrote white paper to {}",
                 dir.join("white-paper.md").display()
@@ -304,6 +345,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
         }
         GenomeCommand::Propose {
             observables,
+            covariance,
             proposal_file,
         } => {
             let obs = load_observables(&observables)?;
@@ -311,7 +353,13 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             let raw = fs::read_to_string(&proposal_file)
                 .with_context(|| format!("read proposal file {}", proposal_file.display()))?;
             let doc = parse_proposal_response(&raw)?;
-            let sc = score_proposal(&doc, &obs, baseline_log_likelihood(&obs));
+            let blocks = load_covariance_blocks(&covariance)?;
+            let sc = score_proposal(
+                &doc,
+                &obs,
+                &blocks,
+                baseline_log_likelihood_cov(&obs, &blocks),
+            );
             println!(
                 "proposal: theory `{}` scored {:.1}/100 (disqualified={})",
                 doc.theory.id, sc.total, sc.disqualified
@@ -327,6 +375,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
         GenomeCommand::Rescore {
             theory,
             observables,
+            covariance,
         } => {
             let obs = load_observables(&observables)?;
             anyhow::ensure!(!obs.is_empty(), "no observables loaded");
@@ -335,7 +384,13 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             let t: openqg_core::Theory = serde_json::from_str(&raw)
                 .with_context(|| format!("parse theory JSON {}", theory.display()))?;
             let kills = openqg_core::physics_kills(&t);
-            let sc = score_theory(&t, &obs, baseline_log_likelihood(&obs));
+            let blocks = load_covariance_blocks(&covariance)?;
+            let sc = score_theory(
+                &t,
+                &obs,
+                &blocks,
+                baseline_log_likelihood_cov(&obs, &blocks),
+            );
             println!(
                 "rescore `{}`: total {:.1}/100, disqualified={}",
                 t.id, sc.total, sc.disqualified
@@ -355,8 +410,9 @@ pub fn run(command: GenomeCommand) -> Result<()> {
         GenomeCommand::Replay {
             ledger,
             observables,
+            covariance,
         } => {
-            let (checked, mismatches) = replay_ledger(&ledger, &observables)?;
+            let (checked, mismatches) = replay_ledger(&ledger, &observables, &covariance)?;
             println!(
                 "replayed {checked} proposal(s) from ledger (no LLM); {mismatches} mismatch(es)"
             );

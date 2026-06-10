@@ -46,7 +46,7 @@ pub use contenders::{
     decoy_contenders, decoy_false_positive_rate, human_contenders, score_contender, Contender,
     ContenderSuite, ExpectedVerdict, MapEvidenceStore,
 };
-pub use evaluate::{derivation_score, evaluate, Evaluation};
+pub use evaluate::{derivation_score, evaluate, evaluate_with_blocks, Evaluation};
 pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
 };
@@ -66,8 +66,8 @@ pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
 pub use scorecard::{
-    background_dof, score, scorecard_receipt, DataFitOutcome, RubricComponent, RubricV4,
-    ScorecardReceipt, ScorecardV4,
+    background_dof, score, scorecard_receipt, DataFitOutcome, LikelihoodMode, RubricComponent,
+    RubricV4, ScorecardReceipt, ScorecardV4,
 };
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{

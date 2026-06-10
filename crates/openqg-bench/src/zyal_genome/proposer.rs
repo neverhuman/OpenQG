@@ -55,6 +55,7 @@ pub(crate) struct ProposalDoc {
 pub(crate) fn score_proposal(
     doc: &ProposalDoc,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
 ) -> ScorecardV4 {
     let mut store = MapEvidenceStore::default();
@@ -79,6 +80,7 @@ pub(crate) fn score_proposal(
     score_candidate(
         &doc.theory,
         observables,
+        blocks,
         baseline_ll,
         &cg,
         &doc.obligations,
@@ -289,7 +291,7 @@ mod tests {
     fn a_derivation_rich_proposal_earns_rigor_and_unification() {
         let observables = obs();
         let baseline_ll = baseline_log_likelihood(&observables);
-        let sc = score_proposal(&fixture_proposal(), &observables, baseline_ll);
+        let sc = score_proposal(&fixture_proposal(), &observables, &[], baseline_ll);
         assert!(
             !sc.disqualified,
             "fixture proposal should survive: {:?}",
@@ -323,13 +325,19 @@ mod tests {
         let json = serde_json::to_string(&doc).unwrap();
         let observables = obs();
         let doc2 = parse_proposal_response(&json).unwrap();
-        let sc = score_proposal(&doc2, &observables, baseline_log_likelihood(&observables));
+        let sc = score_proposal(
+            &doc2,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+        );
         assert!(!sc.disqualified);
         // The fixture proposer satisfies the Proposer trait too.
         let from_trait = FixtureProposer.propose().unwrap();
         let sc2 = score_proposal(
             &from_trait,
             &observables,
+            &[],
             baseline_log_likelihood(&observables),
         );
         assert_eq!(sc.total, sc2.total);
@@ -341,7 +349,12 @@ mod tests {
         let mut doc = fixture_proposal();
         doc.evidence.clear();
         let observables = obs();
-        let sc = score_proposal(&doc, &observables, baseline_log_likelihood(&observables));
+        let sc = score_proposal(
+            &doc,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+        );
         assert!(
             sc.disqualified,
             "a proposal citing unsupplied evidence must be disqualified"
@@ -360,7 +373,12 @@ mod tests {
             provenance: Provenance::derived("hand-wave"),
         });
         let observables = obs();
-        let sc = score_proposal(&doc, &observables, baseline_log_likelihood(&observables));
+        let sc = score_proposal(
+            &doc,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+        );
         assert!(sc.disqualified);
         assert!(sc
             .kill_reasons
@@ -378,7 +396,12 @@ mod tests {
             provenance: Provenance::Free,
         });
         let observables = obs();
-        let sc = score_proposal(&doc, &observables, baseline_log_likelihood(&observables));
+        let sc = score_proposal(
+            &doc,
+            &observables,
+            &[],
+            baseline_log_likelihood(&observables),
+        );
         assert!(sc.disqualified);
     }
 }

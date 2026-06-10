@@ -87,6 +87,8 @@ fn bind(store: &mut MapEvidenceStore, path: &str, bytes: &[u8], tier: EvidenceTi
 /// A ΛCDM-tie data fit (the human baselines neither beat nor lose to ΛCDM on cosmology).
 fn tie_fit() -> DataFitOutcome {
     DataFitOutcome {
+        likelihood_mode: super::scorecard::LikelihoodMode::Diagonal,
+        covariance_block_count: 0,
         delta_aic: 0.0,
         delta_lnz: 0.0,
         generalization_gap: 0.01,

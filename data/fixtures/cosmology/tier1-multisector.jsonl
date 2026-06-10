@@ -20,3 +20,4 @@
 {"observable_id":"s8","kind":"weak_lensing","value":0.776,"uncertainty":0.017,"unit":"dimensionless","source":"des_y3_3x2pt_abbott2022_prd_105_023520"}
 {"observable_id":"cmb_R","kind":"cmb","value":1.7502,"uncertainty":0.0046,"unit":"dimensionless","source":"planck2018_distance_priors_chen2019"}
 {"observable_id":"cmb_lA","kind":"cmb","value":301.471,"uncertainty":0.090,"unit":"dimensionless","source":"planck2018_distance_priors_chen2019"}
+{"observable_id":"cmb_omega_b_h2","kind":"cmb","value":0.02236,"uncertainty":0.00015,"unit":"dimensionless","source":"Planck 2018 distance priors (Chen, Huang & Wang 2019, Table I)"}

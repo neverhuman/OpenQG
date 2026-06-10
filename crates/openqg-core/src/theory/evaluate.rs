@@ -11,7 +11,7 @@
 use super::vetoes::physics_kills;
 use super::{Theory, VetoReason};
 use crate::cosmology::{CosmologyParams, ForwardModel};
-use crate::scoring::score_metrics;
+use crate::scoring::{score_metrics_cov, CovarianceBlock, LikelihoodData};
 use crate::types::ObservableRecord;
 
 /// The dual-objective evaluation of one candidate theory.
@@ -76,9 +76,27 @@ pub fn derivation_score(theory: &Theory) -> f64 {
 
 /// Evaluate a candidate: run the veto cascade, and only if it survives, run the forward model on
 /// the theory's background and score it against the data. β is always reported.
+/// Diagonal-likelihood evaluation (no covariance blocks) — thin wrapper over
+/// [`evaluate_with_blocks`]; a diagonal `LikelihoodData` reproduces independent Gaussians exactly.
 pub fn evaluate<M>(
     theory: &Theory,
     observables: &[ObservableRecord],
+    model: &M,
+    baseline_log_likelihood: f64,
+) -> Evaluation
+where
+    M: ForwardModel<Theory = CosmologyParams>,
+{
+    evaluate_with_blocks(theory, observables, &[], model, baseline_log_likelihood)
+}
+
+/// V6 production evaluation: covariance-aware likelihood. Correlated survey blocks (Planck
+/// distance priors, same-tracer BAO pairs) enter as [`CovarianceBlock`]s; everything not in a
+/// block stays an independent Gaussian. This is the ONE scoring path.
+pub fn evaluate_with_blocks<M>(
+    theory: &Theory,
+    observables: &[ObservableRecord],
+    blocks: &[CovarianceBlock],
     model: &M,
     baseline_log_likelihood: f64,
 ) -> Evaluation
@@ -119,8 +137,12 @@ where
             }
         }
     };
-    let (metrics, _) = score_metrics(
-        observables,
+    let data = LikelihoodData {
+        observables: observables.to_vec(),
+        blocks: blocks.to_vec(),
+    };
+    let (metrics, _) = score_metrics_cov(
+        &data,
         &predictions,
         theory.parameters.len().max(1),
         baseline_log_likelihood,

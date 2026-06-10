@@ -327,7 +327,7 @@ fn propose_one_sample(
                 break;
             }
             Ok(doc) => {
-                let sc = score_proposal(&doc, observables, baseline_ll);
+                let sc = score_proposal(&doc, observables, &[], baseline_ll);
                 rec.total = Some(sc.total);
                 if sc.disqualified {
                     rec.outcome = "killed".into();

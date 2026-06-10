@@ -77,6 +77,7 @@ pub(crate) fn evaluate_trust_gate(
     let run = evolve_population(
         config,
         &observables,
+        &[],
         None,
         &mut super::ledger_sink::NullSink,
     );
@@ -90,6 +91,7 @@ pub(crate) fn evaluate_trust_gate(
     let run2 = evolve_population(
         config,
         &observables,
+        &[],
         None,
         &mut super::ledger_sink::NullSink,
     );

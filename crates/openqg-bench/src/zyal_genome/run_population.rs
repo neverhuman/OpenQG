@@ -15,7 +15,6 @@ use serde_json::{json, Value};
 
 use openqg_core::ObservableRecord;
 
-use super::physics_score::baseline_log_likelihood;
 use super::proposer::{score_proposal, ProposalDoc, Proposer};
 use super::theory_population::{
     evolve_population, population_progress_ok, EvolveConfig, Individual,
@@ -51,8 +50,10 @@ pub(crate) fn run_population(
     output_root: &Path,
     config: EvolveConfig,
     run_id: &str,
+    covariance: &[PathBuf],
     proposer: Option<&dyn Proposer>,
 ) -> Result<PathBuf> {
+    let blocks = load_covariance_blocks(covariance)?;
     let observables = load_observables(observables_path)?;
     anyhow::ensure!(
         !observables.is_empty(),
@@ -62,7 +63,7 @@ pub(crate) fn run_population(
 
     let run_dir = output_root.join("runs").join(run_id);
     let mut sink = super::ledger_sink::RunDirSink::create(&run_dir, 25)?;
-    let run = evolve_population(&config, &observables, proposer, &mut sink);
+    let run = evolve_population(&config, &observables, &blocks, proposer, &mut sink);
 
     let run_dir = output_root.join("runs").join(run_id);
     fs::create_dir_all(&run_dir)
@@ -128,10 +129,56 @@ pub(crate) fn run_population(
 /// it deterministically, confirming it reproduces the recorded total. This is what makes the live
 /// run's "replayable" claim true — the proposals are pinned in the ledger, so the verdict is
 /// reproducible from artifacts alone. Returns `(checked, mismatches)`.
-pub(crate) fn replay_ledger(ledger_path: &Path, observables_path: &Path) -> Result<(usize, usize)> {
+/// Load covariance fixture files (single- or multi-block JSON) into likelihood blocks.
+/// Content is hash-checked by `RegisteredCovariance`; a malformed file is a hard error, never a
+/// silent diagonal fallback.
+pub(crate) fn load_covariance_blocks(
+    paths: &[PathBuf],
+) -> Result<Vec<openqg_core::scoring::CovarianceBlock>> {
+    use openqg_core::scoring::{CovarianceFixture, MultiBlockFixture};
+    let mut blocks = Vec::new();
+    for path in paths {
+        let bytes = std::fs::read(path)
+            .with_context(|| format!("read covariance fixture {}", path.display()))?;
+        if let Ok(single) = serde_json::from_slice::<CovarianceFixture>(&bytes) {
+            let reg = single
+                .into_registered()
+                .map_err(|e| anyhow::anyhow!("{}: {e}", path.display()))?;
+            anyhow::ensure!(
+                reg.positive_definite,
+                "{}: covariance is not positive definite",
+                path.display()
+            );
+            blocks.push(reg.block);
+        } else {
+            let multi: MultiBlockFixture = serde_json::from_slice(&bytes)
+                .with_context(|| format!("parse covariance fixture {}", path.display()))?;
+            for reg in multi
+                .into_registered()
+                .map_err(|e| anyhow::anyhow!("{}: {e}", path.display()))?
+            {
+                anyhow::ensure!(
+                    reg.positive_definite,
+                    "{}: block {} is not positive definite",
+                    path.display(),
+                    reg.id
+                );
+                blocks.push(reg.block);
+            }
+        }
+    }
+    Ok(blocks)
+}
+
+pub(crate) fn replay_ledger(
+    ledger_path: &Path,
+    observables_path: &Path,
+    covariance: &[PathBuf],
+) -> Result<(usize, usize)> {
+    let blocks = load_covariance_blocks(covariance)?;
     let observables = load_observables(observables_path)?;
     anyhow::ensure!(!observables.is_empty(), "no observables loaded");
-    let baseline_ll = baseline_log_likelihood(&observables);
+    let baseline_ll = super::physics_score::baseline_log_likelihood_cov(&observables, &blocks);
     let text = fs::read_to_string(ledger_path)
         .with_context(|| format!("read ledger {}", ledger_path.display()))?;
     let mut checked = 0usize;
@@ -147,7 +194,7 @@ pub(crate) fn replay_ledger(ledger_path: &Path, observables_path: &Path) -> Resu
                 continue;
             }
         };
-        let sc = score_proposal(&doc, &observables, baseline_ll);
+        let sc = score_proposal(&doc, &observables, &blocks, baseline_ll);
         let recorded = rec.get("total").and_then(Value::as_f64).unwrap_or(f64::NAN);
         checked += 1;
         if (sc.total - recorded).abs() > 1e-6 {
@@ -190,7 +237,7 @@ mod tests {
             max_generations: 5,
             seed: 123,
         };
-        let run_dir = run_population(&obs, &tmp, cfg, "test-pop", None).expect("run");
+        let run_dir = run_population(&obs, &tmp, cfg, "test-pop", &[], None).expect("run");
 
         // Artifacts exist.
         for f in [

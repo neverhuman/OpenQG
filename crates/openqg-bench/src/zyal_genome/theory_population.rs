@@ -23,7 +23,7 @@ use openqg_core::theory::{
 };
 use openqg_core::ObservableRecord;
 
-use super::physics_score::{baseline_log_likelihood, final_score_unit, score_candidate};
+use super::physics_score::{final_score_unit, score_candidate};
 use super::proposer::{score_proposal, Proposer};
 
 const EVIDENCE_SCHEMA: &str = "genome-candidate.v1";
@@ -180,6 +180,7 @@ pub(crate) struct EvolutionRun {
 pub(crate) fn score_theory(
     theory: &Theory,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
 ) -> ScorecardV4 {
     let empty_cg = ClaimGraph { claims: vec![] };
@@ -188,6 +189,7 @@ pub(crate) fn score_theory(
     score_candidate(
         theory,
         observables,
+        blocks,
         baseline_ll,
         &empty_cg,
         &[],
@@ -227,9 +229,10 @@ fn individual(
     parent_ids: Vec<String>,
     theory: Theory,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
 ) -> Individual {
-    let sc = score_theory(&theory, observables, baseline_ll);
+    let sc = score_theory(&theory, observables, blocks, baseline_ll);
     individual_from_scorecard(id, generation, island, parent_ids, theory, sc)
 }
 
@@ -241,6 +244,7 @@ fn proposal_individual(
     proposer: Option<&dyn Proposer>,
     generation: usize,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
     sink: &mut dyn super::ledger_sink::LedgerSink,
 ) -> Option<(Individual, LiveProposalRecord)> {
@@ -262,7 +266,7 @@ fn proposal_individual(
             return None;
         }
     };
-    let sc = score_proposal(&doc, observables, baseline_ll);
+    let sc = score_proposal(&doc, observables, blocks, baseline_ll);
     // Audit/replay record: the full proposal + its content hash, before we drop the doc.
     let canonical = serde_json::to_string(&doc).unwrap_or_default();
     let record = LiveProposalRecord {
@@ -296,6 +300,7 @@ fn proposal_individual(
 fn seed_population(
     config: &EvolveConfig,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
     rng: &mut Rng,
 ) -> Vec<Individual> {
@@ -308,6 +313,7 @@ fn seed_population(
         vec![],
         base.clone(),
         observables,
+        blocks,
         baseline_ll,
     ));
     for i in 1..config.population_size {
@@ -319,6 +325,7 @@ fn seed_population(
             vec![],
             child,
             observables,
+            blocks,
             baseline_ll,
         ));
     }
@@ -347,6 +354,7 @@ fn breed_child(
     idx: usize,
     rng: &mut Rng,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
 ) -> Individual {
     let id = format!("g{generation:04}-{}-{idx}", island.name());
@@ -362,6 +370,7 @@ fn breed_child(
                 vec![parent.id.clone()],
                 theory,
                 observables,
+                blocks,
                 baseline_ll,
             )
         }
@@ -376,6 +385,7 @@ fn breed_child(
                 vec![parent.id.clone()],
                 theory,
                 observables,
+                blocks,
                 baseline_ll,
             )
         }
@@ -397,6 +407,7 @@ fn breed_child(
                     vec![a.id.clone(), b.id.clone()],
                     theory,
                     observables,
+                    blocks,
                     baseline_ll,
                 )
             } else {
@@ -408,6 +419,7 @@ fn breed_child(
                     vec![a.id.clone()],
                     theory,
                     observables,
+                    blocks,
                     baseline_ll,
                 )
             }
@@ -450,10 +462,11 @@ fn promote_champion<'a>(
 pub(crate) fn evolve_population(
     config: &EvolveConfig,
     observables: &[ObservableRecord],
+    blocks: &[openqg_core::scoring::CovarianceBlock],
     proposer: Option<&dyn Proposer>,
     sink: &mut dyn super::ledger_sink::LedgerSink,
 ) -> EvolutionRun {
-    let baseline_ll = baseline_log_likelihood(observables);
+    let baseline_ll = super::physics_score::baseline_log_likelihood_cov(observables, blocks);
     let mut rng = Rng::new(config.seed);
     let mut seen: BTreeSet<String> = BTreeSet::new();
     let mut progress = Vec::new();
@@ -461,8 +474,10 @@ pub(crate) fn evolve_population(
     let mut live_proposals: Vec<LiveProposalRecord> = Vec::new();
 
     // Generation 1 — seed (+ optional proposal candidate).
-    let mut pop = seed_population(config, observables, baseline_ll, &mut rng);
-    if let Some((ind, rec)) = proposal_individual(proposer, 1, observables, baseline_ll, sink) {
+    let mut pop = seed_population(config, observables, blocks, baseline_ll, &mut rng);
+    if let Some((ind, rec)) =
+        proposal_individual(proposer, 1, observables, blocks, baseline_ll, sink)
+    {
         pop.push(ind);
         sink.proposal(&rec);
         live_proposals.push(rec);
@@ -492,11 +507,12 @@ pub(crate) fn evolve_population(
                 idx,
                 &mut rng,
                 observables,
+                blocks,
                 baseline_ll,
             ));
         }
         if let Some((ind, rec)) =
-            proposal_individual(proposer, generation, observables, baseline_ll, sink)
+            proposal_individual(proposer, generation, observables, blocks, baseline_ll, sink)
         {
             next.push(ind);
             sink.proposal(&rec);
@@ -631,7 +647,13 @@ mod tests {
             max_generations: 6,
             seed: 42,
         };
-        let run = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink);
+        let run = evolve_population(
+            &cfg,
+            &obs(),
+            &[],
+            None,
+            &mut super::super::ledger_sink::NullSink,
+        );
         assert_eq!(run.progress.len(), 6);
         // The core anti-collapse guarantee:
         for g in run.progress.iter().filter(|g| g.generation > 1) {
@@ -664,8 +686,20 @@ mod tests {
             max_generations: 4,
             seed: 7,
         };
-        let a = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink);
-        let b = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink);
+        let a = evolve_population(
+            &cfg,
+            &obs(),
+            &[],
+            None,
+            &mut super::super::ledger_sink::NullSink,
+        );
+        let b = evolve_population(
+            &cfg,
+            &obs(),
+            &[],
+            None,
+            &mut super::super::ledger_sink::NullSink,
+        );
         assert_eq!(a.progress, b.progress);
         assert_eq!(
             a.best.map(|x| x.fingerprint),
@@ -716,9 +750,15 @@ mod tests {
             seed: 99,
         };
         // Without a proposer the champion is a bare parameter-fit: derivation_rigor == 0.
-        let bare = evolve_population(&cfg, &obs(), None, &mut super::super::ledger_sink::NullSink)
-            .best
-            .unwrap();
+        let bare = evolve_population(
+            &cfg,
+            &obs(),
+            &[],
+            None,
+            &mut super::super::ledger_sink::NullSink,
+        )
+        .best
+        .unwrap();
         let bare_rigor = bare
             .scorecard
             .components
@@ -732,6 +772,7 @@ mod tests {
         let rich = evolve_population(
             &cfg,
             &obs(),
+            &[],
             Some(&FixtureProposer),
             &mut super::super::ledger_sink::NullSink,
         )

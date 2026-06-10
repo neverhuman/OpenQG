@@ -249,6 +249,10 @@ pub enum GenomeCommand {
         /// Per-call jekko timeout.
         #[arg(long, default_value_t = 300)]
         jekko_timeout_seconds: u64,
+        /// jnoccio quality band routing: "top20" or "none" (= all available models; more resilient
+        /// when the provider is degraded).
+        #[arg(long, default_value = "top20")]
+        jekko_quality_band: String,
     },
     /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
     /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
@@ -309,6 +313,10 @@ pub enum GenomeCommand {
         /// Per-call jekko timeout.
         #[arg(long, default_value_t = 300)]
         jekko_timeout_seconds: u64,
+        /// jnoccio quality band routing: "top20" or "none" (= all available models; more resilient
+        /// when the provider is degraded).
+        #[arg(long, default_value = "top20")]
+        jekko_quality_band: String,
     },
     /// V4 M6b: one LIVE jailgun proposal (ChatGPT via MCP) adjudicated by the deterministic oracle.
     /// Requires the jailgun server up. The LLM proposes; the oracle disposes.
@@ -418,6 +426,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             jekko_samples,
             jekko_repairs,
             jekko_timeout_seconds,
+            jekko_quality_band,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -440,6 +449,8 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                         timeout_seconds: jekko_timeout_seconds,
                         samples: jekko_samples,
                         repairs: jekko_repairs,
+                        quality_band: (jekko_quality_band != "none")
+                            .then(|| jekko_quality_band.clone()),
                         ..Default::default()
                     },
                     obs_loaded,
@@ -513,6 +524,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             jekko_samples,
             jekko_repairs,
             jekko_timeout_seconds,
+            jekko_quality_band,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("whitepaper-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -535,6 +547,8 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                         timeout_seconds: jekko_timeout_seconds,
                         samples: jekko_samples,
                         repairs: jekko_repairs,
+                        quality_band: (jekko_quality_band != "none")
+                            .then(|| jekko_quality_band.clone()),
                         ..Default::default()
                     },
                     obs_loaded,

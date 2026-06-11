@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1781184713.1546 "main.aux" "main.bbl" "main" 1781184713.99309 0
+["bibtex main"] 1781184713.1546 "main.aux" "main.bbl" "main" 1781184965.57662 0
   "./refs.bib" 1781184151.6951 9370 ea51d16ff93ee9bc429da9946fa9b2b4 ""
   "/usr/share/texlive/texmf-dist/bibtex/bst/ieeetran/IEEEtran.bst" 1440712899 57748 7c8250ecf02814ce6ddc0cdbb63df1dd ""
-  "main.aux" 1781184713.8396 20595 fb9dcaa82ab38fd782609e6f9ba2cdcb "pdflatex"
+  "main.aux" 1781184965.4548 20595 fb9dcaa82ab38fd782609e6f9ba2cdcb "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1781184713.18415 "main.tex" "main.pdf" "main" 1781184713.99352 0
+["pdflatex"] 1781184964.88581 "main.tex" "main.pdf" "main" 1781184965.57686 0
   "/etc/texmf/web2c/texmf.cnf" 1770880982.49512 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -132,17 +132,17 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1707919699 40399 f2c302f7d2af602abb742093540a5834 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1770880995.43435 165012 f177baa1c39a3ebd62c3096a43521a0d ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1770881055 6831115 36140e103a6e5c821664efdc2c692e3c ""
-  "figs/fig1_architecture.pdf" 1781184382.54838 5782 c0c4d7da33d08746496c7b022215e958 ""
+  "figs/fig1_architecture.pdf" 1781184959.5017 45995 12db36f8bd2a37a6fd32d95b2fdc0fe9 ""
   "figs/fig2_timeline.pdf" 1781184675.44297 39538 3ca3b2d989c04a4a453cdc518c1ab22c ""
   "figs/fig3_funnels.pdf" 1781184252.08848 17626 53cfb15b60feb359b1f82e3818d2c897 ""
   "figs/fig4_activity.pdf" 1781184285.76596 55155 3992230b106f8b8e9e6c9c0e55afb6e5 ""
   "figs/fig5_valley.pdf" 1781184162.03223 24380 dbc2577f0f8f10f65e03d6ea536db920 ""
   "figs/fig6_data.pdf" 1781184211.44791 30430 c70849a7bd1044f53dd9e887f3efeddf ""
   "figs/fig7_scorecards.pdf" 1781184263.42664 32524 bf032b8e9129367bae4029e0109b03a8 ""
-  "main.aux" 1781184713.8396 20595 fb9dcaa82ab38fd782609e6f9ba2cdcb "pdflatex"
+  "main.aux" 1781184965.4548 20595 fb9dcaa82ab38fd782609e6f9ba2cdcb "pdflatex"
   "main.bbl" 1781184713.17959 7149 3b7352d43f46ed84216331f6e0ceeb2d "bibtex main"
-  "main.out" 1781184713.8416 5758 4948e8edd256001dc50a37943537b6b6 "pdflatex"
-  "main.tex" 1781184712.26557 45820 6a7a19aa1c4c145995f39d83045fa664 ""
+  "main.out" 1781184965.4558 5758 4948e8edd256001dc50a37943537b6b6 "pdflatex"
+  "main.tex" 1781184777.10864 45947 f745f66db26b364d5c5510b32785dbbf ""
   (generated)
   "main.aux"
   "main.log"

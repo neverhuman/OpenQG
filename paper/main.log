@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.2.12)  11 JUN 2026 13:31
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.2.12)  11 JUN 2026 13:36
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -550,11 +550,11 @@ f-dist/fonts/enc/dvips/base/8r.enc}
 
 
 ]
-<figs/fig1_architecture.pdf, id=210, 517.45322pt x 245.718pt>
+<figs/fig1_architecture.pdf, id=210, 531.90718pt x 260.17201pt>
 File: figs/fig1_architecture.pdf Graphic file (type pdf)
 <use figs/fig1_architecture.pdf>
 Package pdftex.def Info: figs/fig1_architecture.pdf  used on input line 155.
-(pdftex.def)             Requested size: 516.0pt x 245.03125pt.
+(pdftex.def)             Requested size: 516.0pt x 252.40225pt.
 
 Overfull \hbox (42.34528pt too wide) in paragraph at lines 204--215
 \OT1/ptm/m/n/10 (-20) (\OT1/pcr/m/n/10 Unimplemented\OT1/ptm/m/n/10 (-20) /\OT1
@@ -596,11 +596,8 @@ File: figs/fig3_funnels.pdf Graphic file (type pdf)
 <use figs/fig3_funnels.pdf>
 Package pdftex.def Info: figs/fig3_funnels.pdf  used on input line 319.
 (pdftex.def)             Requested size: 252.0pt x 225.4174pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [3 <./figs/fig1_architecture.pdf>]
-<figs/fig4_activity.pdf, id=272, 522.80629pt x 216.95428pt>
+[3 <./figs/fig1_architecture.pdf>]
+<figs/fig4_activity.pdf, id=398, 522.80629pt x 216.95428pt>
 File: figs/fig4_activity.pdf Graphic file (type pdf)
 <use figs/fig4_activity.pdf>
 Package pdftex.def Info: figs/fig4_activity.pdf  used on input line 331.
@@ -617,7 +614,7 @@ Overfull \hbox (1.26755pt too wide) in paragraph at lines 363--381
 ) ,
  []
 
-<figs/fig2_timeline.pdf, id=281, 519.29745pt x 287.79514pt>
+<figs/fig2_timeline.pdf, id=407, 519.29745pt x 287.79514pt>
 File: figs/fig2_timeline.pdf Graphic file (type pdf)
 <use figs/fig2_timeline.pdf>
 Package pdftex.def Info: figs/fig2_timeline.pdf  used on input line 387.
@@ -633,12 +630,12 @@ Underfull \hbox (badness 4144) in paragraph at lines 410--412
  []
 
 [4 <./figs/fig3_funnels.pdf>]
-<figs/fig5_valley.pdf, id=342, 252.34274pt x 214.76637pt>
+<figs/fig5_valley.pdf, id=468, 252.34274pt x 214.76637pt>
 File: figs/fig5_valley.pdf Graphic file (type pdf)
 <use figs/fig5_valley.pdf>
 Package pdftex.def Info: figs/fig5_valley.pdf  used on input line 456.
 (pdftex.def)             Requested size: 252.0pt x 214.48401pt.
-<figs/fig6_data.pdf, id=343, 518.34988pt x 232.12248pt>
+<figs/fig6_data.pdf, id=469, 518.34988pt x 232.12248pt>
 File: figs/fig6_data.pdf Graphic file (type pdf)
 <use figs/fig6_data.pdf>
 Package pdftex.def Info: figs/fig6_data.pdf  used on input line 468.
@@ -646,7 +643,7 @@ Package pdftex.def Info: figs/fig6_data.pdf  used on input line 468.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
-<figs/fig7_scorecards.pdf, id=360, 255.84834pt x 252.9731pt>
+<figs/fig7_scorecards.pdf, id=486, 255.84834pt x 252.9731pt>
 File: figs/fig7_scorecards.pdf Graphic file (type pdf)
 <use figs/fig7_scorecards.pdf>
 Package pdftex.def Info: figs/fig7_scorecards.pdf  used on input line 518.
@@ -655,51 +652,48 @@ Package pdftex.def Info: figs/fig7_scorecards.pdf  used on input line 518.
 Underfull \vbox (badness 2213) has occurred while \output is active []
 
  [5 <./figs/fig4_activity.pdf>]
-Overfull \hbox (21.71109pt too wide) in paragraph at lines 546--557
+Overfull \hbox (23.1831pt too wide) in paragraph at lines 547--559
  [][] 
  []
 
 
-Underfull \vbox (badness 2735) has occurred while \output is active []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 574--580
+Underfull \hbox (badness 10000) in paragraph at lines 576--582
 []\OT1/ptm/m/n/10 (+20) Against the en-gine's human-program base-lines (a
  []
 
 
-Underfull \hbox (badness 3579) in paragraph at lines 597--597
+Underfull \hbox (badness 3579) in paragraph at lines 599--599
 []\OT1/ptm/m/n/8 (+20) Obligation certs in-co-her-ent with
  []
 
 [6 <./figs/fig2_timeline.pdf>]
 
 Package hyperref Warning: Difference (2) between bookmark levels is greater 
-(hyperref)                than one, level fixed on input line 618.
+(hyperref)                than one, level fixed on input line 620.
 
 [7 <./figs/fig5_valley.pdf>]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [8 <./figs/fig6_data.pdf> <./figs/fig7_scorecards.pdf>]
-Underfull \hbox (badness 3407) in paragraph at lines 739--747
+Underfull \hbox (badness 3407) in paragraph at lines 741--749
 \OT1/ptm/m/n/10 (+20) the au-dit and ref-eree archives (\OT1/pcr/m/n/10 docs/v5
 -reviews/\OT1/ptm/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 739--747
+Underfull \hbox (badness 10000) in paragraph at lines 741--749
 \OT1/pcr/m/n/10 docs/v6-reviews/\OT1/ptm/m/n/10 (+20) , \OT1/pcr/m/n/10 docs/V6
 -ACCEPTANCE.md\OT1/ptm/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 739--747
+Underfull \hbox (badness 10000) in paragraph at lines 741--749
 \OT1/pcr/m/n/10 docs/V6-CAMPAIGN-REPORT.md\OT1/ptm/m/n/10 (+20) ), the co-vari-
 ance
  []
 
 
-Underfull \hbox (badness 3547) in paragraph at lines 739--747
+Underfull \hbox (badness 3547) in paragraph at lines 741--749
 \OT1/ptm/m/n/10 (+20) fix-tures with con-tent hashes, and this pa-per's figure-
 
  []
@@ -746,10 +740,10 @@ dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texlive/texmf-dist/fonts/ty
 pe1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/u
 tmbi8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on main.pdf (10 pages, 472134 bytes).
+Output written on main.pdf (10 pages, 506002 bytes).
 PDF statistics:
- 1000 PDF objects out of 1000 (max. 8388607)
- 462 compressed objects within 5 object streams
+ 1126 PDF objects out of 1200 (max. 8388607)
+ 470 compressed objects within 5 object streams
  90 named destinations out of 1000 (max. 500000)
  57596 words of extra memory for PDF output out of 61914 (max. 10000000)
 

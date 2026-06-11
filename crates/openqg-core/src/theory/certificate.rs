@@ -191,6 +191,9 @@ pub fn relation_signature(name: &str) -> Option<&'static str> {
         "planck_mu0_geff" => {
             "inputs {mu0 > -1, negative allowed}; G_eff/G = 1 + mu0 (Planck 2018 MG parametrization)"
         }
+        "dark_scattering_growth_drag" => {
+            "inputs {a_drag >= 0, w0 >= -1, omega_de0 in [0,1]}; Gamma0 = a_drag·(1+w0)·omega_de0 (Simpson 2010)"
+        }
         "fr_largescale_geff_over_g" => {
             "inputs {regime: 1.0 inside / 0.0 outside Compton}; 4/3 or 1"
         }
@@ -607,6 +610,21 @@ mod tests {
         let mut sorted = names.clone();
         sorted.sort_unstable();
         assert_eq!(names, sorted, "registered_relations must stay sorted");
+    }
+
+    /// exploit-class: specification — V8 Wave 0.1. The V6→V7 era shipped a relation
+    /// (`dark_scattering_growth_drag`) that was registered and verifiable but missing from
+    /// `relation_signature`, so proposer prompts/diagnostics silently lacked its input contract
+    /// (and ~100 proposals died on input-key spelling). Every registered relation must expose a
+    /// signature hint, forever.
+    #[test]
+    fn registered_relations_have_signatures() {
+        for name in registered_relations() {
+            assert!(
+                relation_signature(name).is_some(),
+                "registered relation {name} must have a relation_signature entry"
+            );
+        }
     }
 
     #[test]

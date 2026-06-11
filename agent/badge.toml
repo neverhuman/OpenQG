@@ -2,7 +2,7 @@
 # When present, `jankurai audit` refreshes the badge artifacts after writing
 # the current audit report. Set `enabled = false` to disable.
 
-enabled = true
+enabled = false
 score = "target/jankurai/current-audit.json"
 svg = "agent/jankurai-badge.svg"
 json = "agent/jankurai-badge.json"

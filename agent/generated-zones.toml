@@ -181,20 +181,6 @@ read_only = false
 write_policy = "auditor_output"
 
 [[zone]]
-path = "agent/jankurai-badge.svg"
-command = "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
-source = "agent/badge.toml"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
-path = "agent/jankurai-badge.json"
-command = "jankurai audit . --json target/jankurai/current-audit.json --md target/jankurai/current-audit.md --no-score-history"
-source = "agent/badge.toml"
-read_only = false
-write_policy = "auditor_output"
-
-[[zone]]
 path = "reports/releases/draft/"
 command = "just release-pack"
 source = "just release-pack"

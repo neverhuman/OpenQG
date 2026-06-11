@@ -1,7 +1,9 @@
 # OpenQG
 
 <!-- jankurai-badge:start -->
-[![Jankurai score: 90/100](agent/jankurai-badge.svg)](target/jankurai/current-audit.md)
+<!-- badge removed 2026-06-11: the 90/100 badge was minted by jankurai 0.8.13 and is stale
+     (current full audit scores lower). `jankurai badge` correctly refuses to mint from a dirty
+     report; the badge returns when the repo earns it. Run `just score` for the live number. -->
 <!-- jankurai-badge:end -->
 
 OpenQG is an evidence-gated benchmark and control plane for interpretable

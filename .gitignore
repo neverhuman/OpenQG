@@ -9,3 +9,4 @@
 # Runtime state (auditor history, jekko daemon scratch) — never committed
 .jankurai/
 .jekko/
+ops/jailgun/next-level-payload/

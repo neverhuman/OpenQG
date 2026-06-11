@@ -1,0 +1,126 @@
+# OpenQG "next-level" payload — curated for the 12-spec engineering-review event (S01-S12).
+# Consumed by jailhard --include-manifest (exact files; extension allowlist bypassed,
+# security denylist still enforced — NO target/ paths allowed; results are staged copies).
+# Paths are repo-relative to /home/ubuntu/openQG. Budget: <= 1.5 MB uncompressed.
+# Every read-first path cited by an S-prompt MUST appear here.
+
+# --- Narrative / mission ---
+README.md
+MISSION.md
+GOVERNANCE.md
+docs/MOONSHOT.md
+
+# --- Core docs (the story + the honest numbers) ---
+docs/architecture.md
+docs/ZYAL.md
+docs/zyal-engine-rebuild.md
+docs/zyal-next-level-design.md
+docs/theory-league.md
+docs/production-run-1000.md
+docs/V6-CAMPAIGN-REPORT.md
+docs/V6-ACCEPTANCE.md
+docs/v6-reviews/README.md
+docs/boltzmann-backend.md
+
+# --- White paper + compact results preview ---
+paper/main.tex
+paper/refs.bib
+paper/data/story.json
+paper/data/funnels.json
+paper/data/observables.jsonl
+paper/data/predictions.txt
+
+# --- Engine: theory layer (V7 disk state, incl. uncommitted edits) ---
+crates/openqg-core/src/theory/mod.rs
+crates/openqg-core/src/theory/scorecard.rs
+crates/openqg-core/src/theory/vetoes.rs
+crates/openqg-core/src/theory/certificate.rs
+crates/openqg-core/src/theory/league.rs
+crates/openqg-core/src/theory/binding.rs
+crates/openqg-core/src/theory/obligation.rs
+crates/openqg-core/src/theory/claim_graph.rs
+crates/openqg-core/src/theory/evaluate.rs
+crates/openqg-core/src/theory/unification.rs
+crates/openqg-core/src/theory/proposal.rs
+crates/openqg-core/src/theory/mutation.rs
+crates/openqg-core/src/theory/holdout.rs
+crates/openqg-core/src/theory/evidence.rs
+crates/openqg-core/src/theory/fingerprint.rs
+crates/openqg-core/src/theory/contenders.rs
+
+# --- Engine: forward model ---
+crates/openqg-core/src/cosmology/forward.rs
+crates/openqg-core/src/cosmology/background.rs
+crates/openqg-core/src/cosmology/growth.rs
+crates/openqg-core/src/cosmology/observables.rs
+
+# --- Engine: likelihood + covariance + evidence ---
+crates/openqg-core/src/scoring/covariance.rs
+crates/openqg-core/src/scoring/likelihood.rs
+crates/openqg-core/src/scoring/evidence.rs
+
+# --- Evolution driver (proposer, judge, population, ledgers) ---
+crates/openqg-bench/src/zyal_genome/mod.rs
+crates/openqg-bench/src/zyal_genome/proposer_sketch.rs
+crates/openqg-bench/src/zyal_genome/proposer_prompt.rs
+crates/openqg-bench/src/zyal_genome/proposer.rs
+crates/openqg-bench/src/zyal_genome/proposer_router.rs
+crates/openqg-bench/src/zyal_genome/trust_gate.rs
+crates/openqg-bench/src/zyal_genome/physics_score.rs
+crates/openqg-bench/src/zyal_genome/theory_population.rs
+crates/openqg-bench/src/zyal_genome/ledger_sink.rs
+crates/openqg-bench/src/zyal_judge.rs
+crates/openqg-bench/src/theory_league.rs
+
+# --- Data registry (the data-source contract) ---
+data/registry/constants/nist-codata.yml
+data/registry/cosmology/planck-legacy.yml
+data/registry/dark-energy/desi-dr1.yml
+data/registry/dark-matter/sparc.yml
+data/registry/gravity/gwosc.yml
+data/registry/literature/hepdata.yml
+data/registry/particle/pdg-api.yml
+
+# --- Data fixtures (the actual scored observables + covariance blocks) ---
+data/fixtures/cosmology/README.md
+data/fixtures/cosmology/tier0-combined.jsonl
+data/fixtures/cosmology/tier1-multisector.jsonl
+data/fixtures/cosmology/bao-desi-dr1.jsonl
+data/fixtures/cosmology/cmb-planck18.jsonl
+data/fixtures/cosmology/growth-rsd.jsonl
+data/fixtures/cosmology/sh0es-h0.jsonl
+data/fixtures/cosmology/wl-s8.jsonl
+data/fixtures/cosmology/covariance/README.md
+data/fixtures/cosmology/covariance/desi-dr1-bao.json
+data/fixtures/cosmology/covariance/planck18-distance-priors.json
+
+# --- ZYAL runbook + honesty anchors/decoys ---
+ZYAL/README.md
+ZYAL/anchors/README.md
+ZYAL/anchors/good-lcdm-baseline.json
+ZYAL/anchors/good-h0-tension-resolver.json
+ZYAL/anchors/decoy-gray-box-fudge.json
+ZYAL/anchors/decoy-h0-100.json
+ZYAL/anchors/decoy-omega-runaway.json
+ZYAL/anchors/probe-overfit-echo.json
+
+# --- Contracts (release machinery) ---
+contracts/registry.yml
+contracts/specs/benchmark-suite.yml
+contracts/specs/dataset.yml
+contracts/specs/observable.yml
+contracts/specs/prediction.yml
+contracts/specs/release.yml
+contracts/specs/scorecard.yml
+contracts/specs/theory.yml
+
+# --- Staged results preview (copied out of target/ by tools/jailgun-next-level.sh) ---
+ops/jailgun/next-level-payload/results/v6-replay-run-summary.json
+ops/jailgun/next-level-payload/results/v6-replay-champion.json
+ops/jailgun/next-level-payload/results/v6-replay-quality-gate.json
+ops/jailgun/next-level-payload/results/prod-1000-run-summary.json
+ops/jailgun/next-level-payload/results/prod-1000-champion.json
+ops/jailgun/next-level-payload/results/prod-1000-quality-gate.json
+ops/jailgun/next-level-payload/results/v7-smoke-proposal-ledger.jsonl
+ops/jailgun/next-level-payload/results/v7-smoke-progress-ledger.jsonl
+ops/jailgun/next-level-payload/results/v7-tg-trust-gate.json

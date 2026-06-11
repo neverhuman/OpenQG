@@ -525,8 +525,13 @@ impl Lane {
         match self {
             Lane::PlanckMu0 => {
                 "Build a suppressed-growth theory in the Planck-μ0 parametrization: mg_family \
-                 \"none\", a parameter certified via `planck_mu0_geff` with mu0 < 0, aimed \
-                 directly at the negative fσ8/S8 pulls in the DATA BRIEF."
+                 \"none\", background mu0 < 0, and a parameter certified via `planck_mu0_geff` \
+                 whose certificate input mu0 EQUALS the background mu0. VERBATIM-PASSING \
+                 example for background mu0 = -0.1 (relation: G_eff/G = 1 + mu0): parameter \
+                 {\"symbol\": \"geff_over_g\", \"value\": 0.9, \"provenance_kind\": \
+                 \"derived_certified\", \"relation\": \"planck_mu0_geff\", \"inputs\": \
+                 [{\"name\": \"mu0\", \"value\": -0.1}], \"expected\": 0.9, \
+                 \"tolerance\": 1e-6}. Aim at the negative fσ8/S8 pulls in the DATA BRIEF."
             }
             Lane::DarkScattering => {
                 "Build a dark-sector interaction theory (DE–DM momentum exchange, Simpson 2010; \
@@ -568,7 +573,14 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          1. The engine COMPUTES all physics from your bound background — declared numbers are \
          honesty attestations checked against the computed truth. Fabrication (>3× tolerance) \
          is a kill; honest-but-wrong is a demotion.\n\
-         2. Only these registry relations verify: {relations}. Anything else earns zero rigor.\n\
+         2. Only these registry relations verify: {relations}. EXACT input keys per relation \
+         (a missing/renamed key = failed certificate = kill): planck_mu0_geff needs \
+         [mu0]; ndgp_geff_over_g needs [beta]; ndgp_beta_from_omega_rc needs [omega_rc, \
+         omega_m] (optional omega_r, omega_k, w0); coupled_de_geff_over_g needs [beta]; \
+         dark_scattering_growth_drag needs [a_drag, w0, omega_de0]; fr_alpha_m needs [f_R, \
+         a_f_R_prime]. To set a background MG dial (e.g. mu0) you MUST include a \
+         derived_certified parameter whose certificate input equals that background value — \
+         an uncertified background modification is an automatic kill.\n\
          3. A certified modified-gravity claim is BOUND into the background the model integrates; \
          unexplained or conflicting modifications are kills.\n\
          4. Every physics claim needs ≥1 obligation; every cited evidence path needs content in \

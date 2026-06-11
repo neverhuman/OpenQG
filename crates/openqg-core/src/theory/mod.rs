@@ -51,7 +51,10 @@ pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
 };
 pub use fingerprint::claim_fingerprint;
-pub use holdout::{alternating_holdout, held_out_evaluate, HeldOutScore};
+pub use holdout::{
+    alternating_holdout, alternating_split, held_out_evaluate, split_evaluate, HeldOutScore,
+    SplitScore,
+};
 pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, ModelClass};
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use obligation::{

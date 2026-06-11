@@ -11,9 +11,9 @@
 //! the solver fail is a lethal candidate, never a silent default) — see
 //! `docs/research/forward-model-and-unification.md` §5.
 
-use super::{CosmologyParams, ForwardKind, ForwardManifest, ForwardModel};
+use super::forward::{ForwardFailure, ForwardKind, ForwardManifest, ForwardModel};
+use super::CosmologyParams;
 use crate::types::PredictionRecord;
-use anyhow::{bail, Context, Result};
 use std::io::Write;
 use std::process::{Command, Stdio};
 
@@ -49,7 +49,7 @@ impl ForwardModel for SubprocessForwardModel {
         &self,
         theory: &CosmologyParams,
         observable_ids: &[String],
-    ) -> Result<Vec<PredictionRecord>> {
+    ) -> Result<Vec<PredictionRecord>, ForwardFailure> {
         let request = serde_json::json!({
             "params": theory,
             "observables": observable_ids,
@@ -63,25 +63,20 @@ impl ForwardModel for SubprocessForwardModel {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .with_context(|| format!("spawn forward-model command: {}", self.command))?;
+            .map_err(|_| ForwardFailure::Crash)?;
         child
             .stdin
             .take()
-            .context("forward-model command has no stdin")?
+            .ok_or(ForwardFailure::Crash)?
             .write_all(request.as_bytes())
-            .context("write request to forward-model command")?;
+            .map_err(|_| ForwardFailure::Crash)?;
         let output = child
             .wait_with_output()
-            .context("wait for forward-model command")?;
+            .map_err(|_| ForwardFailure::Crash)?;
         if !output.status.success() {
-            bail!(
-                "forward-model command failed ({}): {}",
-                output.status,
-                String::from_utf8_lossy(&output.stderr).trim()
-            );
+            return Err(ForwardFailure::Crash);
         }
-        serde_json::from_slice(&output.stdout)
-            .context("parse forward-model command predictions JSON")
+        serde_json::from_slice(&output.stdout).map_err(|_| ForwardFailure::Crash)
     }
 
     fn manifest(&self) -> ForwardManifest {
@@ -116,7 +111,7 @@ mod tests {
     fn a_failing_backend_is_an_error_not_a_silent_default() {
         let model = SubprocessForwardModel::new("exit 3");
         let r = model.predict(&CosmologyParams::planck_lcdm(), &["h0".to_string()]);
-        assert!(r.is_err());
+        assert_eq!(r, Err(ForwardFailure::Crash));
     }
 
     #[test]

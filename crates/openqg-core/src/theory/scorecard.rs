@@ -2,7 +2,7 @@
 //!
 //! This is the single trustworthy score. It fuses the V4 trust-spine pieces — content-bound
 //! evidence (M0), the derivation-obligation oracle (M1), the ClaimGraph / UnificationClaim (M2) —
-//! with the existing deterministic physics (`vetoes`, `model_league`, `held_out_evaluate`) into one
+//! with the existing deterministic physics (`vetoes`, `model_league`, `split_evaluate`) into one
 //! verdict that ranks the system's champion against human contenders and decoys on identical terms.
 //!
 //! **Veto-first invariant.** No positive credit is ever awarded before the hard gates pass. In
@@ -14,7 +14,7 @@
 //!
 //! `score()` is a pure function of (theory, claim graph, obligations, *materialized evidence bytes*,
 //! and an optional pre-computed [`DataFitOutcome`]). The heavy forward-model / dataset work that
-//! produces a `DataFitOutcome` (via `model_league` + `held_out_evaluate`) is done by the caller (the
+//! produces a `DataFitOutcome` (via `model_league` + `split_evaluate`) is done by the caller (the
 //! genome in M5, the contender league in M4) and passed in, so this module stays deterministic and
 //! unit-testable, and a verdict replays bit-for-bit from the same inputs ([`ScorecardReceipt`]).
 
@@ -26,8 +26,8 @@ use super::{
 };
 
 /// Pre-computed data-fit summary for a candidate, produced by the caller from `model_league`
-/// (covariance-aware ΔAIC / Δln Z vs ΛCDM) and `held_out_evaluate` (sealed-holdout generalization
-/// gap). `None` passed to [`score`] means "no data fit available" → the DataFit component scores 0
+/// (covariance-aware ΔAIC / Δln Z vs ΛCDM) and `split_evaluate` (train/test generalization gap).
+/// `None` passed to [`score`] means "no data fit available" → the DataFit component scores 0
 /// with a maximal uncertainty band (we never invent a fit).
 /// V6: which likelihood scored the data — independent Gaussians or covariance-aware blocks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -44,7 +44,7 @@ pub struct DataFitOutcome {
     pub delta_aic: f64,
     /// Δln Z ≈ −0.5·ΔBIC vs ΛCDM (positive = candidate preferred).
     pub delta_lnz: f64,
-    /// Sealed-holdout generalization gap (train_ll − heldout_ll per point; smaller = generalizes).
+    /// Train/test split generalization gap (train_ll − test_ll per point; smaller = generalizes).
     pub generalization_gap: f64,
     /// League coverage in [0,1]; below the floor the fit is not trustworthy.
     pub coverage: f64,
@@ -56,6 +56,21 @@ pub struct DataFitOutcome {
     /// V6: how many covariance blocks entered the likelihood (0 = pure diagonal).
     #[serde(default)]
     pub covariance_block_count: u32,
+}
+
+impl DataFitOutcome {
+    /// V8 (Wave 0.4) evidence gate: the theory must not be substantially worse than ΛCDM.
+    ///
+    /// Gate fails (returns `false`) when BOTH indicators are bad:
+    /// - `delta_lnz < -2.0` (candidate ≥2 ln-evidence units worse than ΛCDM), AND
+    /// - `delta_aic > 4.0` (ΛCDM preferred by ≥4 AIC units).
+    ///
+    /// A theory that passes on EITHER axis is not condemned as substantially inferior.
+    /// Diagonal-mode (BIC-only) fits can still fail this gate; covariance-mode lnZ is more
+    /// discriminating. See SYNTHESIS §5 Phase 0 item #3 and S07 §4.2.
+    pub fn fit_gate_passed(&self) -> bool {
+        self.delta_lnz > -2.0 || self.delta_aic <= 4.0
+    }
 }
 
 /// One weighted rubric dimension. `raw ∈ [0,1]`, `points = raw·weight`, `band` is the
@@ -507,6 +522,19 @@ pub fn score_with_observables(
         }
     }
 
+    // V8 (Wave 0.4): evidence gate — kill a theory that is substantially worse than ΛCDM on
+    // BOTH indicators. Covariance-mode lnZ is the primary signal; diagonal BIC is a gate only.
+    if let Some(f) = data_fit {
+        if !f.fit_gate_passed() {
+            kill.push(format!(
+                "data_fit_gate_failed: theory is substantially worse than ΛCDM \
+                 (delta_lnz={:.2}, delta_aic={:.2}); covariance-aware evidence required to \
+                 overcome this gate",
+                f.delta_lnz, f.delta_aic
+            ));
+        }
+    }
+
     if !kill.is_empty() {
         return ScorecardV4 {
             theory_id: theory.id.clone(),
@@ -532,10 +560,17 @@ pub fn score_with_observables(
     let dr = derivation_rigor_raw(cg, obligations);
     let c_dr = component("derivation_rigor", dr, dr, dr);
 
-    // 2. Data fit — one-sided: tying ΛCDM (Δln Z ≤ 0) → 0; only beating it earns credit. None ⇒ 0.
+    // 2. Data fit — V8 (Wave 0.4) BIC demotion: diagonal (BIC/AIC-only) fits award 0 points;
+    //    only covariance-aware Δln Z earns credit. Fit-set data → evidence gate, not score.
+    //    Forecast points (Phase 1 item #3, prediction registry) will be added separately.
     let c_df = match data_fit {
         Some(f) => {
-            let raw = data_fit_raw(f.delta_lnz);
+            let raw = if f.likelihood_mode == LikelihoodMode::Covariance {
+                data_fit_raw(f.delta_lnz)
+            } else {
+                // Diagonal mode (BIC/AIC proxy): demoted to 0. Gate passed above; no points awarded.
+                0.0
+            };
             // boundary-hit / sub-coverage widen the band downward (the fit is suspect).
             let suspect = f.boundary_hit || f.coverage < 1.0 - 1e-9;
             let lo = if suspect { raw * 0.6 } else { raw };

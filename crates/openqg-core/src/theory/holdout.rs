@@ -1,32 +1,37 @@
-//! Out-of-sample (held-out) predictive scoring. The most respected credibility signal is
-//! predicting observables the theory was *not* scored against (research §3). We split the
-//! observable set into a train set and a disjoint held-out set, score the *same* theory's
-//! predictions on each, and report the generalization gap: a theory that matches the train
-//! observables far better than it predicts the held-out ones is overfit, not predictive.
+//! Out-of-sample predictive scoring via a deterministic train/test *split*.
 //!
-//! For the engine this is used as an honesty gate on a champion: evolve against the train split,
-//! then demand it still predicts the held-out split — anti-recitation / anti-overfit.
+//! Splits the observable set into a train set and a disjoint test set, scores the *same* theory's
+//! predictions on each, and reports the generalization gap: a theory that matches the train
+//! observables far better than it predicts the test ones is overfit, not predictive.
+//!
+//! **Naming note:** This is a deterministic alternating *split* over known rows — NOT a sealed
+//! holdout. The name was updated from "holdout" to "split" (V8 Wave 0.5) to be honest: a real
+//! sealed holdout requires the prediction registry (Phase 0 item #2), canary-leak tests, and
+//! data tiers. Until those are wired in, callers should not describe this as "sealed".
 
 use super::{physics_kills, Theory};
 use crate::cosmology::{CosmologyParams, ForwardModel};
 use crate::scoring::score_metrics;
 use crate::types::ObservableRecord;
 
-/// Held-out predictive evaluation of a theory.
+/// Train/test split predictive evaluation of a theory.
 #[derive(Debug, Clone, PartialEq)]
-pub struct HeldOutScore {
+pub struct SplitScore {
     /// True if the theory is vetoed (then the scores are not meaningful).
     pub vetoed: bool,
     /// Log-likelihood on the train split.
     pub train_log_likelihood: f64,
-    /// Log-likelihood on the held-out split.
+    /// Log-likelihood on the test split.
     pub heldout_log_likelihood: f64,
-    /// Fraction of held-out observables the model could derive.
+    /// Fraction of test observables the model could derive.
     pub heldout_coverage: f64,
-    /// Per-observable (train − held-out) log-likelihood. Large positive ⇒ overfit: fits the train
+    /// Per-observable (train − test) log-likelihood. Large positive ⇒ overfit: fits the train
     /// observables far better than it predicts the unseen ones. Near zero ⇒ genuinely predictive.
     pub generalization_gap: f64,
 }
+
+/// Backward-compat alias — prefer [`SplitScore`].
+pub type HeldOutScore = SplitScore;
 
 fn subset(
     observables: &[ObservableRecord],
@@ -60,19 +65,19 @@ fn log_likelihood(
     (m.log_likelihood, m.coverage)
 }
 
-/// Evaluate a theory's train vs held-out predictive performance. `heldout` lists the indices of
-/// the held-out observables.
-pub fn held_out_evaluate<M>(
+/// Evaluate a theory's train vs test split predictive performance. `split` lists the indices of
+/// the test-split observables.
+pub fn split_evaluate<M>(
     theory: &Theory,
     observables: &[ObservableRecord],
     model: &M,
-    heldout: &[usize],
-) -> HeldOutScore
+    split: &[usize],
+) -> SplitScore
 where
     M: ForwardModel<Theory = CosmologyParams>,
 {
     if !physics_kills(theory).is_empty() {
-        return HeldOutScore {
+        return SplitScore {
             vetoed: true,
             train_log_likelihood: f64::NEG_INFINITY,
             heldout_log_likelihood: f64::NEG_INFINITY,
@@ -80,8 +85,8 @@ where
             generalization_gap: f64::INFINITY,
         };
     }
-    let train = subset(observables, false, heldout);
-    let test = subset(observables, true, heldout);
+    let train = subset(observables, false, split);
+    let test = subset(observables, true, split);
     let (train_ll, _) = log_likelihood(theory, &train, model);
     let (test_ll, test_cov) = log_likelihood(theory, &test, model);
     let train_per = if train.is_empty() {
@@ -94,7 +99,7 @@ where
     } else {
         test_ll / test.len() as f64
     };
-    HeldOutScore {
+    SplitScore {
         vetoed: false,
         train_log_likelihood: train_ll,
         heldout_log_likelihood: test_ll,
@@ -103,9 +108,27 @@ where
     }
 }
 
-/// Convenience: hold out every other observable (odd indices), for a balanced split.
-pub fn alternating_holdout(n: usize) -> Vec<usize> {
+/// Backward-compat alias — prefer [`split_evaluate`].
+pub fn held_out_evaluate<M>(
+    theory: &Theory,
+    observables: &[ObservableRecord],
+    model: &M,
+    split: &[usize],
+) -> SplitScore
+where
+    M: ForwardModel<Theory = CosmologyParams>,
+{
+    split_evaluate(theory, observables, model, split)
+}
+
+/// Convenience: hold out every other observable (odd indices), for a balanced 50% split.
+pub fn alternating_split(n: usize) -> Vec<usize> {
     (0..n).filter(|i| i % 2 == 1).collect()
+}
+
+/// Backward-compat alias — prefer [`alternating_split`].
+pub fn alternating_holdout(n: usize) -> Vec<usize> {
+    alternating_split(n)
 }
 
 #[cfg(test)]
@@ -136,14 +159,14 @@ mod tests {
     }
 
     #[test]
-    fn lcdm_generalizes_to_held_out_bao() {
+    fn lcdm_generalizes_to_split_bao() {
         let obs = desi();
-        let heldout = alternating_holdout(obs.len());
-        let s = held_out_evaluate(
+        let split = alternating_split(obs.len());
+        let s = split_evaluate(
             &Theory::baseline_lcdm(),
             &obs,
             &BackgroundForwardModel,
-            &heldout,
+            &split,
         );
         assert!(!s.vetoed);
         assert!((s.heldout_coverage - 1.0).abs() < 1e-9);
@@ -159,26 +182,25 @@ mod tests {
     fn a_vetoed_theory_reports_infinite_gap() {
         let mut ghost = Theory::baseline_lcdm();
         ghost.stability.q_s = -1.0;
-        let s = held_out_evaluate(&ghost, &desi(), &BackgroundForwardModel, &[1]);
+        let s = split_evaluate(&ghost, &desi(), &BackgroundForwardModel, &[1]);
         assert!(s.vetoed);
         assert!(s.generalization_gap.is_infinite());
     }
 
     #[test]
-    fn a_detuned_theory_predicts_held_out_worse() {
-        // ΛCDM vs a wrong-Omega_m theory: the detuned one predicts the held-out BAO worse, so its
-        // held-out log-likelihood is lower than ΛCDM's.
+    fn a_detuned_theory_predicts_split_worse() {
+        // ΛCDM vs a wrong-Omega_m theory: the detuned one predicts the test split BAO worse.
         let obs = desi();
-        let heldout = alternating_holdout(obs.len());
-        let good = held_out_evaluate(
+        let split = alternating_split(obs.len());
+        let good = split_evaluate(
             &Theory::baseline_lcdm(),
             &obs,
             &BackgroundForwardModel,
-            &heldout,
+            &split,
         );
         let mut detuned = Theory::baseline_lcdm();
         detuned.background.omega_m = 0.45;
-        let bad = held_out_evaluate(&detuned, &obs, &BackgroundForwardModel, &heldout);
+        let bad = split_evaluate(&detuned, &obs, &BackgroundForwardModel, &split);
         assert!(bad.heldout_log_likelihood < good.heldout_log_likelihood);
     }
 }

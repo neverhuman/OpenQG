@@ -7,8 +7,47 @@
 //! provenance is auditable.
 
 use crate::types::PredictionRecord;
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
+
+/// Typed failure modes for a forward model — emitted instead of an opaque anyhow error so the
+/// engine can route each failure class (log it, skip the theory, escalate to a Boltzmann
+/// backend, etc.) without parsing error strings.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ForwardFailure {
+    /// This observable / sector combination is not implemented by this model tier.
+    Unsupported,
+    /// Physical parameters are outside the model's valid domain (e.g. negative Omega_m).
+    DomainError,
+    /// Numerical failure: overflow, NaN, or non-convergence in an integration / ODE solver.
+    PrecisionFailure,
+    /// Solver exceeded its wall-clock or iteration budget.
+    Timeout,
+    /// A subprocess or external backend (CLASS, hi_class) exited unexpectedly.
+    Crash,
+}
+
+impl std::fmt::Display for ForwardFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ForwardFailure::Unsupported => write!(f, "forward_failure:unsupported"),
+            ForwardFailure::DomainError => write!(f, "forward_failure:domain_error"),
+            ForwardFailure::PrecisionFailure => write!(f, "forward_failure:precision_failure"),
+            ForwardFailure::Timeout => write!(f, "forward_failure:timeout"),
+            ForwardFailure::Crash => write!(f, "forward_failure:crash"),
+        }
+    }
+}
+
+impl std::error::Error for ForwardFailure {}
+
+/// Bundles a successful prediction set with the reproducibility receipt for the model that
+/// produced it — useful when callers need both in one place.
+#[derive(Debug, Clone)]
+pub struct ForwardOutcome {
+    pub records: Vec<PredictionRecord>,
+    pub manifest: ForwardManifest,
+}
 
 /// What a forward model fundamentally is — used to flag the fidelity of a prediction set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,11 +88,14 @@ pub trait ForwardModel {
     /// Predict the requested observables. A model returns a record only for the observables it
     /// can genuinely compute — an unpredictable observable (e.g. σ8 from a background-only
     /// model) is *omitted*, never faked, so coverage honestly reflects what the theory derives.
+    ///
+    /// Returns `Err(ForwardFailure::Unsupported)` when the model cannot handle this theory /
+    /// observable combination at all; other variants signal numeric or external-process failures.
     fn predict(
         &self,
         theory: &Self::Theory,
         observable_ids: &[String],
-    ) -> Result<Vec<PredictionRecord>>;
+    ) -> Result<Vec<PredictionRecord>, ForwardFailure>;
 
     /// Reproducibility receipt for this model.
     fn manifest(&self) -> ForwardManifest;
@@ -155,7 +197,7 @@ impl ForwardModel for BackgroundForwardModel {
         &self,
         theory: &Self::Theory,
         observable_ids: &[String],
-    ) -> Result<Vec<PredictionRecord>> {
+    ) -> Result<Vec<PredictionRecord>, ForwardFailure> {
         let mut out = Vec::new();
         for id in observable_ids {
             if let Some((value, uncertainty, unit)) = self.compute(theory, id) {

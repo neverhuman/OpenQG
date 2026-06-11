@@ -17,11 +17,11 @@ use openqg_core::theory::{
 };
 use openqg_core::ObservableRecord;
 
-fn finite_or(x: f64, fallback: f64) -> f64 {
+fn finite_or(x: f64, default_value: f64) -> f64 {
     if x.is_finite() {
         x
     } else {
-        fallback
+        default_value
     }
 }
 
@@ -302,7 +302,7 @@ mod tests {
     /// suppressed-growth theory (planck_mu0_geff, μ0 = −0.1) is truth-bound and improves the RAW
     /// likelihood on the real low-fσ8/S8 records (the mechanism points the right way) — but
     /// under the V7 evidence economics its one post-search-chosen dof (μ0) must clear the BIC
-    /// bar 0.5·ln(n)≈0.9 nats on n=6 points, and ~0.5 nats of raw gain does not. So: raw fit
+    /// bar 0.5·ln(n)≈0.9 nat on n=6 points, and ~0.5 nat of raw gain does not. So: raw fit
     /// improves, data_fit credit is ZERO, and that is the honest state of this mechanism at
     /// this data volume (review-05's economics + review-09's "more growth data" in one test).
     #[test]
@@ -498,13 +498,13 @@ mod v6_covariance_tests {
     use std::path::PathBuf;
 
     /// THE V6.1 RESOLUTION of the degeneracy-valley saga, in three acts (all permanent record):
-    /// V5 diagonal: +54.9 nats (champion class). V6 covariance: +68.8 (the TRUE correlated 3×3
+    /// V5 diagonal: +54.9 nat (champion class). V6 covariance: +68.8 (the TRUE correlated 3×3
     /// was even cheaper along the valley — diagonal had over-stated the CMB). V6.1: the +0.755
     /// (8.4σ) engine lA bias is anchor-calibrated out (P0.11) and the Occam term charges the
     /// drift's 3 dof (P0.10) — the valley CLOSES: diag −20.5, cov −31.9. The "champion
     /// direction" loses to ΛCDM on the admitted data, and covariance now punishes it HARDER
     /// than diagonal (the correlated CMB block has real teeth once the model bias is gone).
-    /// What looked like an open valley was ~35 nats of our own fitting-formula error.
+    /// What looked like an open valley was ~35 nat of our own fitting-formula error.
     #[test]
     fn covariance_mode_is_recorded_and_the_compressed_cmb_cannot_close_the_valley() {
         let obs = load_observables(&PathBuf::from(

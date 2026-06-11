@@ -145,7 +145,7 @@ fn clamp01(x: f64) -> f64 {
     x.max(0.0).min(1.0)
 }
 
-/// Logistic squash centred so `x = 0 → 0.5`; `scale` in nats.
+/// Logistic squash centred so `x = 0 → 0.5`; `scale` in nat (log-evidence units).
 fn logistic(x: f64, scale: f64) -> f64 {
     1.0 / (1.0 + (-x / scale).exp())
 }
@@ -871,7 +871,7 @@ mod tests {
             expected: 1.0 + 1.0 / 6.0,
             tolerance: 1e-9,
         };
-        t.terms.push(super::Term {
+        t.terms.push(crate::theory::Term {
             name: "dgp_brane".into(),
             mass_dimension: 4,
             free_lorentz_indices: 0,

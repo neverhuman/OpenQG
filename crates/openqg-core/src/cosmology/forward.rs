@@ -91,7 +91,7 @@ impl BackgroundForwardModel {
             // Compressed CMB distance priors (computable from the background alone).
             // V6.1 (P0.11, CRITICAL): fitting-formula-grade predictions must never meet
             // Boltzmann-grade data raw — the engine's lA carried a +0.755 (8.4σ) bias at the
-            // Planck anchor and the V6 campaign optimizer harvested ~35 nats of pure model
+            // Planck anchor and the V6 campaign optimizer harvested ~35 nat of pure model
             // error by drifting h to shift lA. Anchor-calibrate at Planck-2018 best fit
             // (same precedent as the Aubourg r_drag treatment): planck_lcdm() now predicts the
             // published distance priors exactly; deviations measure PHYSICS, not formula bias.
@@ -273,5 +273,50 @@ mod v61_calibration_guard {
             (get("cmb_omega_b_h2") - 0.02236).abs() < 0.5 * 0.000_15,
             "omega_b_h2 off anchor"
         );
+    }
+}
+
+#[cfg(test)]
+mod paper_probe {
+    use super::*;
+    use crate::cosmology::CosmologyParams;
+
+    #[test]
+    #[ignore] // paper-figure data probe, run explicitly
+    fn print_predictions_for_paper() {
+        let model = BackgroundForwardModel;
+        let ids: Vec<String> = [
+            "h0",
+            "s8",
+            "cmb_R",
+            "cmb_lA",
+            "cmb_omega_b_h2",
+            "fsigma8@0.067",
+            "fsigma8@0.38",
+            "fsigma8@0.51",
+            "fsigma8@0.61",
+            "fsigma8@1.48",
+            "dv_over_rd@0.295",
+            "dm_over_rd@0.510",
+            "dh_over_rd@0.510",
+            "dm_over_rd@0.930",
+            "dh_over_rd@0.930",
+            "dm_over_rd@2.330",
+            "dh_over_rd@2.330",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let lcdm = CosmologyParams::planck_lcdm();
+        let mut mu = lcdm.clone();
+        mu.mu0 = -0.1;
+        let mut drag = lcdm.clone();
+        drag.w0 = -0.9;
+        drag.drag_a = 2.0;
+        for (name, bg) in [("lcdm", &lcdm), ("mu0", &mu), ("drag", &drag)] {
+            for p in model.predict(bg, &ids).unwrap() {
+                println!("PROBE {} {} {:.6}", name, p.observable_id, p.value);
+            }
+        }
     }
 }

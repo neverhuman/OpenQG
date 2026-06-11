@@ -1,0 +1,25 @@
+{
+  "valley": {"v5_diag": 54.87, "v6_cov": 68.8, "v61_diag": -20.48, "v61_cov": -31.88},
+  "la_bias": {"raw": 302.225598, "published": 301.471, "sigma": 0.090},
+  "cascade": [
+    {"era": "V4", "champion": 87.5, "killed_by": "V4.1 (rubric-gaming audit)"},
+    {"era": "V5", "champion": 55.0, "killed_by": "V6 (adjudication + drift cost)"},
+    {"era": "V6", "champion": 77.0, "killed_by": "V6.1 (lA bias + novelty laundering)"},
+    {"era": "V6.1 survivor", "champion": 25.0, "killed_by": "V7 (term registry)"},
+    {"era": "V7", "champion": 43.0, "killed_by": "(standing)"}
+  ],
+  "v5_champ_components": {"derivation_rigor": 0, "data_fit": 20, "novel_prediction": 10, "unification": 0, "robustness_under_judge": 13, "parsimony": 12},
+  "v6_77_components": {"derivation_rigor": 6, "data_fit": 20, "novel_prediction": 20, "unification": 15, "robustness_under_judge": 13, "parsimony": 3},
+  "timeline": [
+    {"t": "06-08", "label": "V4 trust spine; 87.5 (gamed)"},
+    {"t": "06-09", "label": "V4.1 integrity; honest 61.3; 12 reviews (V4)"},
+    {"t": "06-10a", "label": "V5 truth-binding + jekko; first data_fit>0"},
+    {"t": "06-10b", "label": "V5 campaign 6x300; degeneracy 'valley' +54.9"},
+    {"t": "06-10c", "label": "12 reviews (V5); V6 plan"},
+    {"t": "06-10d", "label": "V6 purge -17.8kLOC; gate; covariance; router"},
+    {"t": "06-11a", "label": "V6 campaign: 77.0 champion"},
+    {"t": "06-11b", "label": "21-agent audit; V6.1: lA bias found; valley closed"},
+    {"t": "06-11c", "label": "12 reviews (V6.1); V7 term registry + economics"},
+    {"t": "06-11d", "label": "V7 campaign: honest 43-class champions"}
+  ]
+}

@@ -1,0 +1,36 @@
+# Pre-registered forecast entry — DO NOT EDIT after sealing (seal_digest will not match).
+entry_id: desi-dr3-bao-v1
+created_utc: 2026-06-11T00:00:00Z
+status: pre_release
+
+# What we are predicting
+observable: bao_dv_over_rd
+dataset: DESI-DR3
+expected_release: "2026 Q3-Q4"
+
+# The prediction
+# NOTE: point is null until the Phase 1 Boltzmann engine (item #6) is wired in.
+# This entry seals the STRUCTURE and mechanism-class of the prediction; the numeric
+# point will be filled and re-sealed once the Boltzmann forward model is available.
+# A null-point entry still provides the timestamped commitment to the observable + dataset.
+prediction:
+  point: null
+  uncertainty_1sigma: null
+  mechanism_class: dark_scattering_growth_drag
+  method: "Boltzmann-adjudicated BAO distance ratio at DESI DR3 effective redshifts"
+  frozen_engine_version: "v8-wave-0"
+
+# Code provenance
+# Fill with `git rev-parse HEAD` at seal time.
+code_hash: "75637928aec6e893857a93e6c4a411aefdc4b345"
+
+# Frozen parameters (mechanism-specific dials frozen at proposal time)
+frozen_params:
+  mu0: null
+  A_drag: null
+  w0: null
+  note: "Fill from champion after Phase 1 scoring under sealed data discipline"
+
+# Seal fields — set by ops/seal-forecast.sh
+seal_digest: "7bfcd22ec5e769ac392ad017272821dfe592e881a93cc1d9b487db1e71128c91"
+ots_proof: null

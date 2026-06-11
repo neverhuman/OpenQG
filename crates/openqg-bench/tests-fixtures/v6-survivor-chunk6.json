@@ -1,0 +1,81 @@
+{
+  "alpha": {
+    "alpha_b": 0.0,
+    "alpha_k": 0.0,
+    "alpha_m": 0.0,
+    "alpha_t": 0.0
+  },
+  "background": {
+    "drag_a": 0.0,
+    "fr_log10_fr0": -30.0,
+    "fr_n": 1.0,
+    "h": 0.674,
+    "mg_family": "none",
+    "mu0": 0.0,
+    "n_eff": 3.046,
+    "ndgp_omega_rc": 0.0,
+    "omega_b_h2": 0.02237,
+    "omega_k": 0.0,
+    "omega_m": 0.315,
+    "sigma8": 0.811,
+    "sum_mnu": 0.06,
+    "w0": -1.0,
+    "wa": 0.0
+  },
+  "id": "ndgp-proposed-fixed-rc",
+  "parameters": [
+    {
+      "physical_meaning": "present-day expansion rate",
+      "provenance": "fundamental",
+      "symbol": "H0",
+      "value": 67.4
+    },
+    {
+      "physical_meaning": "total matter density today",
+      "provenance": "fundamental",
+      "symbol": "Omega_m",
+      "value": 0.315
+    },
+    {
+      "physical_meaning": "linear effective gravitational coupling (nDGP normal branch)",
+      "provenance": {
+        "derived": {
+          "certificate": {
+            "expected": 1.1666666666666667,
+            "inputs": [
+              [
+                "beta",
+                2.0
+              ]
+            ],
+            "relation": "ndgp_geff_over_g",
+            "tolerance": 0.000001
+          },
+          "mechanism": "nDGP braneworld linear coupling"
+        }
+      },
+      "symbol": "geff_over_g",
+      "value": 1.1666666666666667
+    }
+  ],
+  "screening": null,
+  "screening_recovery": null,
+  "stability": {
+    "has_nondegenerate_higher_derivatives": false,
+    "kinetic_coefficient": 1.0,
+    "q_s": 1.0,
+    "sound_speed_sq": 1.0
+  },
+  "terms": [
+    {
+      "free_lorentz_indices": 0,
+      "mass_dimension": 4,
+      "name": "einstein_hilbert"
+    },
+    {
+      "free_lorentz_indices": 0,
+      "mass_dimension": 4,
+      "name": "cosmological_constant"
+    }
+  ]
+}

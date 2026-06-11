@@ -190,6 +190,53 @@ pub fn total_free_dof(theory: &Theory) -> u32 {
     free_dof(theory)
 }
 
+/// V7 (review-05): mechanism inputs to verified MG certificates that are proposer-CHOSEN
+/// numbers (β, A_drag, μ0, f_R0 …) are post-search choices — fitted dials wearing a
+/// certificate. Background-derived inputs (Ω_m, Ω_k, w0, Ω_de0 …) are not chosen; they are
+/// read off the theory and reconciled by the binder.
+fn post_search_choice_dof(theory: &Theory) -> u32 {
+    use super::Provenance::Derived;
+    const BACKGROUND_DERIVED: [&str; 8] = [
+        "omega_m",
+        "omega_r",
+        "omega_k",
+        "omega_de0",
+        "w0",
+        "wa",
+        "h",
+        "omega_b_h2",
+    ];
+    const MG_RELATIONS: [&str; 6] = [
+        "planck_mu0_geff",
+        "ndgp_geff_over_g",
+        "ndgp_beta_from_omega_rc",
+        "fr_alpha_m",
+        "coupled_de_geff_over_g",
+        "dark_scattering_growth_drag",
+    ];
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for p in &theory.parameters {
+        if let Derived {
+            certificate: Some(cert),
+            ..
+        } = &p.provenance
+        {
+            if !MG_RELATIONS.contains(&cert.relation.as_str()) {
+                continue;
+            }
+            if !matches!(cert.check(), super::CertificateOutcome::Verified { .. }) {
+                continue;
+            }
+            for (name, _) in &cert.inputs {
+                if !BACKGROUND_DERIVED.contains(&name.as_str()) {
+                    seen.insert(name.clone());
+                }
+            }
+        }
+    }
+    seen.len() as u32
+}
+
 fn free_dof(theory: &Theory) -> u32 {
     use super::Provenance::*;
     let param_dof = theory
@@ -205,7 +252,7 @@ fn free_dof(theory: &Theory) -> u32 {
             )
         })
         .count() as u32;
-    param_dof + background_dof(theory)
+    param_dof + background_dof(theory) + post_search_choice_dof(theory)
 }
 
 /// V6: every standard background coordinate moved off the Planck-ΛCDM reference is a fitted
@@ -408,7 +455,9 @@ pub fn score_with_observables(
             "dark_scattering_growth_drag",
         ];
         for o in obligations {
-            let Some(ocert) = &o.certificate else { continue };
+            let Some(ocert) = &o.certificate else {
+                continue;
+            };
             if !MG_RELATIONS.contains(&ocert.relation.as_str()) {
                 continue;
             }
@@ -422,9 +471,7 @@ pub fn score_with_observables(
                         continue;
                     }
                     for (name, oval) in &ocert.inputs {
-                        if let Some((_, pval)) =
-                            pcert.inputs.iter().find(|(n, _)| n == name)
-                        {
+                        if let Some((_, pval)) = pcert.inputs.iter().find(|(n, _)| n == name) {
                             if (oval - pval).abs() > 1e-6 + 1e-3 * pval.abs() {
                                 kill.push(format!(
                                     "claim/physics incoherence: obligation {} certifies {}={} \
@@ -441,12 +488,11 @@ pub fn score_with_observables(
 
     // V6: audit the novel-prediction witnesses BEFORE the gate — fabrication (>3× the
     // engine-clamped tolerance) is itself a kill, and audits are reported even on DQ.
-    let prediction_audits =
-        super::binding::audit_novel_predictions_with_context(
-            &binding_outcome.theory.background,
-            obligations,
-            fit_observables,
-        );
+    let prediction_audits = super::binding::audit_novel_predictions_with_context(
+        &binding_outcome.theory.background,
+        obligations,
+        fit_observables,
+    );
     for a in &prediction_audits {
         if a.verdict == super::binding::NoveltyAuditVerdict::Fabricated {
             kill.push(format!(
@@ -511,26 +557,25 @@ pub fn score_with_observables(
     use super::binding::NoveltyAuditVerdict as NV;
     // V6.1 (P0.8a): a witness on FITTED data is a fit explanation, capped at 0.25 — full
     // novelty requires an honest, mechanism-distinct prediction OUTSIDE the fit set.
-    let nov_raw = if !physically_distinct {
-        0.0
-    } else if prediction_audits
-        .iter()
-        .any(|a| a.verdict == NV::ComputedHonestDistinct && !a.in_fit_set && !a.refreshed_by_engine)
-    {
-        1.0
-    } else if prediction_audits
-        .iter()
-        .any(|a| a.verdict == NV::ComputedHonestDistinct && !a.in_fit_set && a.refreshed_by_engine)
-    {
-        0.5 // engine-attested (P0.9): falsifiable + mechanism-distinct, but not proposer-authored
-    } else if prediction_audits
-        .iter()
-        .any(|a| a.verdict == NV::ComputedHonestDistinct && a.in_fit_set)
-    {
-        0.25 // fit explanation (P0.8a)
-    } else {
-        0.0
-    };
+    let nov_raw =
+        if !physically_distinct {
+            0.0
+        } else if prediction_audits.iter().any(|a| {
+            a.verdict == NV::ComputedHonestDistinct && !a.in_fit_set && !a.refreshed_by_engine
+        }) {
+            1.0
+        } else if prediction_audits.iter().any(|a| {
+            a.verdict == NV::ComputedHonestDistinct && !a.in_fit_set && a.refreshed_by_engine
+        }) {
+            0.5 // engine-attested (P0.9): falsifiable + mechanism-distinct, but not proposer-authored
+        } else if prediction_audits
+            .iter()
+            .any(|a| a.verdict == NV::ComputedHonestDistinct && a.in_fit_set)
+        {
+            0.25 // fit explanation (P0.8a)
+        } else {
+            0.0
+        };
     let c_nov = component("novel_prediction", nov_raw, nov_raw, nov_raw);
 
     // 3. Unification — credit for a genuine, hidden-knob-free shared-parameter claim + self-consistency.
@@ -826,6 +871,11 @@ mod tests {
             expected: 1.0 + 1.0 / 6.0,
             tolerance: 1e-9,
         };
+        t.terms.push(super::Term {
+            name: "dgp_brane".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         t.parameters.push(Parameter {
             symbol: "geff_over_g".into(),
             value: 1.0 + 1.0 / 6.0,

@@ -236,6 +236,8 @@ pub(crate) fn router_preflight(cfg: &RouterConfig) -> Result<()> {
 pub(crate) struct RouterProposer {
     cfg: RouterConfig,
     observables: Vec<ObservableRecord>,
+    /// V7 (P1.4): the proposer pre-scores with the SAME covariance blocks the engine judges by.
+    blocks: Vec<openqg_core::scoring::CovarianceBlock>,
     baseline_ll: f64,
     extra_sections: String,
     attempts: RefCell<Vec<ProposalAttemptRecord>>,
@@ -248,6 +250,7 @@ impl RouterProposer {
     pub(crate) fn new(
         cfg: RouterConfig,
         observables: Vec<ObservableRecord>,
+        blocks: Vec<openqg_core::scoring::CovarianceBlock>,
         baseline_ll: f64,
         extra_sections: String,
     ) -> Self {
@@ -255,6 +258,7 @@ impl RouterProposer {
         Self {
             cfg,
             observables,
+            blocks,
             baseline_ll,
             extra_sections,
             attempts: RefCell::new(Vec::new()),
@@ -274,6 +278,7 @@ impl RouterProposer {
         Self {
             cfg,
             observables,
+            blocks: Vec::new(),
             baseline_ll,
             extra_sections,
             attempts: RefCell::new(Vec::new()),
@@ -341,6 +346,7 @@ fn record(
 struct SampleCtx<'a> {
     cfg: &'a RouterConfig,
     observables: &'a [ObservableRecord],
+    blocks: &'a [openqg_core::scoring::CovarianceBlock],
     baseline_ll: f64,
     extra_sections: &'a str,
     caller: &'a RouterCaller,
@@ -432,7 +438,7 @@ impl SampleCtx<'_> {
                     );
                 }
                 Ok(doc) => {
-                    let sc = score_proposal(&doc, self.observables, &[], self.baseline_ll);
+                    let sc = score_proposal(&doc, self.observables, self.blocks, self.baseline_ll);
                     let outcome = if sc.disqualified { "killed" } else { "ok" };
                     let mut rec = record(
                         "router",
@@ -470,15 +476,28 @@ impl SampleCtx<'_> {
                     repairs_left -= 1;
                     oracle_repair_done = true;
                     repair_kind = "oracle".into();
+                    // V7 (review-01 risk 5): redact engine-computed values from the repair
+                    // prompt — teaching the model to echo the oracle's numerical surface is
+                    // not teaching physics. The ledger keeps the full kill reasons.
+                    let redacted: Vec<String> = sc
+                        .kill_reasons
+                        .iter()
+                        .map(|r| {
+                            if let Some(idx) = r.find("but the model computes") {
+                                format!("{}but the model computes [redacted]", &r[..idx])
+                            } else {
+                                r.clone()
+                            }
+                        })
+                        .collect();
                     prompt = format!(
                         "{base_prompt}\n\n## REPAIR — the oracle KILLED your proposal\n\
                          KILL REASONS:\n{}\n\n\
                          Fix the physics (do not game the rubric) and return ONLY the corrected \
-                         ProposalSketch JSON object. NOTE: a `fabricated novel prediction` kill \
-                         message CONTAINS the engine-computed value — set your witness's \
-                         `predicted` to exactly that computed number (the engine computes the \
-                         physics; your declaration is an honesty attestation).",
-                        sc.kill_reasons.join("\n"),
+                         ProposalSketch JSON object. For a fabricated-prediction kill: compute \
+                         your witness value carefully or widen min_detectable to what the cited \
+                         experiment honestly resolves.",
+                        redacted.join("\n"),
                     );
                 }
             }
@@ -513,6 +532,7 @@ impl Proposer for RouterProposer {
         let ctx = SampleCtx {
             cfg: &self.cfg,
             observables: &self.observables,
+            blocks: &self.blocks,
             baseline_ll: self.baseline_ll,
             extra_sections: &self.extra_sections,
             caller: &self.caller,
@@ -724,6 +744,7 @@ mod tests {
         let ctx = SampleCtx {
             cfg: &cfg,
             observables: &observables,
+            blocks: &[],
             baseline_ll: 0.0,
             extra_sections: "",
             caller: &caller,

@@ -96,7 +96,11 @@ impl BackgroundForwardModel {
             // (same precedent as the Aubourg r_drag treatment): planck_lcdm() now predicts the
             // published distance priors exactly; deviations measure PHYSICS, not formula bias.
             // Guard: `calibrated_anchor_matches_planck_distance_priors` below.
-            "cmb_R" => Some((c.cmb_shift_r() + CMB_R_ANCHOR_CALIBRATION, 0.001, "dimensionless")),
+            "cmb_R" => Some((
+                c.cmb_shift_r() + CMB_R_ANCHOR_CALIBRATION,
+                0.001,
+                "dimensionless",
+            )),
             "cmb_lA" => Some((
                 c.cmb_acoustic_scale() + CMB_LA_ANCHOR_CALIBRATION,
                 0.01,
@@ -261,7 +265,10 @@ mod v61_calibration_guard {
         let get = |id: &str| preds.iter().find(|x| x.observable_id == id).unwrap().value;
         // Published values + sigmas: R 1.7502±0.0046, lA 301.471±0.090, wb 0.02236±0.00015.
         assert!((get("cmb_R") - 1.7502).abs() < 0.2 * 0.0046, "R off anchor");
-        assert!((get("cmb_lA") - 301.471).abs() < 0.2 * 0.090, "lA off anchor");
+        assert!(
+            (get("cmb_lA") - 301.471).abs() < 0.2 * 0.090,
+            "lA off anchor"
+        );
         assert!(
             (get("cmb_omega_b_h2") - 0.02236).abs() < 0.5 * 0.000_15,
             "omega_b_h2 off anchor"

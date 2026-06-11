@@ -385,42 +385,97 @@ pub fn physics_kills(theory: &Theory) -> Vec<VetoReason> {
 pub fn adjudicate(theory: &Theory) -> Vec<VetoReason> {
     let mut reasons = Vec::new();
 
-    // 0b. V6.1 (P0.6): structural consistency — turned dials need generating terms.
+    // V7: structural consistency — turned dials need generating terms, matched against an
+    // EXPLICIT term-name registry (review-10: substring matching let "quintessence_decoration"
+    // pass), and extended to BOUND MG families (review-07: the V6 survivor bound nDGP with no
+    // brane term). A real term algebra is the V8 ambition; the registry is the honest V7 floor.
     {
-        let names: Vec<&str> = theory.terms.iter().map(|t| t.name.as_str()).collect();
-        let has_de_dynamics = names.iter().any(|n| {
-            n.contains("quintessence")
-                || n.contains("scalar")
-                || n.contains("dark_energy")
-                || n.contains("k_essence")
-                || n.contains("galileon")
-                || n.contains("drag")
-                || n.contains("coupling")
-        });
+        const DE_TERMS: [&str; 4] = [
+            "quintessence_scalar",
+            "k_essence_scalar",
+            "dark_energy_scalar",
+            "galileon_scalar",
+        ];
+        const ALPHA_TERMS: [&str; 3] =
+            ["horndeski_scalar", "quintessence_scalar", "galileon_scalar"];
+        const NDGP_TERMS: [&str; 2] = ["dgp_brane", "brane_bending_scalar"];
+        const FR_TERMS: [&str; 2] = ["f_r_correction", "ricci_squared"];
+        const MU0_TERMS: [&str; 3] = [
+            "horndeski_scalar",
+            "planck_mu_parametrization",
+            "quintessence_scalar",
+        ];
+        const DRAG_TERMS: [&str; 2] = ["dark_scattering_coupling", "de_dm_momentum_exchange"];
+        let has = |allowed: &[&str]| {
+            theory
+                .terms
+                .iter()
+                .any(|t| allowed.contains(&t.name.as_str()))
+        };
+        let mut need = |dial_on: bool, allowed: &[&str], field: &str, detail: String| {
+            if dial_on && !has(allowed) {
+                reasons.push(VetoReason::StructurallyUngenerated {
+                    field: field.into(),
+                    detail,
+                });
+            }
+        };
         let w_dynamic =
             (theory.background.w0 + 1.0).abs() > 1e-9 || theory.background.wa.abs() > 1e-9;
-        if w_dynamic && !has_de_dynamics {
-            reasons.push(VetoReason::StructurallyUngenerated {
-                field: "w0/wa".into(),
-                detail: format!(
-                    "w0={}, wa={} with no dynamical dark-energy term in the action",
-                    theory.background.w0, theory.background.wa
-                ),
-            });
-        }
+        need(
+            w_dynamic,
+            &DE_TERMS,
+            "w0/wa",
+            format!(
+                "w0={}, wa={} with no dynamical dark-energy term (allowed: {DE_TERMS:?})",
+                theory.background.w0, theory.background.wa
+            ),
+        );
         let alpha_on =
             theory.alpha.modification_scale() > 1e-9 || theory.alpha.alpha_t.abs() > 1e-9;
-        if alpha_on
-            && !has_de_dynamics
-            && !names
-                .iter()
-                .any(|n| n.contains("gauss") || n.contains("horndeski"))
-        {
-            reasons.push(VetoReason::StructurallyUngenerated {
-                field: "alpha".into(),
-                detail: "alpha-basis deviations with no generating term in the action".into(),
-            });
-        }
+        need(
+            alpha_on,
+            &ALPHA_TERMS,
+            "alpha",
+            format!("alpha-basis deviations with no generating term (allowed: {ALPHA_TERMS:?})"),
+        );
+        // Bound MG families: adjudicate sees the DECLARED theory; bind (pure + cheap) to see
+        // what the model will actually integrate.
+        let bound = super::binding::bind_modified_background(theory).theory;
+        let bg = &bound.background;
+        need(
+            bg.mg_family == crate::cosmology::MgFamily::Ndgp && bg.ndgp_omega_rc > 0.0,
+            &NDGP_TERMS,
+            "ndgp",
+            format!(
+                "bound nDGP (omega_rc={}) with no brane term (allowed: {NDGP_TERMS:?})",
+                bg.ndgp_omega_rc
+            ),
+        );
+        need(
+            bg.mg_family == crate::cosmology::MgFamily::FrHuSawicki && bg.fr_log10_fr0 > -20.0,
+            &FR_TERMS,
+            "f(R)",
+            format!("bound f(R) with no curvature-correction term (allowed: {FR_TERMS:?})"),
+        );
+        need(
+            bg.mu0.abs() > 1e-12,
+            &MU0_TERMS,
+            "mu0",
+            format!(
+                "bound mu0={} with no generating term (allowed: {MU0_TERMS:?})",
+                bg.mu0
+            ),
+        );
+        need(
+            bg.drag_a.abs() > 1e-12,
+            &DRAG_TERMS,
+            "drag_a",
+            format!(
+                "bound drag_a={} with no coupling term (allowed: {DRAG_TERMS:?})",
+                bg.drag_a
+            ),
+        );
     }
 
     // 1. Redshift-aware tensor speed at the GW170817 source epoch vs the real ~10⁻¹⁵ bound.

@@ -179,6 +179,13 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
 
     let mut theory = Theory::baseline_lcdm();
     theory.id = "ndgp-proposed".into();
+    // V7: the certified coupling binds omega_rc into the integrated background — the brane
+    // term is the structure that generates it (StructurallyUngenerated otherwise).
+    theory.terms.push(openqg_core::theory::Term {
+        name: "dgp_brane".into(),
+        mass_dimension: 4,
+        free_lorentz_indices: 0,
+    });
     theory.parameters.push(Parameter {
         symbol: "geff_over_g".into(),
         value: geff,

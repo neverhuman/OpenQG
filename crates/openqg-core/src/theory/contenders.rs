@@ -235,6 +235,13 @@ pub fn human_contenders() -> ContenderSuite {
         };
         let mut theory = Theory::baseline_lcdm();
         theory.id = "real_modification_program".into();
+        // V7: an honest nDGP program carries its brane term — the certified coupling binds
+        // omega_rc into the integrated background, and structure must exist for that dial.
+        theory.terms.push(super::Term {
+            name: "dgp_brane".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         theory.parameters.push(Parameter {
             symbol: "geff_over_g".into(),
             value: 1.0 + 1.0 / 6.0,

@@ -341,6 +341,39 @@ pub(crate) fn expand_sketch(sketch: &ProposalSketch) -> Result<ProposalDoc> {
         });
     }
 
+    // V7: structure follows the dial — the generating term for every certified MG relation
+    // and turned background dial travels with the theory (StructurallyUngenerated otherwise).
+    {
+        let mut ensure = |name: &str| {
+            if !theory.terms.iter().any(|t| t.name == name) {
+                theory.terms.push(openqg_core::theory::Term {
+                    name: name.into(),
+                    mass_dimension: 4,
+                    free_lorentz_indices: 0,
+                });
+            }
+        };
+        for p in &sketch.parameters {
+            match p.relation.as_str() {
+                "ndgp_geff_over_g" | "ndgp_beta_from_omega_rc" => ensure("dgp_brane"),
+                "fr_alpha_m" | "fr_largescale_geff_over_g" => ensure("f_r_correction"),
+                "planck_mu0_geff" => ensure("planck_mu_parametrization"),
+                "dark_scattering_growth_drag" => ensure("dark_scattering_coupling"),
+                "coupled_de_geff_over_g" => ensure("quintessence_scalar"),
+                _ => {}
+            }
+        }
+        if (bg.w0 + 1.0).abs() > 1e-9 || bg.wa.abs() > 1e-9 {
+            ensure("quintessence_scalar");
+        }
+        if bg.mu0.abs() > 1e-12 {
+            ensure("planck_mu_parametrization");
+        }
+        if bg.ndgp_omega_rc > 0.0 {
+            ensure("dgp_brane");
+        }
+    }
+
     // Evidence: path → content, with refs content-bound by sha256 at expansion time.
     let evidence: BTreeMap<String, String> = sketch
         .evidence
@@ -403,7 +436,11 @@ pub(crate) fn expand_sketch(sketch: &ProposalSketch) -> Result<ProposalDoc> {
         let novel =
             (kind == DerivationObligationKind::NovelPrediction).then(|| NovelPredictionWitness {
                 refreshed_by_engine: false,
-                observable: o.observable.clone(),
+                // V7 (P1.2): canonicalize at expansion — V6 chunks 1-3 lost 20 points each to
+                // spellings like "fsigma8_z0.61" rejected only later at audit time.
+                observable: openqg_core::cosmology::canonicalize_observable_id(&o.observable)
+                    .map(|c| c.to_id())
+                    .unwrap_or_else(|| o.observable.clone()),
                 predicted: o.predicted,
                 baseline: o.baseline,
                 min_detectable: o.min_detectable,
@@ -496,8 +533,13 @@ impl Lane {
                  Pourtsidou+ 2013) via the REAL mechanism relation `dark_scattering_growth_drag` \
                  with inputs {a_drag ≥ 0, w0 > −1, omega_de0}: the engine integrates the friction \
                  Γ(a)=A_drag·(1+w(a))·Ω_de(a) in the growth ODE (suppresses growth). Set the \
-                 sketch background w0 to the SAME w0 you certify (a moved w0 costs one parsimony \
-                 dof — that is the honest price of the mechanism)."
+                 sketch background w0 to the SAME w0 you certify. VERBATIM-PASSING certificate \
+                 example (relation Γ₀ = a_drag·(1+w0)·omega_de0): {\"relation\": \
+                 \"dark_scattering_growth_drag\", \"inputs\": [{\"name\": \"a_drag\", \
+                 \"value\": 2.0}, {\"name\": \"w0\", \"value\": -0.9}, {\"name\": \
+                 \"omega_de0\", \"value\": 0.685}], \"expected\": 0.137, \"tolerance\": \
+                 1e-6} — your background w0 must then be -0.9 (include term \
+                 quintessence_scalar) and you must include term dark_scattering_coupling."
             }
             Lane::Free => {
                 "Choose the mechanism YOU judge most promising — any registry relation, any \

@@ -65,9 +65,9 @@ pub use proposal::{
 pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
-pub use scorecard::{score_with_observables, total_free_dof, 
-    background_dof, score, scorecard_receipt, DataFitOutcome, LikelihoodMode, RubricComponent,
-    RubricV4, ScorecardReceipt, ScorecardV4,
+pub use scorecard::{
+    background_dof, score, score_with_observables, scorecard_receipt, total_free_dof,
+    DataFitOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt, ScorecardV4,
 };
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{

@@ -213,7 +213,9 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 let blocks = load_covariance_blocks(&covariance)?;
                 let baseline = baseline_log_likelihood_cov(&obs_loaded, &blocks);
                 let extra = build_proposer_extra_sections(&obs_loaded, &output_root);
-                Some(RouterProposer::new(cfg, obs_loaded, baseline, extra))
+                Some(RouterProposer::new(
+                    cfg, obs_loaded, blocks, baseline, extra,
+                ))
             } else {
                 None
             };
@@ -311,7 +313,9 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 let blocks = load_covariance_blocks(&covariance)?;
                 let baseline = baseline_log_likelihood_cov(&obs_loaded, &blocks);
                 let extra = build_proposer_extra_sections(&obs_loaded, &output_root);
-                Some(RouterProposer::new(cfg, obs_loaded, baseline, extra))
+                Some(RouterProposer::new(
+                    cfg, obs_loaded, blocks, baseline, extra,
+                ))
             } else {
                 None
             };

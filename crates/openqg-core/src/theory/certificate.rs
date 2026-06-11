@@ -51,7 +51,13 @@ pub enum CertificateOutcome {
 impl DerivedCertificate {
     /// Look up a named input by exact name. Returns `None` if absent (caller treats as invalid).
     fn input(&self, name: &str) -> Option<f64> {
-        self.inputs.iter().find(|(n, _)| n == name).map(|(_, v)| *v)
+        // V7 (P1.1): case-insensitive input lookup — 'A_drag' vs 'a_drag' spelling killed ~100
+        // otherwise-valid dark-scattering certificates in the V6 campaign. The canonical key is
+        // still the lowercase form; matching is forgiving, semantics are unchanged.
+        self.inputs
+            .iter()
+            .find(|(n, _)| n.eq_ignore_ascii_case(name))
+            .map(|(_, v)| *v)
     }
 
     /// Look up a *required* named input, returning an `Err(detail)` if absent. Factors the common

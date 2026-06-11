@@ -12,8 +12,8 @@
 use openqg_core::cosmology::BackgroundForwardModel;
 use openqg_core::theory::{
     alternating_holdout, evaluate_with_blocks, held_out_evaluate,
-    score_with_observables as scorecard_score, ClaimGraph, DataFitOutcome, DerivationObligation, EvidenceStore, ScorecardV4, Theory,
-    UnificationClaim,
+    score_with_observables as scorecard_score, ClaimGraph, DataFitOutcome, DerivationObligation,
+    EvidenceStore, ScorecardV4, Theory, UnificationClaim,
 };
 use openqg_core::ObservableRecord;
 
@@ -90,7 +90,15 @@ pub(crate) fn score_candidate(
         // V6.1 (P0.10): a real evidence proxy — the BIC/Laplace Occam term charges every free
         // dial (parameters AND drifted background coordinates) against the data improvement.
         let k = openqg_core::total_free_dof(theory) as f64;
-        let n_eff = (observables.len() as f64).max(1.0);
+        // V7 (review-05): effective independent modes, not record count — correlated blocks
+        // carry less information than their member count suggests.
+        let n_eff = {
+            let data = openqg_core::scoring::LikelihoodData {
+                observables: observables.to_vec(),
+                blocks: blocks.to_vec(),
+            };
+            (openqg_core::scoring::effective_modes(&data) as f64).max(1.0)
+        };
         let occam = 0.5 * k * n_eff.ln();
         Some(DataFitOutcome {
             // ΔAIC vs baseline with the 2k complexity term restored.
@@ -290,11 +298,13 @@ mod tests {
         assert_eq!(a, b);
     }
 
-    /// V5 "breakthrough is possible" smoke test: the real growth/lensing data sit LOW relative to
-    /// Planck-ΛCDM, so a *certified suppressed-growth* theory (planck_mu0_geff, μ0 = −0.1) must be
-    /// truth-bound by the engine and genuinely BEAT the ΛCDM baseline on the data (ε > 0 ⇒
-    /// data_fit > 0). This is the assertion that the V5 rubric can reward a real tension-improving
-    /// candidate — not just flag rediscoveries.
+    /// The honest V7 version of the V5 "breakthrough is possible" smoke test. The certified
+    /// suppressed-growth theory (planck_mu0_geff, μ0 = −0.1) is truth-bound and improves the RAW
+    /// likelihood on the real low-fσ8/S8 records (the mechanism points the right way) — but
+    /// under the V7 evidence economics its one post-search-chosen dof (μ0) must clear the BIC
+    /// bar 0.5·ln(n)≈0.9 nats on n=6 points, and ~0.5 nats of raw gain does not. So: raw fit
+    /// improves, data_fit credit is ZERO, and that is the honest state of this mechanism at
+    /// this data volume (review-05's economics + review-09's "more growth data" in one test).
     #[test]
     fn suppressed_growth_genuinely_beats_lcdm_on_real_tension_data() {
         use openqg_core::theory::{evaluate, DerivedCertificate, Provenance};
@@ -323,6 +333,11 @@ mod tests {
 
         // A certified suppressed-growth theory: G_eff/G = 0.9 via the Planck-2018 μ0 parametrization.
         let mut t = Theory::baseline_lcdm();
+        t.terms.push(openqg_core::Term {
+            name: "planck_mu_parametrization".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         t.id = "suppressed-growth-smoke".into();
         let cert = DerivedCertificate {
             relation: "planck_mu0_geff".into(),
@@ -363,11 +378,21 @@ mod tests {
             "s",
         );
         assert!(!sc.disqualified, "{:?}", sc.kill_reasons);
+        // The mechanism genuinely improves the raw fit: ΔAIC = −2ε + 2k with k = 1 ⇒ raw ε > 0
+        // iff ΔAIC < 2.
+        let data = sc.data_fit.expect("data fit computed");
+        assert!(
+            data.delta_aic < 2.0,
+            "the raw likelihood must improve (ΔAIC − 2k < 0): {:?}",
+            data
+        );
+        // ...but it does NOT clear the Occam evidence bar at n=6, k=1 — data credit is zero.
         let df = sc.components.iter().find(|c| c.name == "data_fit").unwrap();
         assert!(
-            df.points > 0.0,
-            "a genuinely better fit must earn data_fit credit: {:?}",
-            df
+            df.points == 0.0 && data.delta_lnz < 0.0,
+            "below the evidence bar there is no data credit: {:?} / {:?}",
+            df,
+            data
         );
         assert!(sc.distinct_from_baseline);
     }
@@ -402,6 +427,12 @@ mod v6_gate_tests {
         let mut theory = Theory::baseline_lcdm();
         theory.id = "v6-clean-suppressed-growth".into();
         theory.background.mu0 = -0.1;
+        theory.terms.push(openqg_core::Term {
+            name: "planck_mu_parametrization".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
+
         theory.parameters.push(openqg_core::Parameter {
             symbol: "geff_today".into(),
             value: 0.9,
@@ -588,6 +619,12 @@ mod v6_novelty_tests {
         let mut t = Theory::baseline_lcdm();
         t.id = "fabricator".into();
         t.background.mu0 = -0.1; // genuinely suppressed growth...
+        t.terms.push(openqg_core::Term {
+            name: "planck_mu_parametrization".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
+
         t.parameters.push(openqg_core::Parameter {
             symbol: "geff_today".into(),
             value: 0.9,
@@ -637,6 +674,28 @@ mod v6_novelty_tests {
                 .any(|k| k.contains("fabricated novel prediction")),
             "kill reasons: {:?}",
             sc.kill_reasons
+        );
+    }
+}
+
+#[cfg(test)]
+mod v7_gate_tests {
+    use openqg_core::{physics_kills, Theory, VetoReason};
+
+    /// THE V7 acceptance regression (review-07): the V6 campaign's lone survivor — a bound-nDGP
+    /// lineage with no brane term — must be rejected. "If V6.1 disqualifies drifted dials
+    /// without terms, it should also reject a bound nDGP dial without a term."
+    #[test]
+    fn the_v6_survivor_is_rejected_by_the_term_registry() {
+        let raw = include_str!("../../tests-fixtures/v6-survivor-chunk6.json");
+        let theory: Theory = serde_json::from_str(raw).expect("vendored survivor parses");
+        let kills = physics_kills(&theory);
+        assert!(
+            kills.iter().any(|k| matches!(
+                k,
+                VetoReason::StructurallyUngenerated { field, .. } if field == "ndgp"
+            )),
+            "expected the bound-nDGP-without-brane-term kill, got {kills:?}"
         );
     }
 }

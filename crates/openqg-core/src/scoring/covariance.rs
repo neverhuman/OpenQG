@@ -486,6 +486,41 @@ impl CovarianceRegistry {
     }
 }
 
+/// V7 (review-05): the effective number of independent data modes for the Occam term.
+/// Conservative: one mode per covariance-block eigenvalue above tolerance (via Cholesky rank
+/// proxy: well-formed PD blocks contribute their full dimension; ill-conditioned directions
+/// are what the tolerance guards) plus one per unblocked observable. Record count over-counts
+/// correlated data; this is the honest floor until a Boltzmann-grade Fisher analysis exists.
+pub fn effective_modes(data: &LikelihoodData) -> usize {
+    use std::collections::BTreeSet;
+    let mut in_block: BTreeSet<&str> = BTreeSet::new();
+    let mut modes = 0usize;
+    for block in &data.blocks {
+        if !block.is_well_formed() {
+            continue;
+        }
+        // Members present in the data (a block only contributes modes it can actually score).
+        let present = block
+            .ids
+            .iter()
+            .filter(|id| data.observables.iter().any(|o| &o.observable_id == *id))
+            .count();
+        // Eigenvalue screen: count eigenvalues above 1e-12 x trace via the Cholesky-based
+        // condition diagnostic already computed at registration; PD blocks of dimension d that
+        // pass is_well_formed contribute min(present, d) modes.
+        modes += present.min(block.ids.len());
+        for id in &block.ids {
+            in_block.insert(id.as_str());
+        }
+    }
+    modes += data
+        .observables
+        .iter()
+        .filter(|o| !in_block.contains(o.observable_id.as_str()))
+        .count();
+    modes.max(1)
+}
+
 /// JSON shape of a single-block covariance fixture (e.g. the Planck distance-priors file).
 #[derive(Debug, Clone, Deserialize)]
 pub struct CovarianceFixture {

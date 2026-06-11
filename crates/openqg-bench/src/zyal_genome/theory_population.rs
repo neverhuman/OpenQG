@@ -236,6 +236,15 @@ pub(crate) fn reclothe_candidate(
             theory.parameters.push(p.clone());
         }
     }
+    // V7: the donor's generating terms travel with its claim-carrier parameters (a grafted
+    // certified coupling without its brane/scalar term dies at StructurallyUngenerated).
+    for term in &donor.theory.terms {
+        let is_base = base.terms.iter().any(|b| b.name == term.name);
+        let present = theory.terms.iter().any(|t| t.name == term.name);
+        if !is_base && !present {
+            theory.terms.push(term.clone());
+        }
+    }
     doc.theory = theory;
     // V6.1 (P0.5): unification on a drifted background is a contradiction (the shared-param
     // scaffold would shadow coordinates the fit moved). Grafting keeps what is re-earnable and

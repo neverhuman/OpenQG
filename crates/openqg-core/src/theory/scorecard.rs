@@ -184,6 +184,12 @@ fn distinct_from_lcdm(theory: &Theory) -> bool {
 /// Count genuine free degrees of freedom: a `Free` parameter, or a `Derived` parameter whose value
 /// is not pinned by a certificate (an uncertified knob). `Fundamental` and certified-`Derived`
 /// parameters cost nothing. This is the parsimony/complexity ledger.
+/// V6.1: the total complexity ledger — free/uncertified parameters plus drifted background
+/// coordinates. Public so the data-fit Occam term and the parsimony component charge the SAME k.
+pub fn total_free_dof(theory: &Theory) -> u32 {
+    free_dof(theory)
+}
+
 fn free_dof(theory: &Theory) -> u32 {
     use super::Provenance::*;
     let param_dof = theory
@@ -309,6 +315,32 @@ pub fn score(
     evidence_schema: &str,
     data_fit: Option<DataFitOutcome>,
 ) -> ScorecardV4 {
+    score_with_observables(
+        theory,
+        cg,
+        obligations,
+        unification,
+        store,
+        evidence_schema,
+        data_fit,
+        &[],
+    )
+}
+
+/// V6.1: the context-aware scorecard — `fit_observables` powers the novelty fit-set cap, the
+/// measurement-σ floor, and mechanism-attributable distinctness (P0.8). `score()` without
+/// context behaves as before (no cap), for callers with no fit set in hand.
+#[allow(clippy::too_many_arguments)]
+pub fn score_with_observables(
+    theory: &Theory,
+    cg: &ClaimGraph,
+    obligations: &[DerivationObligation],
+    unification: &UnificationClaim,
+    store: &dyn EvidenceStore,
+    evidence_schema: &str,
+    data_fit: Option<DataFitOutcome>,
+    fit_observables: &[crate::ObservableRecord],
+) -> ScorecardV4 {
     assert_weights_sum_to_100();
     let mut kill = Vec::new();
 
@@ -363,10 +395,58 @@ pub fn score(
     // so it is reported even on disqualified candidates.
     let physically_distinct = distinct_from_lcdm(theory) || binding_outcome.report.bound_non_gr;
 
+    // V6.1 (P0.7): an obligation certificate on a binding-relevant relation must describe the
+    // SAME modification the binder applied — rigor earned for mu0=-0.05 while the theory binds
+    // and fits mu0=-0.1 is claim/physics incoherence, killed like any field conflict.
+    {
+        const MG_RELATIONS: [&str; 6] = [
+            "planck_mu0_geff",
+            "ndgp_geff_over_g",
+            "ndgp_beta_from_omega_rc",
+            "fr_alpha_m",
+            "coupled_de_geff_over_g",
+            "dark_scattering_growth_drag",
+        ];
+        for o in obligations {
+            let Some(ocert) = &o.certificate else { continue };
+            if !MG_RELATIONS.contains(&ocert.relation.as_str()) {
+                continue;
+            }
+            for p in &theory.parameters {
+                if let super::Provenance::Derived {
+                    certificate: Some(pcert),
+                    ..
+                } = &p.provenance
+                {
+                    if pcert.relation != ocert.relation {
+                        continue;
+                    }
+                    for (name, oval) in &ocert.inputs {
+                        if let Some((_, pval)) =
+                            pcert.inputs.iter().find(|(n, _)| n == name)
+                        {
+                            if (oval - pval).abs() > 1e-6 + 1e-3 * pval.abs() {
+                                kill.push(format!(
+                                    "claim/physics incoherence: obligation {} certifies {}={} \
+                                     but the bound parameter certificate uses {}={}",
+                                    o.claim_id, name, oval, name, pval
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // V6: audit the novel-prediction witnesses BEFORE the gate — fabrication (>3× the
     // engine-clamped tolerance) is itself a kill, and audits are reported even on DQ.
     let prediction_audits =
-        super::binding::audit_novel_predictions(&binding_outcome.theory.background, obligations);
+        super::binding::audit_novel_predictions_with_context(
+            &binding_outcome.theory.background,
+            obligations,
+            fit_observables,
+        );
     for a in &prediction_audits {
         if a.verdict == super::binding::NoveltyAuditVerdict::Fabricated {
             kill.push(format!(
@@ -429,13 +509,25 @@ pub fn score(
     // uncomputable-only witnesses ⇒ 0 (the model can't check it ⇒ it earns nothing); full credit
     // ONLY for a computed, honest, distinct prediction.
     use super::binding::NoveltyAuditVerdict as NV;
+    // V6.1 (P0.8a): a witness on FITTED data is a fit explanation, capped at 0.25 — full
+    // novelty requires an honest, mechanism-distinct prediction OUTSIDE the fit set.
     let nov_raw = if !physically_distinct {
         0.0
     } else if prediction_audits
         .iter()
-        .any(|a| a.verdict == NV::ComputedHonestDistinct)
+        .any(|a| a.verdict == NV::ComputedHonestDistinct && !a.in_fit_set && !a.refreshed_by_engine)
     {
         1.0
+    } else if prediction_audits
+        .iter()
+        .any(|a| a.verdict == NV::ComputedHonestDistinct && !a.in_fit_set && a.refreshed_by_engine)
+    {
+        0.5 // engine-attested (P0.9): falsifiable + mechanism-distinct, but not proposer-authored
+    } else if prediction_audits
+        .iter()
+        .any(|a| a.verdict == NV::ComputedHonestDistinct && a.in_fit_set)
+    {
+        0.25 // fit explanation (P0.8a)
     } else {
         0.0
     };
@@ -466,7 +558,9 @@ pub fn score(
     };
 
     // 5. Parsimony — fewer free dof is better. 0 free dof ⇒ 1.0.
-    let pars_raw = 1.0 / (1.0 + free as f64);
+    // V6.1 (P0.10): linear, non-saturating dof penalty — the harmonic 1/(1+k) made each extra
+    // dial nearly free past the first (unlimited drift was rational).
+    let pars_raw = (1.0 - free as f64 / 4.0).max(0.0);
     let c_par = component("parsimony", pars_raw, pars_raw, pars_raw);
 
     let components = vec![c_dr, c_df, c_nov, c_uni, c_rob, c_par];
@@ -765,6 +859,7 @@ mod tests {
             limit: None,
             citation: None,
             novel: Some(NovelPredictionWitness {
+                refreshed_by_engine: false,
                 observable: "fsigma8_z051".into(),
                 predicted,
                 baseline,

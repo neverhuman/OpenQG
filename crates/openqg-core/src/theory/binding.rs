@@ -556,7 +556,15 @@ pub struct NovelPredictionAudit {
     pub computed_predicted: Option<f64>,
     pub computed_baseline: Option<f64>,
     pub min_detectable: f64,
-    /// |computed_predicted − computed_baseline| ≥ min_detectable (None ⇒ uncomputable).
+    /// V6.1 (P0.9): engine-authored declared values (re-clothe refresh) — honesty is vacuous.
+    #[serde(default)]
+    pub refreshed_by_engine: bool,
+    /// V6.1: the witness observable is in the scored fit set (or a covariance block) — a fit
+    /// explanation, capped at partial novelty, never 20/20.
+    #[serde(default)]
+    pub in_fit_set: bool,
+    /// Mechanism-attributable distinctness: |computed − mechanism-off twin| ≥ min_detectable
+    /// (None ⇒ uncomputable). Drift-bought shifts cancel between the twins.
     pub computed_distinct: Option<bool>,
     /// Declared predicted AND baseline within `tolerance` of the computed values (None ⇒ uncomputable).
     pub honest: Option<bool>,
@@ -574,8 +582,36 @@ pub fn audit_novel_predictions(
     bound_background: &CosmologyParams,
     obligations: &[DerivationObligation],
 ) -> Vec<NovelPredictionAudit> {
+    audit_novel_predictions_with_context(bound_background, obligations, &[])
+}
+
+/// The bound background with every modified-gravity dial returned to its GR limit — the
+/// "mechanism-off" twin used for V6.1 distinctness: only MECHANISM-attributable deviations count
+/// as novel (a drift-bought shift in cmb_lA cancels between the twins).
+fn mechanism_off(bg: &CosmologyParams) -> CosmologyParams {
+    let reference = CosmologyParams::planck_lcdm();
+    let mut off = bg.clone();
+    off.mu0 = 0.0;
+    off.drag_a = 0.0;
+    off.mg_family = reference.mg_family;
+    off.ndgp_omega_rc = 0.0;
+    off.fr_n = reference.fr_n;
+    off.fr_log10_fr0 = reference.fr_log10_fr0;
+    off
+}
+
+/// V6.1 (P0.8): the context-aware audit. `fit_observables` enables (a) the fit-set membership
+/// flag (a witness on fitted data is a fit explanation, not a novel prediction), (b) the
+/// measurement-σ floor on `min_detectable` (you cannot claim detectability finer than the cited
+/// experiment resolves), and (c) is required for the mechanism-off distinctness twin.
+pub fn audit_novel_predictions_with_context(
+    bound_background: &CosmologyParams,
+    obligations: &[DerivationObligation],
+    fit_observables: &[crate::ObservableRecord],
+) -> Vec<NovelPredictionAudit> {
     let model = BackgroundForwardModel;
     let baseline = CosmologyParams::planck_lcdm();
+    let mech_off = mechanism_off(bound_background);
     let mut audits = Vec::new();
     for o in obligations {
         if o.kind != DerivationObligationKind::NovelPrediction {
@@ -583,7 +619,17 @@ pub fn audit_novel_predictions(
         }
         let Some(w) = &o.novel else { continue };
         let canonical = canonicalize_observable_id(&w.observable).map(|c| c.to_id());
-        let (computed_predicted, computed_baseline) = match &canonical {
+        let fit_match = canonical.as_ref().and_then(|id| {
+            fit_observables.iter().find(|r| {
+                canonicalize_observable_id(&r.observable_id)
+                    .map(|c| c.to_id() == *id)
+                    .unwrap_or(false)
+            })
+        });
+        let in_fit_set = fit_match.is_some();
+        let sigma_floor_obs = fit_match.map(|r| r.uncertainty.abs()).unwrap_or(0.0);
+        let min_detectable = w.min_detectable.max(sigma_floor_obs);
+        let (computed_predicted, computed_baseline, computed_mech_off) = match &canonical {
             Some(id) => {
                 let ids = vec![id.clone()];
                 let predict = |bg: &CosmologyParams| -> Option<f64> {
@@ -593,9 +639,13 @@ pub fn audit_novel_predictions(
                         .and_then(|preds| preds.first().map(|p| p.value))
                         .filter(|v| v.is_finite())
                 };
-                (predict(bound_background), predict(&baseline))
+                (
+                    predict(bound_background),
+                    predict(&baseline),
+                    predict(&mech_off),
+                )
             }
-            None => (None, None),
+            None => (None, None, None),
         };
         // V6: the honesty tolerance is ENGINE-clamped — the witness's min_detectable only ever
         // tightens it relative to a 1% floor of the computed magnitude. Inflating min_detectable
@@ -604,8 +654,12 @@ pub fn audit_novel_predictions(
         let (computed_distinct, honest, tolerance, verdict) =
             match (computed_predicted, computed_baseline) {
                 (Some(cp), Some(cb)) => {
-                    let tol = w.min_detectable.min(sigma_floor(cp)).max(1e-9);
-                    let distinct = (cp - cb).abs() >= w.min_detectable;
+                    let tol = min_detectable.min(sigma_floor(cp)).max(1e-9);
+                    // V6.1 (P0.8b): distinctness is MECHANISM-attributable — measured against
+                    // the mechanism-off twin on the SAME (drifted) background, so drift-bought
+                    // shifts cancel. Falls back to the ΛCDM baseline if the twin failed.
+                    let reference_for_distinct = computed_mech_off.unwrap_or(cb);
+                    let distinct = (cp - reference_for_distinct).abs() >= min_detectable;
                     let err = (w.predicted - cp).abs().max((w.baseline - cb).abs());
                     let honest = err <= tol;
                     let verdict = if err > 3.0 * tol {
@@ -622,7 +676,7 @@ pub fn audit_novel_predictions(
                 _ => (
                     None,
                     None,
-                    w.min_detectable,
+                    min_detectable,
                     NoveltyAuditVerdict::Uncomputable,
                 ),
             };
@@ -634,7 +688,9 @@ pub fn audit_novel_predictions(
             declared_baseline: w.baseline,
             computed_predicted,
             computed_baseline,
-            min_detectable: w.min_detectable,
+            min_detectable,
+            refreshed_by_engine: w.refreshed_by_engine,
+            in_fit_set,
             computed_distinct,
             honest,
             tolerance,
@@ -816,6 +872,7 @@ mod tests {
             limit: None,
             citation: None,
             novel: Some(NovelPredictionWitness {
+                refreshed_by_engine: false,
                 observable: "fsigma8_z051".into(), // witness grammar → canonicalizes to @0.51
                 predicted: cp,
                 baseline: cb,
@@ -845,6 +902,7 @@ mod tests {
             limit: None,
             citation: None,
             novel: Some(NovelPredictionWitness {
+                refreshed_by_engine: false,
                 observable: "cl_tt_l220".into(),
                 predicted: 1.0,
                 baseline: 2.0,

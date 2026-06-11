@@ -89,8 +89,19 @@ impl BackgroundForwardModel {
             "r_drag" => Some((c.sound_horizon_drag(), 0.05, "Mpc")),
             "bbn_yp" | "yp" => Some((c.bbn_helium_fraction(), 1e-5, "dimensionless")),
             // Compressed CMB distance priors (computable from the background alone).
-            "cmb_R" => Some((c.cmb_shift_r(), 0.001, "dimensionless")),
-            "cmb_lA" => Some((c.cmb_acoustic_scale(), 0.01, "dimensionless")),
+            // V6.1 (P0.11, CRITICAL): fitting-formula-grade predictions must never meet
+            // Boltzmann-grade data raw — the engine's lA carried a +0.755 (8.4σ) bias at the
+            // Planck anchor and the V6 campaign optimizer harvested ~35 nats of pure model
+            // error by drifting h to shift lA. Anchor-calibrate at Planck-2018 best fit
+            // (same precedent as the Aubourg r_drag treatment): planck_lcdm() now predicts the
+            // published distance priors exactly; deviations measure PHYSICS, not formula bias.
+            // Guard: `calibrated_anchor_matches_planck_distance_priors` below.
+            "cmb_R" => Some((c.cmb_shift_r() + CMB_R_ANCHOR_CALIBRATION, 0.001, "dimensionless")),
+            "cmb_lA" => Some((
+                c.cmb_acoustic_scale() + CMB_LA_ANCHOR_CALIBRATION,
+                0.01,
+                "dimensionless",
+            )),
             // The third Planck-2018 compressed-CMB prior (Chen, Huang & Wang 2019,
             // arXiv:1808.05724): the baryon density ω_b h². It is a background parameter, so the
             // model just reports it; the `cmb_` alias lets the 3×3 (R, ℓ_A, ω_b h²) covariance
@@ -126,6 +137,12 @@ impl BackgroundForwardModel {
         }
     }
 }
+
+/// V6.1 anchor calibrations: published Planck-2018 distance priors (Chen, Huang & Wang 2019,
+/// Table I) minus this engine's fitting-formula predictions at `CosmologyParams::planck_lcdm()`.
+/// Measured 2026-06-11: raw lA = 302.225598 vs 301.471 published; raw R = 1.749003 vs 1.7502.
+pub const CMB_LA_ANCHOR_CALIBRATION: f64 = 301.471 - 302.225_598;
+pub const CMB_R_ANCHOR_CALIBRATION: f64 = 1.7502 - 1.749_003;
 
 impl ForwardModel for BackgroundForwardModel {
     type Theory = super::CosmologyParams;
@@ -221,5 +238,33 @@ mod tests {
         assert_eq!(m.kind, ForwardKind::Derivation);
         assert_eq!(m.model_id, "openqg-background");
         assert!(m.provenance_hash.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod v61_calibration_guard {
+    use super::*;
+    use crate::cosmology::CosmologyParams;
+
+    /// THE P0.11 guard: the ΛCDM baseline must hit the published Planck distance priors at the
+    /// anchor — a drifting fitting formula re-opens the model-bias exploit and fails here first.
+    #[test]
+    fn calibrated_anchor_matches_planck_distance_priors() {
+        let model = BackgroundForwardModel;
+        let p = CosmologyParams::planck_lcdm();
+        let ids = vec![
+            "cmb_R".to_string(),
+            "cmb_lA".to_string(),
+            "cmb_omega_b_h2".to_string(),
+        ];
+        let preds = model.predict(&p, &ids).unwrap();
+        let get = |id: &str| preds.iter().find(|x| x.observable_id == id).unwrap().value;
+        // Published values + sigmas: R 1.7502±0.0046, lA 301.471±0.090, wb 0.02236±0.00015.
+        assert!((get("cmb_R") - 1.7502).abs() < 0.2 * 0.0046, "R off anchor");
+        assert!((get("cmb_lA") - 301.471).abs() < 0.2 * 0.090, "lA off anchor");
+        assert!(
+            (get("cmb_omega_b_h2") - 0.02236).abs() < 0.5 * 0.000_15,
+            "omega_b_h2 off anchor"
+        );
     }
 }

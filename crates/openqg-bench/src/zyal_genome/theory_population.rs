@@ -263,6 +263,8 @@ pub(crate) fn reclothe_candidate(
                 {
                     w.predicted = pred;
                     w.baseline = basev;
+                    // V6.1 (P0.9): the engine authored these numbers — say so on the record.
+                    w.refreshed_by_engine = true;
                 }
             }
         }

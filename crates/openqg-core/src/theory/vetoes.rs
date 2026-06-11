@@ -834,12 +834,12 @@ mod tests {
         let mut t = metadata_decoy();
         t.screening_recovery = Some(0.999_9);
         // V6.1 P0.6: the dials it turns need generating terms to clear adjudication.
-        t.terms.push(super::Term {
+        t.terms.push(crate::theory::Term {
             name: "horndeski_scalar".into(),
             mass_dimension: 4,
             free_lorentz_indices: 0,
         });
-        t.terms.push(super::Term {
+        t.terms.push(crate::theory::Term {
             name: "quintessence_scalar".into(),
             mass_dimension: 4,
             free_lorentz_indices: 0,

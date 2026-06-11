@@ -239,6 +239,7 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
         limit: None,
         citation: None,
         novel: Some(NovelPredictionWitness {
+            refreshed_by_engine: false,
             observable: "fsigma8_z051".into(),
             predicted,
             baseline,

@@ -11,8 +11,8 @@
 
 use openqg_core::cosmology::BackgroundForwardModel;
 use openqg_core::theory::{
-    alternating_holdout, evaluate_with_blocks, held_out_evaluate, score as scorecard_score,
-    ClaimGraph, DataFitOutcome, DerivationObligation, EvidenceStore, ScorecardV4, Theory,
+    alternating_holdout, evaluate_with_blocks, held_out_evaluate,
+    score_with_observables as scorecard_score, ClaimGraph, DataFitOutcome, DerivationObligation, EvidenceStore, ScorecardV4, Theory,
     UnificationClaim,
 };
 use openqg_core::ObservableRecord;
@@ -87,13 +87,19 @@ pub(crate) fn score_candidate(
         None
     } else {
         let epsilon = finite_or(eval.epsilon_delta_log_likelihood.unwrap_or(0.0), 0.0);
+        // V6.1 (P0.10): a real evidence proxy — the BIC/Laplace Occam term charges every free
+        // dial (parameters AND drifted background coordinates) against the data improvement.
+        let k = openqg_core::total_free_dof(theory) as f64;
+        let n_eff = (observables.len() as f64).max(1.0);
+        let occam = 0.5 * k * n_eff.ln();
         Some(DataFitOutcome {
-            // ΔAIC vs baseline: improvement in 2·LL (complexity is separately charged by the
-            // scorecard's parsimony component, so we keep this the data-only term).
-            delta_aic: -2.0 * epsilon,
-            // Δln Z proxy: the per-baseline log-likelihood improvement.
-            delta_lnz: epsilon,
-            generalization_gap: finite_or(held.generalization_gap, 1.0).max(0.0),
+            // ΔAIC vs baseline with the 2k complexity term restored.
+            delta_aic: -2.0 * epsilon + 2.0 * k,
+            // Δln Z proxy: per-baseline log-likelihood improvement minus the Occam factor.
+            delta_lnz: epsilon - occam,
+            // V6.1: the gap is honest — a negative (heldout fits BETTER) is information, not
+            // something to clamp into a perfect score.
+            generalization_gap: finite_or(held.generalization_gap, 1.0),
             coverage: finite_or(eval.coverage, 0.0).clamp(0.0, 1.0),
             // Evolved theories carry fixed values (not multistart-fitted), so there is no prior
             // boundary to hit.
@@ -115,6 +121,7 @@ pub(crate) fn score_candidate(
         store,
         evidence_schema,
         data_fit,
+        observables,
     )
 }
 
@@ -459,14 +466,14 @@ mod v6_covariance_tests {
     use crate::zyal_genome::theory_population::score_theory;
     use std::path::PathBuf;
 
-    /// The honest empirical outcome (review-04 hedged for exactly this): even the FULL published
-    /// Planck distance-prior 3×3 (R, ℓ_A, ω_b h²) + DESI per-tracer blocks cannot close the
-    /// h/Ω_m degeneracy valley — correlated residuals along the degeneracy are CHEAPER than the
-    /// diagonal treatment pretended (diag +54.9 → cov +68.8 nats). The diagonal likelihood was
-    /// over-stating the compressed CMB's constraining power. "That would not validate the champion
-    /// as a theory; it would validate the evidence-set diagnosis" — the valley is genuinely open
-    /// until richer data (full spectra / SNe with covariance) is admitted; V6's job is to ACCOUNT
-    /// honestly: the shift now pays +3 parsimony dof and the likelihood mode is on the record.
+    /// THE V6.1 RESOLUTION of the degeneracy-valley saga, in three acts (all permanent record):
+    /// V5 diagonal: +54.9 nats (champion class). V6 covariance: +68.8 (the TRUE correlated 3×3
+    /// was even cheaper along the valley — diagonal had over-stated the CMB). V6.1: the +0.755
+    /// (8.4σ) engine lA bias is anchor-calibrated out (P0.11) and the Occam term charges the
+    /// drift's 3 dof (P0.10) — the valley CLOSES: diag −20.5, cov −31.9. The "champion
+    /// direction" loses to ΛCDM on the admitted data, and covariance now punishes it HARDER
+    /// than diagonal (the correlated CMB block has real teeth once the model bias is gone).
+    /// What looked like an open valley was ~35 nats of our own fitting-formula error.
     #[test]
     fn covariance_mode_is_recorded_and_the_compressed_cmb_cannot_close_the_valley() {
         let obs = load_observables(&PathBuf::from(
@@ -499,16 +506,17 @@ mod v6_covariance_tests {
 
         let dlnz_diag = sc_diag.data_fit.map(|d| d.delta_lnz).unwrap_or(0.0);
         let dlnz_cov = sc_cov.data_fit.map(|d| d.delta_lnz).unwrap_or(0.0);
-        // The blocks must actually engage (different number), both finite — and the empirical
-        // direction is recorded: the true covariance REOPENS the valley relative to diagonal.
+        // The blocks must actually engage (different number), both finite — and the V6.1
+        // empirical truth is recorded: the valley is CLOSED (both negative) and the calibrated
+        // covariance punishes the drift harder than diagonal.
         assert!(dlnz_diag.is_finite() && dlnz_cov.is_finite());
         assert!(
             (dlnz_cov - dlnz_diag).abs() > 1.0,
             "blocks must change the likelihood: diag {dlnz_diag:.2} vs cov {dlnz_cov:.2}"
         );
         assert!(
-            dlnz_cov > dlnz_diag,
-            "the recorded empirical direction (see doc): diag {dlnz_diag:.2} vs cov {dlnz_cov:.2}"
+            dlnz_diag < 0.0 && dlnz_cov < dlnz_diag,
+            "the valley is closed and covariance bites harder: diag {dlnz_diag:.2} vs cov {dlnz_cov:.2}"
         );
         // And the mode is on the record — a headline number can never hide its likelihood again.
         assert_eq!(
@@ -602,6 +610,7 @@ mod v6_novelty_tests {
             limit: None,
             citation: None,
             novel: Some(NovelPredictionWitness {
+                refreshed_by_engine: false,
                 observable: "fsigma8@0.51".into(),
                 predicted: 0.20, // wildly false — the model computes ~0.44 for mu0=-0.1
                 baseline: 0.47,

@@ -1,0 +1,187 @@
+{
+  "covariance_blocks": 0,
+  "engine": "openqg-core/theory-league",
+  "observable_count": 21,
+  "observable_sources": [
+    "data/fixtures/cosmology/tier0-combined.jsonl",
+    "data/fixtures/cosmology/growth-rsd.jsonl",
+    "data/fixtures/cosmology/wl-s8.jsonl"
+  ],
+  "ranking": [
+    {
+      "aic": 29.174769084173793,
+      "best_params": [
+        {
+          "name": "h",
+          "value": 0.6805399822641629
+        },
+        {
+          "name": "omega_m",
+          "value": 0.3050409578661081
+        },
+        {
+          "name": "sigma8",
+          "value": 0.7787823757939671
+        }
+      ],
+      "bic": 32.308336397344064,
+      "boundary_hit": false,
+      "chi2": 23.174769084173793,
+      "coverage": 1.0,
+      "delta_aic": 0.0,
+      "delta_bic": 0.0,
+      "delta_ln_evidence": -0.0,
+      "description": "GR + cosmological constant (w = -1)",
+      "eligible": true,
+      "k": 3,
+      "log_likelihood": -11.587384542086896,
+      "model_id": "lcdm",
+      "n_data": 21
+    },
+    {
+      "aic": 30.53471460592268,
+      "best_params": [
+        {
+          "name": "h",
+          "value": 0.6834501184065661
+        },
+        {
+          "name": "omega_m",
+          "value": 0.3058047784303609
+        },
+        {
+          "name": "w0",
+          "value": -0.8777062405264737
+        },
+        {
+          "name": "wa",
+          "value": -0.5594066916338403
+        },
+        {
+          "name": "sigma8",
+          "value": 0.7780283296251241
+        }
+      ],
+      "bic": 35.75732679453979,
+      "boundary_hit": false,
+      "chi2": 20.53471460592268,
+      "coverage": 1.0,
+      "delta_aic": 1.3599455217488874,
+      "delta_bic": 3.448990397195729,
+      "delta_ln_evidence": -1.7244951985978645,
+      "description": "CPL evolving dark energy w(a) = w0 + wa(1-a)",
+      "eligible": true,
+      "k": 5,
+      "log_likelihood": -10.26735730296134,
+      "model_id": "w0wacdm",
+      "n_data": 21
+    },
+    {
+      "aic": 30.93450942935798,
+      "best_params": [
+        {
+          "name": "h",
+          "value": 0.680380838850258
+        },
+        {
+          "name": "omega_m",
+          "value": 0.30528004481809984
+        },
+        {
+          "name": "sigma8",
+          "value": 0.7748768005355948
+        },
+        {
+          "name": "ndgp_omega_rc",
+          "value": 0.07203564649258733
+        }
+      ],
+      "bic": 35.11259918025167,
+      "boundary_hit": false,
+      "chi2": 22.93450942935798,
+      "coverage": 1.0,
+      "delta_aic": 1.7597403451841878,
+      "delta_bic": 2.8042627829076068,
+      "delta_ln_evidence": -1.4021313914538034,
+      "description": "nDGP {r_c}: derived μ(a)=1+1/(3β), normal branch, Vainshtein-screened",
+      "eligible": true,
+      "k": 4,
+      "log_likelihood": -11.46725471467899,
+      "model_id": "ndgp",
+      "n_data": 21
+    },
+    {
+      "aic": 31.148483986243992,
+      "best_params": [
+        {
+          "name": "h",
+          "value": 0.6805144403682652
+        },
+        {
+          "name": "omega_m",
+          "value": 0.30507933351734806
+        },
+        {
+          "name": "sigma8",
+          "value": 0.777839601514822
+        },
+        {
+          "name": "mu0",
+          "value": 0.05380239464018161
+        }
+      ],
+      "bic": 35.326573737137686,
+      "boundary_hit": false,
+      "chi2": 23.148483986243992,
+      "coverage": 1.0,
+      "delta_aic": 1.9737149020701992,
+      "delta_bic": 3.0182373397936217,
+      "delta_ln_evidence": -1.5091186698968109,
+      "description": "GR-Λ background + modified growth μ(a)=1+μ0 ρ_DE(a)/ρ_DE0 (screened, α_T=0)",
+      "eligible": true,
+      "k": 4,
+      "log_likelihood": -11.574241993121996,
+      "model_id": "screened_mg",
+      "n_data": 21
+    },
+    {
+      "aic": 33.17475311766974,
+      "best_params": [
+        {
+          "name": "h",
+          "value": 0.6805398707186039
+        },
+        {
+          "name": "omega_m",
+          "value": 0.30504112401417555
+        },
+        {
+          "name": "sigma8",
+          "value": 0.7787818556719762
+        },
+        {
+          "name": "fr_log10_fr0",
+          "value": -9.31662093667323
+        },
+        {
+          "name": "fr_n",
+          "value": 1.0
+        }
+      ],
+      "bic": 38.39736530628686,
+      "boundary_hit": true,
+      "chi2": 23.17475311766974,
+      "coverage": 1.0,
+      "delta_aic": 3.999984033495945,
+      "delta_bic": 6.089028908942794,
+      "delta_ln_evidence": -3.044514454471397,
+      "description": "f(R) Hu–Sawicki {n, f_R0}: derived scalaron μ(a,k), chameleon-screened",
+      "eligible": true,
+      "k": 5,
+      "log_likelihood": -11.58737655883487,
+      "model_id": "fr_hu_sawicki",
+      "n_data": 21
+    }
+  ],
+  "reference_model": "lcdm"
+}

@@ -79,6 +79,11 @@ pub struct NovelPredictionWitness {
     pub predicted: f64,
     /// The baseline (ΛCDM) value for the same observable.
     pub baseline: f64,
+    /// V6.1: true when the engine (re-clothe refresh) authored the declared numbers — the
+    /// honesty attestation is then vacuous and the witness earns at most the engine-attested
+    /// tier, never full proposer-honesty credit.
+    #[serde(default)]
+    pub refreshed_by_engine: bool,
     /// The smallest deviation the cited experiment can resolve (must be finite and `> 0`).
     pub min_detectable: f64,
     /// The measurement/experiment that would falsify the prediction.
@@ -547,6 +552,7 @@ mod tests {
         let mut o = obligation(DerivationObligationKind::NovelPrediction);
         // A testable deviation beyond resolution verifies.
         o.novel = Some(NovelPredictionWitness {
+            refreshed_by_engine: false,
             observable: "fsigma8_z051".into(),
             predicted: 0.42,
             baseline: 0.46,
@@ -557,6 +563,7 @@ mod tests {
 
         // A deviation below the detectable resolution is degenerate ⇒ Failed.
         o.novel = Some(NovelPredictionWitness {
+            refreshed_by_engine: false,
             observable: "fsigma8_z051".into(),
             predicted: 0.4601,
             baseline: 0.46,

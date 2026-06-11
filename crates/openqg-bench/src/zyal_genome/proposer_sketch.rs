@@ -402,6 +402,7 @@ pub(crate) fn expand_sketch(sketch: &ProposalSketch) -> Result<ProposalDoc> {
         let citation = (!o.citation.is_empty()).then(|| o.citation.clone());
         let novel =
             (kind == DerivationObligationKind::NovelPrediction).then(|| NovelPredictionWitness {
+                refreshed_by_engine: false,
                 observable: o.observable.clone(),
                 predicted: o.predicted,
                 baseline: o.baseline,

@@ -290,6 +290,7 @@ pub fn human_contenders() -> ContenderSuite {
                 limit: None,
                 citation: None,
                 novel: Some(super::NovelPredictionWitness {
+                    refreshed_by_engine: false,
                     observable: "fsigma8_z051".into(),
                     predicted,
                     baseline,

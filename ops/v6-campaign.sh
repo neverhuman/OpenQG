@@ -22,7 +22,7 @@ mkdir -p "$LOG_DIR"
 
 for i in $(seq 1 "$CHUNKS"); do
   seed=$((SEED_BASE + i))
-  run_id="v6-chunk-$i"
+  run_id="${RUN_PREFIX:-v6-chunk}-$i"
   log="$LOG_DIR/$run_id.log"
   echo "[driver] chunk $i/$CHUNKS — $GENS gens, seed $seed, run-id $run_id ($(date -u +%H:%M:%S))"
   nice -n 10 env RUST_BACKTRACE=1 ./target/openqg/pinned/openqg-bench-v6-campaign zyal genome whitepaper \
@@ -47,12 +47,12 @@ done
 
 echo "[driver] ALL CHUNKS DONE ($(date -u +%H:%M:%S)) — cross-run summary:"
 for i in $(seq 1 "$CHUNKS"); do
-  f="target/openqg/zyal-genome/runs/v6-chunk-$i/white-paper.json"
+  f="target/openqg/zyal-genome/runs/${RUN_PREFIX:-v6-chunk}-$i/white-paper.json"
   [ -f "$f" ] && jq -c --arg c "$i" '{chunk:$c, champion:.champion.id, total:.champion.scorecard.total}' "$f" 2>/dev/null
 done
 echo "[driver] attempt funnel:"
-cat target/openqg/zyal-genome/runs/v6-chunk-*/proposal-attempts.jsonl 2>/dev/null | jq -r '.outcome' | sort | uniq -c
+cat target/openqg/zyal-genome/runs/${RUN_PREFIX:-v6-chunk}-*/proposal-attempts.jsonl 2>/dev/null | jq -r '.outcome' | sort | uniq -c
 echo "[driver] per-lane yield:"
-cat target/openqg/zyal-genome/runs/v6-chunk-*/proposal-attempts.jsonl 2>/dev/null | jq -r 'select(.outcome=="ok") | .mechanism_lane' | sort | uniq -c
+cat target/openqg/zyal-genome/runs/${RUN_PREFIX:-v6-chunk}-*/proposal-attempts.jsonl 2>/dev/null | jq -r 'select(.outcome=="ok") | .mechanism_lane' | sort | uniq -c
 echo "[driver] per-model yield (top 10):"
-cat target/openqg/zyal-genome/runs/v6-chunk-*/proposal-attempts.jsonl 2>/dev/null | jq -r 'select(.outcome=="ok") | .model' | sort | uniq -c | sort -rn | head -10
+cat target/openqg/zyal-genome/runs/${RUN_PREFIX:-v6-chunk}-*/proposal-attempts.jsonl 2>/dev/null | jq -r 'select(.outcome=="ok") | .model' | sort | uniq -c | sort -rn | head -10

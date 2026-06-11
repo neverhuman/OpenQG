@@ -443,6 +443,7 @@ pub(crate) use proposer_router::*;
 mod proposer_memory;
 pub(crate) use proposer_memory::*;
 mod ledger_sink;
+pub(crate) mod token_receipt;
 
 /// Assemble the V5 prompt extras: the computed DATA BRIEF (real pulls vs the ΛCDM baseline) plus
 /// the cross-run MEMORY section (top scorers, kill histogram, DO/DON'T) from prior run ledgers.

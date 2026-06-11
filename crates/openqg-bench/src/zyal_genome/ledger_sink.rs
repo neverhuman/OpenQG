@@ -6,6 +6,9 @@
 //! replay, and the whitepaper path are unchanged), but every proposal, attempt, and progress
 //! record is also streamed to disk the moment it exists, plus an atomic champion checkpoint every
 //! N generations. Tests pass [`NullSink`].
+//!
+//! V8 (Wave 0.7): the sink now also accepts [`LlmCallReceipt`] events, written to a separate
+//! `token-ledger.jsonl` file, so total LLM spend is attributable per component and per campaign.
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, Write};
@@ -16,6 +19,7 @@ use serde_json::json;
 use super::theory_population::{
     GenerationProgress, Individual, LiveProposalRecord, ProposalAttemptRecord,
 };
+use super::token_receipt::LlmCallReceipt;
 
 /// Where the engine streams its records. Implementations must be cheap and infallible from the
 /// engine's perspective (I/O errors are reported to stderr, never panic the run).
@@ -24,6 +28,8 @@ pub(crate) trait LedgerSink {
     fn attempt(&mut self, rec: &ProposalAttemptRecord);
     fn progress(&mut self, g: &GenerationProgress);
     fn champion_checkpoint(&mut self, generation: usize, best: Option<&Individual>);
+    /// V8: record one LLM API call receipt to `token-ledger.jsonl`.
+    fn token_receipt(&mut self, rec: &LlmCallReceipt);
 }
 
 /// The no-op sink — exact pre-V5 behavior (tests, library callers).
@@ -34,16 +40,18 @@ impl LedgerSink for NullSink {
     fn attempt(&mut self, _rec: &ProposalAttemptRecord) {}
     fn progress(&mut self, _g: &GenerationProgress) {}
     fn champion_checkpoint(&mut self, _generation: usize, _best: Option<&Individual>) {}
+    fn token_receipt(&mut self, _rec: &LlmCallReceipt) {}
 }
 
 /// Streams to a run directory: `proposal-ledger.jsonl`, `proposal-attempts.jsonl`,
-/// `progress-ledger.jsonl` (append + flush per record), and `champion-checkpoint.json`
-/// (temp-file + rename, so a killed run never leaves a torn checkpoint).
+/// `progress-ledger.jsonl`, `token-ledger.jsonl` (append + flush per record), and
+/// `champion-checkpoint.json` (temp-file + rename, so a killed run never leaves a torn checkpoint).
 pub(crate) struct RunDirSink {
     run_dir: PathBuf,
     proposals: BufWriter<File>,
     attempts: BufWriter<File>,
     progress: BufWriter<File>,
+    tokens: BufWriter<File>,
     pub checkpoint_every: usize,
 }
 
@@ -67,6 +75,7 @@ impl RunDirSink {
             proposals: open("proposal-ledger.jsonl")?,
             attempts: open("proposal-attempts.jsonl")?,
             progress: open("progress-ledger.jsonl")?,
+            tokens: open("token-ledger.jsonl")?,
             checkpoint_every: checkpoint_every.max(1),
         })
     }
@@ -90,6 +99,10 @@ impl LedgerSink for RunDirSink {
 
     fn attempt(&mut self, rec: &ProposalAttemptRecord) {
         Self::write_line(&mut self.attempts, rec);
+    }
+
+    fn token_receipt(&mut self, rec: &LlmCallReceipt) {
+        Self::write_line(&mut self.tokens, rec);
     }
 
     fn progress(&mut self, g: &GenerationProgress) {

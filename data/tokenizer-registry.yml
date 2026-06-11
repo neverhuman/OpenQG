@@ -1,0 +1,35 @@
+# Tokenizer registry — model pricing for LlmCallReceipt cost estimation.
+#
+# Used when the API response does not include exact token counts (flagged_estimate: true).
+# Update rates when Anthropic or other providers change pricing.
+# Source: provider pricing pages, verified 2026-06-11.
+
+models:
+  # Anthropic Claude 4.x family
+  - id: claude-sonnet-4-6
+    provider: anthropic
+    input_usd_per_1m: 3.00
+    output_usd_per_1m: 15.00
+
+  - id: claude-opus-4-8
+    provider: anthropic
+    input_usd_per_1m: 15.00
+    output_usd_per_1m: 75.00
+
+  - id: claude-haiku-4-5-20251001
+    provider: anthropic
+    input_usd_per_1m: 0.80
+    output_usd_per_1m: 4.00
+
+  # Fable 5
+  - id: claude-fable-5
+    provider: anthropic
+    input_usd_per_1m: 3.00
+    output_usd_per_1m: 15.00
+
+  # Catch-all for unknown Anthropic models — use Sonnet-tier pricing as a conservative estimate.
+  - id: anthropic-unknown
+    provider: anthropic
+    input_usd_per_1m: 3.00
+    output_usd_per_1m: 15.00
+    flagged_estimate_default: true

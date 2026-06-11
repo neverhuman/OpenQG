@@ -8,7 +8,7 @@
 //! This module is pure and testable with a mocked JSON string — the live jnoccio subprocess that
 //! produces the JSON is wired separately (it reuses the existing genome live-call machinery).
 
-use super::{run_veto_cascade, AlphaBasis, Parameter, Provenance, Stability, Theory};
+use super::{run_veto_cascade, AlphaBasis, Parameter, Provenance, Stability, Term, Theory};
 use crate::cosmology::CosmologyParams;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -185,9 +185,33 @@ pub fn proposal_into_theory(p: &TheoryProposal) -> (Theory, Vec<String>) {
     let theory = Theory {
         id: p.id.clone(),
         parameters,
-        // Keep the GR action terms (dimensional/Lorentz structure is correct by construction;
-        // a richer symbolic term grammar is future work).
-        terms: base.terms.clone(),
+        // GR action terms plus the generating terms for any dials the proposal turns
+        // (V6.1 P0.6: structure follows the dial — alpha needs a scalar; dynamical w needs
+        // a quintessence sector).
+        terms: {
+            let mut terms = base.terms.clone();
+            let alpha_on = p.alpha.alpha_m.abs() > 1e-9
+                || p.alpha.alpha_b.abs() > 1e-9
+                || p.alpha.alpha_k.abs() > 1e-9
+                || p.alpha.alpha_t.abs() > 1e-9;
+            if alpha_on && !terms.iter().any(|t| t.name.contains("horndeski")) {
+                terms.push(Term {
+                    name: "horndeski_scalar".into(),
+                    mass_dimension: 4,
+                    free_lorentz_indices: 0,
+                });
+            }
+            let w_dynamic = b.w0.map(|w| (w + 1.0).abs() > 1e-9).unwrap_or(false)
+                || b.wa.map(|w| w.abs() > 1e-9).unwrap_or(false);
+            if w_dynamic && !terms.iter().any(|t| t.name.contains("quintessence")) {
+                terms.push(Term {
+                    name: "quintessence_scalar".into(),
+                    mass_dimension: 4,
+                    free_lorentz_indices: 0,
+                });
+            }
+            terms
+        },
         alpha: AlphaBasis {
             alpha_m: p.alpha.alpha_m,
             alpha_b: p.alpha.alpha_b,

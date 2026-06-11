@@ -87,7 +87,7 @@ fn cert_input(cert: &super::DerivedCertificate, name: &str) -> Option<f64> {
 /// Does this background compute non-GR growth? (the exact conditions the growth code branches on)
 fn background_non_gr(bg: &CosmologyParams) -> bool {
     bg.mu0.abs() > 1e-12
-        || bg.drag_a > 1e-12
+        || bg.drag_a.abs() > 1e-12
         || (bg.mg_family == MgFamily::Ndgp && bg.ndgp_omega_rc > 0.0)
         || (bg.mg_family == MgFamily::FrHuSawicki && bg.fr_log10_fr0 > -20.0)
 }
@@ -280,6 +280,27 @@ pub fn bind_modified_background(theory: &Theory) -> BindingOutcome {
     // V6 dark-scattering drag: a verified certificate binds A_drag into the background the
     // growth ODE integrates (the relation also pins w0/omega_de0 consistency at adjudication).
     if let Some((_symbol, cert)) = verified_cert(theory, "dark_scattering_growth_drag") {
+        // V6.1 (P0.3): the certificate's w0/omega_de0 inputs must describe THIS theory's
+        // background — a phantom-background cert flips the certified drag's physical sign.
+        if let Some(cert_w0) = cert_input(cert, "w0") {
+            if !values_agree(cert_w0, theory.background.w0) {
+                vetoes.push(VetoReason::ConflictingModification {
+                    field: "w0 (dark_scattering cert input)".into(),
+                    certificate_value: cert_w0,
+                    declared_value: theory.background.w0,
+                });
+            }
+        }
+        if let Some(cert_ode) = cert_input(cert, "omega_de0") {
+            let bg_ode = 1.0 - theory.background.omega_m - theory.background.omega_k;
+            if !values_agree(cert_ode, bg_ode) {
+                vetoes.push(VetoReason::ConflictingModification {
+                    field: "omega_de0 (dark_scattering cert input)".into(),
+                    certificate_value: cert_ode,
+                    declared_value: bg_ode,
+                });
+            }
+        }
         if let Some(a_drag) = cert_input(cert, "a_drag") {
             if a_drag.is_finite() && a_drag >= 0.0 {
                 if let Some((_, prev)) = relation_set.iter().find(|(f, _)| *f == "drag_a") {
@@ -434,7 +455,7 @@ pub fn bind_modified_background(theory: &Theory) -> BindingOutcome {
             });
         }
     }
-    if declared.drag_a > 1e-12 {
+    if declared.drag_a.abs() > 1e-12 {
         if explained("drag_a") {
             if !values_agree(bound.background.drag_a, declared.drag_a) {
                 vetoes.push(VetoReason::ConflictingModification {

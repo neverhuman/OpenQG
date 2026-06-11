@@ -51,16 +51,30 @@ impl Rng {
 /// If a mutation makes the theory modify gravity, it may also acquire a screening mechanism so a
 /// genuinely viable modified-gravity candidate can emerge (rather than always tripping the PPN
 /// veto).
+/// Add a mass-dimension-4 scalar term if the theory lacks one by this name.
+fn ensure_term(t: &mut Theory, name: &str) {
+    if !t.terms.iter().any(|x| x.name == name) {
+        t.terms.push(super::Term {
+            name: name.into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
+    }
+}
+
 pub fn mutate(theory: &Theory, rng: &mut Rng, rate: f64) -> Theory {
     let mut t = theory.clone();
     if rng.chance(rate) {
         t.alpha.alpha_m += 0.05 * rng.signed();
+        ensure_term(&mut t, "horndeski_scalar");
     }
     if rng.chance(rate) {
         t.alpha.alpha_b += 0.05 * rng.signed();
+        ensure_term(&mut t, "horndeski_scalar");
     }
     if rng.chance(rate) {
         t.alpha.alpha_k += 0.10 * rng.signed();
+        ensure_term(&mut t, "horndeski_scalar");
     }
     if rng.chance(rate) {
         t.background.h += 0.02 * rng.signed();
@@ -70,6 +84,8 @@ pub fn mutate(theory: &Theory, rng: &mut Rng, rate: f64) -> Theory {
     }
     if rng.chance(rate) {
         t.background.w0 += 0.10 * rng.signed();
+        // V6.1 (P0.6): structure follows the dial — dynamical w needs a generating term.
+        ensure_term(&mut t, "quintessence_scalar");
     }
     // V6: a gravity-modifying mutant must carry a QUANTIFIED screening claim to stay PPN-viable —
     // a bare mechanism label was the V5 pass-token cheat (adjudication now demands the number).

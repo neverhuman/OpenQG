@@ -431,6 +431,11 @@ mod v6_drift_tests {
         t.background.h = 0.7176;
         t.background.omega_m = 0.2822;
         t.background.w0 = -1.144;
+        t.terms.push(openqg_core::Term {
+            name: "quintessence_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         assert_eq!(background_dof(&t), 3, "three moved dials = three dof");
     }
 
@@ -481,6 +486,11 @@ mod v6_covariance_tests {
         t.background.h = 0.7176;
         t.background.omega_m = 0.2822;
         t.background.w0 = -1.144;
+        t.terms.push(openqg_core::Term {
+            name: "quintessence_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
 
         let base_diag = baseline_log_likelihood(&obs);
         let sc_diag = score_theory(&t, &obs, &[], base_diag);
@@ -542,6 +552,11 @@ mod v6_novelty_tests {
         let mut t = Theory::baseline_lcdm();
         t.id = "alpha-jitter".into();
         t.alpha.alpha_m = 0.05; // distinct via modifies_gravity
+        t.terms.push(openqg_core::Term {
+            name: "horndeski_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         t.screening = Some("vainshtein".into());
         t.screening_recovery = Some(0.999_999); // quantified — passes the unified gate
         let observables = obs();

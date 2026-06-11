@@ -61,7 +61,7 @@ impl CosmologyParams {
     /// ODE as extra Hubble drag: δ'' + (2 + dlnE/dN + Γ)δ' = (3/2)Ω_m(a)μ(a)δ. Exact GR limit
     /// at drag_a = 0; vanishes for w = −1 (no momentum exchange with a cosmological constant).
     pub fn growth_drag_gamma(&self, a: f64) -> f64 {
-        if self.drag_a == 0.0 {
+        if self.drag_a.abs() < 1e-12 {
             return 0.0;
         }
         let z = 1.0 / a - 1.0;

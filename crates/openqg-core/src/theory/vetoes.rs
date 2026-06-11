@@ -23,6 +23,14 @@ const SCREENING_REQUIRED_SCALE: f64 = 1e-3;
 /// A reason a theory was vetoed. `Vec<VetoReason>` empty ⇒ the theory passes the cascade.
 #[derive(Debug, Clone, PartialEq)]
 pub enum VetoReason {
+    /// V6.1 (P0.6): the background claims physics no Lagrangian term generates — e.g. a
+    /// dynamical dark-energy equation of state (w0 ≠ −1 / wa ≠ 0) with only an
+    /// einstein_hilbert + cosmological_constant action, or α-basis deviations with no
+    /// scalar/vector term to source them. Structure must exist for the dial being turned.
+    StructurallyUngenerated { field: String, detail: String },
+    /// V6.1: drag_a < 0 is phantom drag — an unphysical growth ENHANCER dressed as friction
+    /// (Simpson 2010's cross-section is non-negative). Hard kill.
+    PhantomDrag { drag_a: f64 },
     /// V6: a novel-prediction witness declared numbers more than 3× the engine-clamped honesty
     /// tolerance away from the machine-computed truth — fabrication, not rounding. A kill.
     FabricatedNovelPrediction {
@@ -182,6 +190,14 @@ pub fn obligation_vetoes(obligations: &[DerivationObligation]) -> Vec<VetoReason
 /// derived parameter). Useful for the critic/ledger; use [`run_veto_cascade`] for the kill verdict.
 pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
     let mut reasons = Vec::new();
+
+    // 0. V6.1: phantom drag — a negative dark-scattering amplitude is an unphysical growth
+    //    enhancer dressed as friction (the Simpson 2010 cross-section is non-negative).
+    if theory.background.drag_a < -1e-12 {
+        reasons.push(VetoReason::PhantomDrag {
+            drag_a: theory.background.drag_a,
+        });
+    }
 
     // 1. Dimensional homogeneity: every Lagrangian-density term must be mass-dimension 4.
     for term in &theory.terms {
@@ -368,6 +384,44 @@ pub fn physics_kills(theory: &Theory) -> Vec<VetoReason> {
 
 pub fn adjudicate(theory: &Theory) -> Vec<VetoReason> {
     let mut reasons = Vec::new();
+
+    // 0b. V6.1 (P0.6): structural consistency — turned dials need generating terms.
+    {
+        let names: Vec<&str> = theory.terms.iter().map(|t| t.name.as_str()).collect();
+        let has_de_dynamics = names.iter().any(|n| {
+            n.contains("quintessence")
+                || n.contains("scalar")
+                || n.contains("dark_energy")
+                || n.contains("k_essence")
+                || n.contains("galileon")
+                || n.contains("drag")
+                || n.contains("coupling")
+        });
+        let w_dynamic =
+            (theory.background.w0 + 1.0).abs() > 1e-9 || theory.background.wa.abs() > 1e-9;
+        if w_dynamic && !has_de_dynamics {
+            reasons.push(VetoReason::StructurallyUngenerated {
+                field: "w0/wa".into(),
+                detail: format!(
+                    "w0={}, wa={} with no dynamical dark-energy term in the action",
+                    theory.background.w0, theory.background.wa
+                ),
+            });
+        }
+        let alpha_on =
+            theory.alpha.modification_scale() > 1e-9 || theory.alpha.alpha_t.abs() > 1e-9;
+        if alpha_on
+            && !has_de_dynamics
+            && !names
+                .iter()
+                .any(|n| n.contains("gauss") || n.contains("horndeski"))
+        {
+            reasons.push(VetoReason::StructurallyUngenerated {
+                field: "alpha".into(),
+                detail: "alpha-basis deviations with no generating term in the action".into(),
+            });
+        }
+    }
 
     // 1. Redshift-aware tensor speed at the GW170817 source epoch vs the real ~10⁻¹⁵ bound.
     let ct_excess = tensor_speed_excess_at(theory, GW170817_SOURCE_REDSHIFT);
@@ -779,6 +833,17 @@ mod tests {
         // genuinely-screened theory clears the bound.
         let mut t = metadata_decoy();
         t.screening_recovery = Some(0.999_9);
+        // V6.1 P0.6: the dials it turns need generating terms to clear adjudication.
+        t.terms.push(super::Term {
+            name: "horndeski_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
+        t.terms.push(super::Term {
+            name: "quintessence_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         assert!(
             adjudicate(&t).is_empty(),
             "a deeply-screened theory must clear adjudication, got {:?}",

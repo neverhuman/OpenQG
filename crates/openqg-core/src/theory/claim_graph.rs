@@ -301,10 +301,18 @@ impl UnificationClaim {
             if distinct.len() < 2 {
                 return false;
             }
-            theory
+            let param_ok = theory
                 .parameters
                 .iter()
-                .any(|p| p.symbol == sp.symbol && (p.value - sp.value).abs() <= 1e-9)
+                .any(|p| p.symbol == sp.symbol && (p.value - sp.value).abs() <= 1e-9);
+            if !param_ok {
+                return false;
+            }
+            // V6.1 (P0.5): a shared symbol that SHADOWS a background coordinate must agree with
+            // the background the model actually integrates. The V6-campaign champions wore a
+            // decorative H0=67.4 scaffold parameter over a fitted h=0.701 background — that
+            // contradiction earned 15/15 unification. No longer.
+            background_shadow_consistent(theory, &sp.symbol, sp.value)
         })
     }
 
@@ -327,8 +335,33 @@ impl UnificationClaim {
                 return false;
             }
         }
+        // V6.1 (P0.5): a drifted background coordinate is a fitted dial; when unification is
+        // claimed, undeclared background drift is a hidden knob exactly like an uncertified
+        // parameter (the alias table mirrors scorecard::background_dof).
+        if super::scorecard::background_dof(theory) > 0 {
+            return false;
+        }
         true
     }
+}
+
+/// True when `symbol` either names no background coordinate, or names one whose current value
+/// agrees with the declared parameter value (alias table: H0 = 100·h, Omega_m, w0, wa, sigma8).
+fn background_shadow_consistent(theory: &super::Theory, symbol: &str, value: f64) -> bool {
+    let bg = &theory.background;
+    let pairs: [(&str, f64, f64); 5] = [
+        ("H0", bg.h, 100.0),
+        ("Omega_m", bg.omega_m, 1.0),
+        ("w0", bg.w0, 1.0),
+        ("wa", bg.wa, 1.0),
+        ("sigma8", bg.sigma8, 1.0),
+    ];
+    for (sym, cur, scale) in pairs {
+        if sym == symbol {
+            return (value - cur * scale).abs() <= 1e-6 * scale.max(1.0);
+        }
+    }
+    true
 }
 
 /// Thin wrapper over [`ClaimGraph::digest`] for callers that prefer a free function.

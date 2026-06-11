@@ -237,6 +237,12 @@ pub(crate) fn reclothe_candidate(
         }
     }
     doc.theory = theory;
+    // V6.1 (P0.5): unification on a drifted background is a contradiction (the shared-param
+    // scaffold would shadow coordinates the fit moved). Grafting keeps what is re-earnable and
+    // DROPS what is not: a drifted descendant forfeits the donor's unification claim.
+    if openqg_core::background_dof(&doc.theory) > 0 {
+        doc.unification = openqg_core::UnificationClaim { shared: vec![] };
+    }
     // Witness refresh: recompute declared values from the DESCENDANT's bound background.
     let bound = openqg_core::theory::bind_modified_background(&doc.theory).theory;
     let model = BackgroundForwardModel;
@@ -931,6 +937,11 @@ mod v6_reclothe_tests {
         let mut descendant = Theory::baseline_lcdm();
         descendant.id = "evolved-child".into();
         descendant.background.w0 = -1.02; // a (costed) evolved drift — changes computed fsigma8
+        descendant.terms.push(openqg_core::theory::Term {
+            name: "quintessence_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         let doc = reclothe_candidate(&donor, &descendant);
         let observables = obs();
         let sc = score_proposal(
@@ -962,6 +973,11 @@ mod v6_reclothe_tests {
         descendant.id = "evolved-child".into();
         descendant.background.w0 = -1.3; // a big evolved drift — the computed physics moves
         descendant.background.omega_m = 0.28;
+        descendant.terms.push(openqg_core::theory::Term {
+            name: "quintessence_scalar".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
         // Manual stale graft: donor claims + descendant theory, NO refresh.
         let mut doc = donor.clone();
         let mut theory = descendant.clone();

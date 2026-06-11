@@ -25,7 +25,7 @@ for i in $(seq 1 "$CHUNKS"); do
   run_id="v6-chunk-$i"
   log="$LOG_DIR/$run_id.log"
   echo "[driver] chunk $i/$CHUNKS — $GENS gens, seed $seed, run-id $run_id ($(date -u +%H:%M:%S))"
-  nice -n 10 env RUST_BACKTRACE=1 cargo run -q -p openqg-bench -- zyal genome whitepaper \
+  nice -n 10 env RUST_BACKTRACE=1 ./target/openqg/pinned/openqg-bench-v6-campaign zyal genome whitepaper \
     --observables data/fixtures/cosmology/tier1-multisector.jsonl \
     "${COV_ARGS[@]}" \
     --max-generations "$GENS" --population-size 12 --seed "$seed" \

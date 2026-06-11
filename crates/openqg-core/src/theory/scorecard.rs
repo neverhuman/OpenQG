@@ -230,9 +230,15 @@ pub fn background_dof(theory: &Theory) -> u32 {
             if !drifted {
                 return false;
             }
-            // A verified relation certificate that derives this exact value exempts the drift —
-            // the certificate's inputs are the costed dials. A bare `Fundamental` declaration
-            // does NOT exempt it (declaring a fitted dial "fundamental" was the V5 cheat class).
+            // V6.1 (P0.4): the exemption demands a verified certificate on a relation that is
+            // ALLOWED to derive this exact coordinate, whose expected value matches the
+            // parameter within its own tolerance. Any-verified-cert exemption was a hole (a
+            // verified-but-unrelated cert on a parameter merely NAMED "w0" exempted w0 drift),
+            // and zero-rigor definitional relations (h0_from_h, flat closure) never exempt —
+            // a definition is bookkeeping, not a derivation.
+            let allowed: &[(&str, &str)] = &[]; // no registered relation may derive a standard
+                                                // background coordinate today; the map exists so
+                                                // a future mechanism relation can register here.
             let certified = sym.map_or(false, |(symbol, scale)| {
                 theory.parameters.iter().any(|p| {
                     p.symbol == symbol
@@ -243,6 +249,11 @@ pub fn background_dof(theory: &Theory) -> u32 {
                                 certificate: Some(cert),
                                 ..
                             } if matches!(cert.check(), super::CertificateOutcome::Verified { .. })
+                                && allowed
+                                    .iter()
+                                    .any(|(rel, sm)| *rel == cert.relation && *sm == symbol)
+                                && super::certificate::relation_rigor_weight(&cert.relation) > 0.0
+                                && (cert.expected - p.value).abs() <= cert.tolerance.max(1e-12)
                         )
                 })
             });

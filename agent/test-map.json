@@ -10,6 +10,9 @@
     ".gitignore": {
       "command": "just fast"
     },
+    ".gitleaks.toml": {
+      "command": "just security"
+    },
     "CITATION.cff": {
       "command": "just fast"
     },
@@ -247,6 +250,9 @@
     "crates/openqg-data/": {
       "command": "just fast"
     },
+    "crates/openqg-algebra/": {
+      "command": "just fast"
+    },
     "python/ai-service/": {
       "command": "just fast"
     },
@@ -287,6 +293,18 @@
       "command": "just fast"
     },
     "ops/replay/": {
+      "command": "just fast"
+    },
+    "ops/replay.sh": {
+      "command": "just fast"
+    },
+    "ops/search-volume.yml": {
+      "command": "just fast"
+    },
+    "data/search-volume.yml": {
+      "command": "just data-verify"
+    },
+    "paper/": {
       "command": "just fast"
     },
     "data/forecast-registry/": {

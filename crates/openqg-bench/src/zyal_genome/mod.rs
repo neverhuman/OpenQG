@@ -165,6 +165,17 @@ pub enum GenomeCommand {
         #[arg(long)]
         covariance: Vec<PathBuf>,
     },
+    /// SYNTHESIS #1 — token/cost observability: read `token-ledger.jsonl` from a run directory
+    /// and print a human-readable + JSON summary. Reports total tokens, cost, and whether
+    /// `unattributed_calls == 0` (the campaign observability guarantee).
+    Tokens {
+        /// Run directory (e.g. `target/openqg/zyal-genome/runs/<run-id>`).
+        #[arg(long)]
+        run_dir: PathBuf,
+        /// Emit JSON instead of human-readable text.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 pub fn run(command: GenomeCommand) -> Result<()> {
@@ -420,6 +431,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             }
             Ok(())
         }
+        GenomeCommand::Tokens { run_dir, json } => token_summary::run_tokens(&run_dir, json),
     }
 }
 
@@ -445,6 +457,7 @@ pub(crate) use proposer_memory::*;
 mod ledger_sink;
 pub(crate) mod routing;
 pub(crate) mod token_receipt;
+mod token_summary;
 
 /// Assemble the V5 prompt extras: the computed DATA BRIEF (real pulls vs the ΛCDM baseline) plus
 /// the cross-run MEMORY section (top scorers, kill histogram, DO/DON'T) from prior run ledgers.

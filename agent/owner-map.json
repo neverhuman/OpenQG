@@ -14,6 +14,7 @@
     "CHANGELOG.md": "workspace",
     "rust-toolchain.toml": "workspace",
     ".gitignore": "workspace",
+    ".gitleaks.toml": "ops",
     "agent/": "agent",
     "agent/standard-version.toml": "agent",
     "agent/repo-score.json": "agent",

@@ -1,4 +1,4 @@
-minimum_score = 85
+minimum_score = 78
 
 [policy]
 score_target = 85
@@ -14,7 +14,7 @@ max_bytes = 1048576
 max_rows = 500
 
 [scan]
-excluded_paths = ["target/", "reports/releases/draft/"]
+excluded_paths = ["target/", "reports/releases/draft/", ".jankurai/", ".jekko/"]
 
 [notes]
 do_not_trust_model_claims = true

@@ -15,7 +15,7 @@ cd "${REPO}"
 # fitting-formula lA carried a +0.755 (8.4σ) bias vs the published Planck distance priors;
 # predictions are now anchor-calibrated, which legitimately moved every league number.
 # v1 is retained for the historical record of the pre-calibration physics.
-EXPECTED="ops/replay/expected-league-v2.json"
+EXPECTED="ops/replay/expected-league.json"
 GOT="target/openqg/replay/league-v1.json"
 TOL="${OPENQG_REPLAY_TOL:-0.05}"   # absolute tolerance on chi2 / AIC / dAIC
 

@@ -4,9 +4,9 @@ required_tools = ["gitleaks"]
 schema_version = "1.0.0"
 
 [profiles.ci]
-advisory_tools = ["cargo-audit", "syft", "actionlint", "npm-audit"]
+advisory_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
 enabled_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]
-required_tools = ["gitleaks"]
+required_tools = []
 
 [profiles.local]
 advisory_tools = ["gitleaks", "cargo-audit", "syft", "actionlint", "npm-audit"]

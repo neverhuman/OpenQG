@@ -58,6 +58,7 @@ approval outside the generated release pack.
 
 ## Key Links
 
+- [Agent guide](AGENTS.md)
 - [Moonshot](docs/MOONSHOT.md)
 - [Architecture](docs/architecture.md)
 - [Boundaries](docs/boundaries.md)

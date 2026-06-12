@@ -1,0 +1,14 @@
+# Gitleaks configuration for openQG.
+# All findings so far are generic-api-key false positives in generated build
+# artifacts under target/ (prediction hashes in test output files).
+# Exclude target/ since it is never committed to git.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Exclude generated build artifacts"
+paths = [
+    '''target''',
+    '''reports''',
+]

@@ -18,6 +18,7 @@ pub mod contenders;
 pub mod evaluate;
 pub mod evidence;
 pub mod fingerprint;
+pub mod growth_verdict;
 pub mod holdout;
 pub mod league;
 pub mod mutation;
@@ -52,6 +53,7 @@ pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
 };
 pub use fingerprint::claim_fingerprint;
+pub use growth_verdict::{GrowthVerdictPack, LensingS8Verdict, RsdMeasurement};
 pub use holdout::{
     alternating_holdout, alternating_split, held_out_evaluate, split_evaluate, HeldOutScore,
     SplitScore,

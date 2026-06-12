@@ -138,6 +138,39 @@ pub enum VetoReason {
     },
 
     // --- V5 truth-binding reasons (claims must have computable consequences) ---
+    // --- V8 Phase 10 (SYNTHESIS #4): component-decomposition anti-laundering kills ---
+    /// S04: a degree-of-freedom was relabeled or rephrased between a rejected theory and a new
+    /// candidate without changing the underlying parameter structure ("DOF laundering"). The
+    /// relabeled parameter earns derivation credit by proxy, but the underlying fit knob is the
+    /// same entity that was already rejected.
+    ///
+    /// Detection: raised when the component ledger finds that a parameter contributing ≥10% of
+    /// the theory's total score was present under a different symbol in a previously-rejected
+    /// theory within the same search session. Manually raised until the ledger diff is wired.
+    DofLaunderingKill {
+        /// The symbol in the current candidate.
+        current_symbol: String,
+        /// The symbol in the previously-rejected theory it was renamed from.
+        prior_symbol: String,
+        detail: String,
+    },
+
+    /// S04: a `FocusedPatchSketch` proposed a change to a component that carries a frozen content
+    /// digest. Patches on frozen paths must go through the derivation sandbox; a direct mutation
+    /// bypasses the anti-laundering check. This kill is raised when the patch content hash does
+    /// not match the frozen digest declared in the component ledger.
+    ///
+    /// Detection: raised when the ComponentLedger finds that a proposed patch targets a component
+    /// whose `frozen_digest` field is set, and the patch content hash differs.
+    FrozenDigestMutationKill {
+        /// Component identifier.
+        component_id: String,
+        /// The frozen content digest (from ComponentLedger).
+        frozen_digest: String,
+        /// The actual patch content hash.
+        patch_digest: String,
+    },
+
     /// The theory is distinct from ΛCDM via verified certificates, but the bound background still
     /// computes GR growth (an unbindable relation or an inversion domain error) — the claimed
     /// modification has no computable consequence, which is exactly the credit-without-risk

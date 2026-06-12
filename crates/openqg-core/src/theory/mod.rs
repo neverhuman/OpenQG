@@ -74,7 +74,10 @@ pub use exclusion::{
     RankStabilityResult, TrialsCorrection, EXCLUSION_MANDATORY_CAVEATS,
 };
 pub use fingerprint::claim_fingerprint;
-pub use growth_verdict::{GrowthVerdictPack, LensingS8Verdict, RsdMeasurement};
+pub use growth_verdict::{
+    all_fiducials_pass, CmbLensingVerdict, DatasetSurvivalRecord, DatasetSurvivalTable,
+    GrowthCoverageGate, GrowthVerdictPack, LensingS8Verdict, RsdMeasurement,
+};
 pub use holdout::{
     alternating_holdout, alternating_split, held_out_evaluate, split_evaluate, HeldOutScore,
     SplitScore,

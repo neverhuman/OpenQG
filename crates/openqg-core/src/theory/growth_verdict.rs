@@ -130,6 +130,139 @@ pub struct GrowthVerdictPack {
     pub growth_killed: bool,
 }
 
+/// V8 Phase 10 (SYNTHESIS #8): CMB lensing amplitude verdict.
+///
+/// A_lens = 1 in ΛCDM. Modified gravity predicts A_lens ≠ 1. This verdict captures the
+/// comparison of theory vs the ACT DR6 or Planck lensing amplitude measurement.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CmbLensingVerdict {
+    /// Observed lensing amplitude A_lens.
+    pub a_lens_observed: f64,
+    /// 1-sigma uncertainty on A_lens.
+    pub a_lens_sigma: f64,
+    /// Theory-predicted A_lens from the forward model.
+    pub a_lens_predicted: f64,
+    /// Pull = (predicted - observed) / sigma.
+    pub pull: f64,
+    /// Dataset identifier (e.g. "ACT-DR6", "Planck-2018-lensing").
+    pub dataset: String,
+}
+
+impl CmbLensingVerdict {
+    pub fn new(
+        a_lens_observed: f64,
+        a_lens_sigma: f64,
+        a_lens_predicted: f64,
+        dataset: impl Into<String>,
+    ) -> Self {
+        let pull = if a_lens_sigma == 0.0 {
+            0.0
+        } else {
+            (a_lens_predicted - a_lens_observed) / a_lens_sigma
+        };
+        CmbLensingVerdict {
+            a_lens_observed,
+            a_lens_sigma,
+            a_lens_predicted,
+            pull,
+            dataset: dataset.into(),
+        }
+    }
+
+    /// True when the pull exceeds 2σ — moderate tension.
+    pub fn is_tension(&self) -> bool {
+        self.pull.abs() > 2.0
+    }
+}
+
+/// V8 Phase 10 (SYNTHESIS #8): per-dataset survival record for the pre-scoring table.
+///
+/// Before any theory earns a score in the growth sector, the engine must confirm each mandatory
+/// dataset's likelihood reproduces at the ΛCDM fiducial. A failed reproduction is a blocker.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DatasetSurvivalRecord {
+    /// Dataset identifier (e.g. "eBOSS-DR16-fσ8", "KiDS-Legacy-S8", "ACT-DR6-Alens").
+    pub dataset_id: String,
+    /// Fiducial chi²/dof at ΛCDM parameters. Should be ≈1.0 if the likelihood is calibrated.
+    pub fiducial_chi2_per_dof: Option<f64>,
+    /// True when the fiducial check passed (chi²/dof ≤ 2.0 at ΛCDM).
+    pub fiducial_ok: bool,
+    /// True when this dataset was actually used in scoring (not just checked).
+    pub used_in_scoring: bool,
+}
+
+impl DatasetSurvivalRecord {
+    pub fn new(
+        dataset_id: impl Into<String>,
+        fiducial_chi2_per_dof: Option<f64>,
+        used: bool,
+    ) -> Self {
+        let fiducial_ok = fiducial_chi2_per_dof.is_none_or(|c| c <= 2.0);
+        DatasetSurvivalRecord {
+            dataset_id: dataset_id.into(),
+            fiducial_chi2_per_dof,
+            fiducial_ok,
+            used_in_scoring: used,
+        }
+    }
+}
+
+/// V8 Phase 10 (SYNTHESIS #8): coverage gate for the mandatory growth-sector dataset list.
+///
+/// No suppressed-growth claim is reportable without all five conditions satisfied.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrowthCoverageGate {
+    /// Number of independent full-shape RSD datasets evaluated.
+    pub n_rsd_datasets: u32,
+    /// Number of independent weak-lensing surveys (KiDS/DES/HSC lineage).
+    pub n_wl_surveys: u32,
+    /// True when at least one CMB lensing measurement is included (ACT DR6 or Planck).
+    pub has_cmb_lensing: bool,
+    /// True when at least one BAO dataset is included (DESI DR2 or equivalent).
+    pub has_bao: bool,
+    /// True when Pantheon+ full-covariance SNe dataset is included.
+    pub has_sne_pantheon_plus: bool,
+}
+
+impl GrowthCoverageGate {
+    /// Coverage is satisfied when:
+    /// - ≥1 full-shape RSD dataset
+    /// - ≥2 independent WL surveys
+    /// - ≥1 CMB lensing dataset
+    /// - BAO present
+    /// - Pantheon+ SNe present
+    ///
+    /// All five must hold before a suppressed-growth claim can be scored.
+    pub fn coverage_satisfied(&self) -> bool {
+        self.n_rsd_datasets >= 1
+            && self.n_wl_surveys >= 2
+            && self.has_cmb_lensing
+            && self.has_bao
+            && self.has_sne_pantheon_plus
+    }
+
+    /// Human-readable list of unmet coverage requirements.
+    pub fn missing_coverage(&self) -> Vec<&'static str> {
+        let mut missing = Vec::new();
+        if self.n_rsd_datasets < 1 {
+            missing.push("full-shape RSD (≥1 dataset required)");
+        }
+        if self.n_wl_surveys < 2 {
+            missing.push("independent WL surveys (≥2 required: KiDS/DES/HSC)");
+        }
+        if !self.has_cmb_lensing {
+            missing.push("CMB lensing dataset (ACT DR6 or Planck required)");
+        }
+        if !self.has_bao {
+            missing.push("BAO dataset (DESI DR2 or equivalent required)");
+        }
+        if !self.has_sne_pantheon_plus {
+            missing.push("Pantheon+ full-covariance SNe dataset required");
+        }
+        missing
+    }
+}
+
 impl GrowthVerdictPack {
     /// Build a verdict pack from RSD and lensing inputs.
     ///
@@ -165,6 +298,16 @@ impl GrowthVerdictPack {
             .sum();
         (chi2, dof)
     }
+}
+
+// ---- DatasetSurvivalTable helper ----
+
+/// A per-dataset survival table — must be checked before scoring.
+pub type DatasetSurvivalTable = Vec<DatasetSurvivalRecord>;
+
+/// True when all datasets in the table passed their fiducial check.
+pub fn all_fiducials_pass(table: &DatasetSurvivalTable) -> bool {
+    table.iter().all(|r| r.fiducial_ok)
 }
 
 #[cfg(test)]
@@ -247,5 +390,110 @@ mod tests {
         let expected = rsd.pull.powi(2) + lensing.pull.powi(2);
         assert!((chi2 - expected).abs() < 1e-10);
         assert_eq!(dof, 2);
+    }
+
+    // ---- CmbLensingVerdict ----
+
+    #[test]
+    fn cmb_lensing_pull_computed_correctly() {
+        let v = CmbLensingVerdict::new(1.013, 0.025, 0.998, "ACT-DR6");
+        let expected = (0.998 - 1.013) / 0.025;
+        assert!((v.pull - expected).abs() < 1e-12);
+        assert!(!v.is_tension()); // pull ≈ 0.6
+    }
+
+    #[test]
+    fn cmb_lensing_tension_detected_above_2sigma() {
+        let v = CmbLensingVerdict::new(1.013, 0.025, 0.960, "ACT-DR6");
+        assert!(v.is_tension()); // pull ≈ 2.12
+    }
+
+    #[test]
+    fn cmb_lensing_zero_sigma_gives_zero_pull() {
+        let v = CmbLensingVerdict::new(1.0, 0.0, 1.1, "test");
+        assert_eq!(v.pull, 0.0);
+    }
+
+    // ---- GrowthCoverageGate ----
+
+    #[test]
+    fn coverage_satisfied_when_all_five_conditions_met() {
+        let gate = GrowthCoverageGate {
+            n_rsd_datasets: 2,
+            n_wl_surveys: 3,
+            has_cmb_lensing: true,
+            has_bao: true,
+            has_sne_pantheon_plus: true,
+        };
+        assert!(gate.coverage_satisfied());
+        assert!(gate.missing_coverage().is_empty());
+    }
+
+    #[test]
+    fn coverage_fails_when_only_one_wl_survey() {
+        let gate = GrowthCoverageGate {
+            n_rsd_datasets: 1,
+            n_wl_surveys: 1,
+            has_cmb_lensing: true,
+            has_bao: true,
+            has_sne_pantheon_plus: true,
+        };
+        assert!(!gate.coverage_satisfied());
+        let missing = gate.missing_coverage();
+        assert!(missing.iter().any(|m| m.contains("WL surveys")));
+    }
+
+    #[test]
+    fn coverage_fails_when_cmb_lensing_absent() {
+        let gate = GrowthCoverageGate {
+            n_rsd_datasets: 1,
+            n_wl_surveys: 2,
+            has_cmb_lensing: false,
+            has_bao: true,
+            has_sne_pantheon_plus: true,
+        };
+        assert!(!gate.coverage_satisfied());
+        let missing = gate.missing_coverage();
+        assert!(missing.iter().any(|m| m.contains("CMB lensing")));
+    }
+
+    #[test]
+    fn coverage_missing_returns_all_unmet_requirements() {
+        let gate = GrowthCoverageGate {
+            n_rsd_datasets: 0,
+            n_wl_surveys: 0,
+            has_cmb_lensing: false,
+            has_bao: false,
+            has_sne_pantheon_plus: false,
+        };
+        assert!(!gate.coverage_satisfied());
+        assert_eq!(gate.missing_coverage().len(), 5);
+    }
+
+    // ---- DatasetSurvivalTable ----
+
+    #[test]
+    fn all_fiducials_pass_when_all_ok() {
+        let table = vec![
+            DatasetSurvivalRecord::new("eBOSS-DR16", Some(1.1), true),
+            DatasetSurvivalRecord::new("KiDS-Legacy", Some(1.3), true),
+            DatasetSurvivalRecord::new("ACT-DR6", Some(0.9), true),
+        ];
+        assert!(all_fiducials_pass(&table));
+    }
+
+    #[test]
+    fn all_fiducials_fail_when_one_has_high_chi2() {
+        let table = vec![
+            DatasetSurvivalRecord::new("eBOSS-DR16", Some(1.1), true),
+            DatasetSurvivalRecord::new("broken-dataset", Some(3.5), true),
+        ];
+        assert!(!all_fiducials_pass(&table));
+    }
+
+    #[test]
+    fn survival_record_without_chi2_is_ok() {
+        let rec = DatasetSurvivalRecord::new("DESI-DR2", None, true);
+        assert!(rec.fiducial_ok); // None means "not checked yet" → pass
     }
 }

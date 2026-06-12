@@ -201,6 +201,20 @@ pub enum VetoReason {
         patch_digest: String,
     },
 
+    // --- V8 Phase 27 (SYNTHESIS hard truth #3): nDGP growth-direction consistency ---
+    /// V8 Phase 27: the nDGP normal branch (Ω_rc > 0) always enhances G_eff/G > 1
+    /// (Lue, Scoccimarro & Starkman 2004, PRD 69 044005). A theory with active nDGP
+    /// and NO supplementary suppression mechanism (dark-scattering drag_a > 0 or
+    /// Planck-μ0 < 0) is structurally incapable of growth suppression and cannot
+    /// be a member of C_growth-suppression(V8).
+    ///
+    /// This is a *diagnostic*, not a kill (the theory is valid physics; it just
+    /// belongs in the wrong campaign direction). See [`VetoReason::is_kill`].
+    NdgpNormalBranchEnhancesGrowth {
+        /// The declared Ω_rc value confirming the normal branch is active.
+        omega_rc: f64,
+    },
+
     /// The theory is distinct from ΛCDM via verified certificates, but the bound background still
     /// computes GR growth (an unbindable relation or an inversion domain error) — the claimed
     /// modification has no computable consequence, which is exactly the credit-without-risk
@@ -227,7 +241,11 @@ impl VetoReason {
     /// `UncertifiedDerivedParameter` is a non-fatal *diagnostic* (today's text-only behavior is
     /// preserved) and is the sole non-kill reason.
     pub fn is_kill(&self) -> bool {
-        !matches!(self, VetoReason::UncertifiedDerivedParameter { .. })
+        !matches!(
+            self,
+            VetoReason::UncertifiedDerivedParameter { .. }
+                | VetoReason::NdgpNormalBranchEnhancesGrowth { .. }
+        )
     }
 }
 
@@ -397,6 +415,26 @@ pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
     //    can compute (unbindable / conflicting / unexplained modifications are kills). Pure
     //    algebra — no ODE solve — cheap enough for triage.
     reasons.extend(super::binding::bind_modified_background(theory).vetoes);
+
+    // 9. V8 Phase 27 (SYNTHESIS hard truth #3): nDGP normal-branch growth direction.
+    //    The healthy normal branch (Ω_rc > 0) enhances G_eff/G > 1 (Lue et al. 2004).
+    //    A theory with active nDGP and no supplementary suppression (drag_a > 0 for dark
+    //    scattering, or μ0 < 0 for Planck-MG) cannot produce net growth suppression and
+    //    therefore cannot be a member of the C_growth-suppression(V8) exclusion class.
+    //    Emitted as a *diagnostic* (non-kill) so the critic can flag it without pruning
+    //    valid physics from the search loop.
+    {
+        let bg = &theory.background;
+        if bg.mg_family == crate::cosmology::MgFamily::Ndgp
+            && bg.ndgp_omega_rc > 0.0
+            && bg.drag_a <= 1e-12
+            && bg.mu0 >= -1e-6
+        {
+            reasons.push(VetoReason::NdgpNormalBranchEnhancesGrowth {
+                omega_rc: bg.ndgp_omega_rc,
+            });
+        }
+    }
 
     reasons
 }
@@ -1315,6 +1353,91 @@ mod tests {
         assert!(
             r.is_kill(),
             "ScreeningMechanismImplausible must be a hard kill"
+        );
+    }
+
+    // ---- V8 Phase 27: nDGP normal-branch growth-direction diagnostic ----
+
+    fn ndgp_theory(omega_rc: f64) -> Theory {
+        let mut t = Theory::baseline_lcdm();
+        t.background.mg_family = crate::cosmology::MgFamily::Ndgp;
+        t.background.ndgp_omega_rc = omega_rc;
+        // Add the required brane term so adjudication doesn't fire StructurallyUngenerated.
+        t.terms.push(Term {
+            name: "dgp_brane".into(),
+            mass_dimension: 4,
+            free_lorentz_indices: 0,
+        });
+        t
+    }
+
+    #[test]
+    fn ndgp_normal_branch_without_suppression_emits_enhancement_diagnostic() {
+        // Normal branch (Ω_rc > 0), no drag, no μ0 suppression → diagnostic fires.
+        let t = ndgp_theory(0.25);
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            all.iter().any(
+                |r| matches!(r, VetoReason::NdgpNormalBranchEnhancesGrowth { omega_rc }
+                    if (*omega_rc - 0.25).abs() < 1e-9)
+            ),
+            "nDGP normal branch with no suppression must emit the enhancement diagnostic"
+        );
+    }
+
+    #[test]
+    fn ndgp_enhancement_diagnostic_is_not_a_kill() {
+        // The diagnostic fires but must NOT appear in the kills-only cascade.
+        let t = ndgp_theory(0.25);
+        let kills = run_veto_cascade(&t);
+        assert!(
+            !kills
+                .iter()
+                .any(|r| matches!(r, VetoReason::NdgpNormalBranchEnhancesGrowth { .. })),
+            "NdgpNormalBranchEnhancesGrowth must be filtered from the kill cascade"
+        );
+        let r = VetoReason::NdgpNormalBranchEnhancesGrowth { omega_rc: 0.25 };
+        assert!(
+            !r.is_kill(),
+            "NdgpNormalBranchEnhancesGrowth must not be a kill"
+        );
+    }
+
+    #[test]
+    fn ndgp_normal_branch_with_dark_scattering_suppression_does_not_flag() {
+        // nDGP + drag_a > 0 gives a supplementary suppression mechanism → no diagnostic.
+        let mut t = ndgp_theory(0.25);
+        t.background.drag_a = 2.0;
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            !all.iter()
+                .any(|r| matches!(r, VetoReason::NdgpNormalBranchEnhancesGrowth { .. })),
+            "nDGP with dark-scattering suppression must not emit the enhancement diagnostic"
+        );
+    }
+
+    #[test]
+    fn ndgp_normal_branch_with_mu0_suppression_does_not_flag() {
+        // nDGP + μ0 < 0 provides a second suppression channel → no diagnostic.
+        let mut t = ndgp_theory(0.25);
+        t.background.mu0 = -0.15;
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            !all.iter()
+                .any(|r| matches!(r, VetoReason::NdgpNormalBranchEnhancesGrowth { .. })),
+            "nDGP with μ0 suppression must not emit the enhancement diagnostic"
+        );
+    }
+
+    #[test]
+    fn ndgp_gr_limit_no_diagnostic() {
+        // Ω_rc = 0 ⇒ r_c → ∞ ⇒ GR limit; normal branch is inactive → no diagnostic.
+        let t = ndgp_theory(0.0);
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            !all.iter()
+                .any(|r| matches!(r, VetoReason::NdgpNormalBranchEnhancesGrowth { .. })),
+            "Ω_rc = 0 (GR limit) must not emit the nDGP enhancement diagnostic"
         );
     }
 }

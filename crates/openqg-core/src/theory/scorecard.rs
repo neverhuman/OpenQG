@@ -1130,6 +1130,7 @@ mod tests {
             }),
             citation: None,
             novel: None,
+            equation_match: None,
         };
         let store = MemStore(BTreeMap::from([("bg.json".to_string(), bytes)]));
         (
@@ -1342,6 +1343,7 @@ mod tests {
                 min_detectable: 0.01,
                 falsifier: "DESI/Euclid fσ8".into(),
             }),
+            equation_match: None,
         });
         let modi = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
         assert!(!modi.disqualified, "{:?}", modi.kill_reasons);

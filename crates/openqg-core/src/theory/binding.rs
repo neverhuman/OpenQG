@@ -880,6 +880,7 @@ mod tests {
                 min_detectable: 0.005,
                 falsifier: "DESI/Euclid RSD".into(),
             }),
+            equation_match: None,
         };
         let audits = audit_novel_predictions(&out.theory.background, &[honest_witness.clone()]);
         assert_eq!(audits.len(), 1);
@@ -910,6 +911,7 @@ mod tests {
                 min_detectable: 0.1,
                 falsifier: "CMB".into(),
             }),
+            equation_match: None,
         };
         let audits = audit_novel_predictions(&out.theory.background, &[unknown.clone()]);
         assert_eq!(audits[0].observable_canonical, None);

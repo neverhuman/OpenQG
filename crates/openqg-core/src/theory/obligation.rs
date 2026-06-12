@@ -36,7 +36,13 @@ pub enum DerivationObligationKind {
     /// A sketch of a Lean/formal proof. **Unsupported stub in v4.**
     LeanSketch,
     /// A textual attestation that the claim matches a published result (low rigor: just a citation).
+    /// Rigor weight demoted to 0.15 in V8 — prefer [`Self::LiteratureEquationMatch`].
     LiteratureEquivalence,
+    /// An equation-anchored literature match: the proposer copies a specific equation (by ID and
+    /// DOI) from a published paper and attests that the theory's expression reduces to that form.
+    /// Stronger than [`Self::LiteratureEquivalence`] because it commits to a specific equation,
+    /// not just a paper, making auditing machine-assisted.
+    LiteratureEquationMatch,
     /// A *falsifiable novel prediction* distinguishing the theory from the ΛCDM/SM baseline: a named
     /// observable whose predicted value departs from the baseline by a testable amount, plus the
     /// experiment that would refute it. Feeds the **novelty** dimension, not derivation rigor.
@@ -58,8 +64,10 @@ impl DerivationObligationKind {
             // Recorded but not machine-checked in v4 ⇒ no rigor earned.
             DerivationObligationKind::Positivstellensatz => 0.0,
             DerivationObligationKind::LeanSketch => 0.0,
-            // A citation is an attestation, not a derivation.
-            DerivationObligationKind::LiteratureEquivalence => 0.3,
+            // A citation is an attestation, not a derivation. Demoted in V8.
+            DerivationObligationKind::LiteratureEquivalence => 0.15,
+            // An equation-anchored match: pinned to a specific equation + DOI.
+            DerivationObligationKind::LiteratureEquationMatch => 0.7,
             // A prediction is novelty evidence, not rigor — it earns nothing on the rigor axis.
             DerivationObligationKind::NovelPrediction => 0.0,
         }
@@ -102,6 +110,29 @@ impl NovelPredictionWitness {
             && self.min_detectable.is_finite()
             && self.min_detectable > 0.0
             && (self.predicted - self.baseline).abs() >= self.min_detectable
+    }
+}
+
+/// Witness that a theory expression matches a specific equation from a published paper.
+/// Stronger than a bare citation: the proposer copies the equation by ID and DOI, which
+/// makes auditing targeted — a reviewer can look up the exact equation rather than scanning the
+/// paper. All three fields must be non-empty for [`EquationMatchWitness::verifies`] to hold.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EquationMatchWitness {
+    /// Equation identifier in the source (e.g., "Eq. 15", "Eq. B12", "(3.4)").
+    pub equation_id: String,
+    /// DOI or persistent URL of the source paper (e.g., "10.1103/PhysRevD.62.043511").
+    pub doi_anchor: String,
+    /// LaTeX formula transcribed from the paper (the proposer copies it literally from the source).
+    pub formula_latex: String,
+}
+
+impl EquationMatchWitness {
+    /// True iff all three identifying fields are non-empty (after trimming).
+    pub fn verifies(&self) -> bool {
+        !self.equation_id.trim().is_empty()
+            && !self.doi_anchor.trim().is_empty()
+            && !self.formula_latex.trim().is_empty()
     }
 }
 
@@ -170,6 +201,9 @@ pub struct DerivationObligation {
     /// Falsifiable-prediction witness for [`DerivationObligationKind::NovelPrediction`].
     #[serde(default)]
     pub novel: Option<NovelPredictionWitness>,
+    /// Equation-anchor witness for [`DerivationObligationKind::LiteratureEquationMatch`].
+    #[serde(default)]
+    pub equation_match: Option<EquationMatchWitness>,
 }
 
 impl DerivationObligation {
@@ -238,6 +272,32 @@ impl DerivationObligation {
                         counterexample: Some(
                             "no citation supplied for literature-equivalence attestation".into(),
                         ),
+                    },
+                }
+            }
+            DerivationObligationKind::LiteratureEquationMatch => {
+                match &self.equation_match {
+                    Some(w) if w.verifies() => ObligationOutcome::Verified {
+                        detail: format!(
+                            "equation match: {} in {} — formula: {}",
+                            w.equation_id, w.doi_anchor, w.formula_latex
+                        ),
+                    },
+                    Some(_) => ObligationOutcome::Failed {
+                        detail: format!(
+                            "equation-match witness for '{}' is incomplete (equation_id, doi_anchor, or formula_latex is empty)",
+                            self.claim_id
+                        ),
+                        counterexample: Some(
+                            "equation_id, doi_anchor, and formula_latex must all be non-empty".into(),
+                        ),
+                    },
+                    None => ObligationOutcome::Failed {
+                        detail: format!(
+                            "literature-equation-match obligation '{}' requires an EquationMatchWitness",
+                            self.claim_id
+                        ),
+                        counterexample: None,
                     },
                 }
             }
@@ -498,6 +558,7 @@ mod tests {
             limit: None,
             citation: None,
             novel: None,
+            equation_match: None,
         }
     }
 
@@ -777,6 +838,7 @@ mod tests {
             }),
             citation: Some("Koyama & Maartens, JCAP 0601:016 (2006)".into()),
             novel: None,
+            equation_match: None,
         };
         let json = serde_json::to_string(&o).expect("serialize");
         let back: DerivationObligation = serde_json::from_str(&json).expect("deserialize");
@@ -797,5 +859,138 @@ mod tests {
         let o: DerivationObligation = serde_json::from_str(minimal).expect("minimal deserializes");
         assert!(o.certificate.is_none() && o.limit.is_none() && o.citation.is_none());
         assert!(matches!(o.check(), ObligationOutcome::Unsupported { .. }));
+    }
+
+    // --- Phase 14 / SYNTHESIS #16: LiteratureEquationMatch tests ---
+
+    #[test]
+    fn literature_equation_match_rigor_weight_is_higher_than_equivalence() {
+        assert!(
+            DerivationObligationKind::LiteratureEquationMatch.rigor_weight()
+                > DerivationObligationKind::LiteratureEquivalence.rigor_weight()
+        );
+        assert_eq!(
+            DerivationObligationKind::LiteratureEquationMatch.rigor_weight(),
+            0.7
+        );
+    }
+
+    #[test]
+    fn literature_equivalence_weight_demoted_to_0_15() {
+        assert_eq!(
+            DerivationObligationKind::LiteratureEquivalence.rigor_weight(),
+            0.15
+        );
+    }
+
+    #[test]
+    fn equation_match_witness_verifies_when_all_fields_set() {
+        let w = EquationMatchWitness {
+            equation_id: "Eq. 15".into(),
+            doi_anchor: "10.1103/PhysRevD.62.043511".into(),
+            formula_latex: r"\mu(a) = 1 + \mu_0 \Omega_{\rm DE}(a)".into(),
+        };
+        assert!(w.verifies());
+    }
+
+    #[test]
+    fn equation_match_witness_fails_when_any_field_empty() {
+        let base = EquationMatchWitness {
+            equation_id: "Eq. 15".into(),
+            doi_anchor: "10.1103/PhysRevD.62.043511".into(),
+            formula_latex: r"G_{\rm eff}/G = 1 + 1/3\beta".into(),
+        };
+        let mut missing_eq = base.clone();
+        missing_eq.equation_id = "".into();
+        assert!(!missing_eq.verifies());
+
+        let mut missing_doi = base.clone();
+        missing_doi.doi_anchor = "  ".into();
+        assert!(!missing_doi.verifies());
+
+        let mut missing_latex = base.clone();
+        missing_latex.formula_latex = "".into();
+        assert!(!missing_latex.verifies());
+    }
+
+    #[test]
+    fn literature_equation_match_verifies_with_full_witness() {
+        let mut o = obligation(DerivationObligationKind::LiteratureEquationMatch);
+        o.equation_match = Some(EquationMatchWitness {
+            equation_id: "Eq. 3".into(),
+            doi_anchor: "10.1088/1475-7516/2006/01/016".into(),
+            formula_latex: r"G_{\rm eff}/G = 1 + 1/(3\beta^2)".into(),
+        });
+        assert!(o.check().is_verified(), "{:?}", o.check());
+        assert!(falsifier(&o).is_none());
+    }
+
+    #[test]
+    fn literature_equation_match_fails_with_incomplete_witness() {
+        let mut o = obligation(DerivationObligationKind::LiteratureEquationMatch);
+        o.equation_match = Some(EquationMatchWitness {
+            equation_id: "Eq. 3".into(),
+            doi_anchor: "".into(),
+            formula_latex: r"G_{\rm eff}/G".into(),
+        });
+        assert!(!o.check().is_verified());
+        let f = falsifier(&o).expect("incomplete witness has a falsifier");
+        assert!(f.contains("non-empty"), "{f}");
+    }
+
+    #[test]
+    fn literature_equation_match_fails_without_witness() {
+        let o = obligation(DerivationObligationKind::LiteratureEquationMatch);
+        assert!(matches!(o.check(), ObligationOutcome::Failed { .. }));
+        assert!(falsifier(&o).is_some());
+    }
+
+    #[test]
+    fn literature_equation_match_effective_rigor_weight() {
+        // LiteratureEquationMatch falls through to `_ => self.kind.rigor_weight()` — always 0.7.
+        let mut o = obligation(DerivationObligationKind::LiteratureEquationMatch);
+        o.equation_match = Some(EquationMatchWitness {
+            equation_id: "Eq. 1".into(),
+            doi_anchor: "10.1234/test".into(),
+            formula_latex: r"\alpha_T = 0".into(),
+        });
+        assert_eq!(o.effective_rigor_weight(), 0.7);
+    }
+
+    #[test]
+    fn literature_equation_match_serializes_snake_case() {
+        let j = serde_json::to_string(&DerivationObligationKind::LiteratureEquationMatch).unwrap();
+        assert_eq!(j, "\"literature_equation_match\"");
+    }
+
+    #[test]
+    fn equation_match_obligation_serde_round_trip() {
+        let o = DerivationObligation {
+            claim_id: "coupled-de-geff".into(),
+            kind: DerivationObligationKind::LiteratureEquationMatch,
+            detail: "G_eff/G expression matches Amendola 2000 Eq. 15".into(),
+            certificate: None,
+            limit: None,
+            citation: Some("Amendola 2000".into()),
+            novel: None,
+            equation_match: Some(EquationMatchWitness {
+                equation_id: "Eq. 15".into(),
+                doi_anchor: "10.1103/PhysRevD.62.043511".into(),
+                formula_latex: r"G_{\rm eff}/G = 1 + \frac{2\beta^2}{1 + m^2/k^2}".into(),
+            }),
+        };
+        let json = serde_json::to_string(&o).expect("serialize");
+        let back: DerivationObligation = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(o, back);
+        assert!(back.check().is_verified());
+    }
+
+    #[test]
+    fn minimal_json_without_equation_match_back_compat() {
+        // Old obligations without the equation_match key must still deserialize cleanly.
+        let minimal = r#"{"claim_id":"c","kind":"literature_equation_match","detail":"d"}"#;
+        let o: DerivationObligation = serde_json::from_str(minimal).expect("deserializes");
+        assert!(o.equation_match.is_none());
+        assert!(matches!(o.check(), ObligationOutcome::Failed { .. }));
     }
 }

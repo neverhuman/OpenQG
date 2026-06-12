@@ -456,6 +456,7 @@ pub(crate) fn expand_sketch(sketch: &ProposalSketch) -> Result<ProposalDoc> {
             limit,
             citation,
             novel,
+            equation_match: None,
         });
     }
 

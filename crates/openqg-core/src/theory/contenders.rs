@@ -113,6 +113,7 @@ fn gr_limit_obligation(claim_id: &str) -> DerivationObligation {
         }),
         citation: None,
         novel: None,
+        equation_match: None,
     }
 }
 
@@ -291,6 +292,7 @@ pub fn human_contenders() -> ContenderSuite {
                 limit: None,
                 citation: Some("Koyama & Maartens 2006".into()),
                 novel: None,
+                equation_match: None,
             },
             DerivationObligation {
                 claim_id: "ndgp-ob-novel".into(),
@@ -307,6 +309,7 @@ pub fn human_contenders() -> ContenderSuite {
                     min_detectable: 0.01,
                     falsifier: "DESI/Euclid RSD fσ8 at z=0.51".into(),
                 }),
+                equation_match: None,
             },
         ];
         entries.push((

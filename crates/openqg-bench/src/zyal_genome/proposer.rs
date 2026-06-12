@@ -219,6 +219,7 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
         limit: None,
         citation: Some("Koyama & Maartens 2006".into()),
         novel: None,
+        equation_match: None,
     };
 
     // A verified falsifiable prediction — V5: the witness numbers are ENGINE-COMPUTED from the
@@ -254,6 +255,7 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
             min_detectable: 0.01,
             falsifier: "DESI/Euclid RSD fσ8 at z=0.51".into(),
         }),
+        equation_match: None,
     };
 
     // H0 is shared across Background and Growth (both fundamental) — a genuine, hidden-knob-free

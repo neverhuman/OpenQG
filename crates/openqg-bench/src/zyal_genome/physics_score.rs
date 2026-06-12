@@ -206,6 +206,7 @@ mod tests {
             }),
             citation: None,
             novel: None,
+            equation_match: None,
         };
         (
             ClaimGraph {
@@ -717,6 +718,7 @@ mod v6_novelty_tests {
                 min_detectable: 0.01,
                 falsifier: "DESI Y5 fsigma8".into(),
             }),
+            equation_match: None,
         }];
         let observables = obs();
         let sc = score_candidate(

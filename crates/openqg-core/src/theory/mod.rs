@@ -91,7 +91,8 @@ pub use league::{fit_model, model_league, FitResult, FreeParam, LeagueRow, Model
 pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombine, Rng};
 pub use obligation::{
     dimensional_consistency, falsifier, limit_recovers_gr, DerivationObligation,
-    DerivationObligationKind, LimitWitness, NovelPredictionWitness, ObligationOutcome,
+    DerivationObligationKind, EquationMatchWitness, LimitWitness, NovelPredictionWitness,
+    ObligationOutcome,
 };
 pub use pricing::{PricingEntry, PricingLedger};
 pub use profundity::{

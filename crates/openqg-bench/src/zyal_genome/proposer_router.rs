@@ -15,6 +15,8 @@
 //! with no network.
 
 use std::cell::{Cell, RefCell};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
@@ -231,6 +233,97 @@ pub(crate) fn router_preflight(cfg: &RouterConfig) -> Result<()> {
     Ok(())
 }
 
+/// Build a compact negative-memory block from the current run's on-disk attempts file (U3).
+///
+/// Reads the `proposal-attempts.jsonl` that the engine writes after each generation drain.
+/// Returns a non-empty string only when ≥5 disqualified records exist (signal/noise threshold).
+/// Pure w.r.t. its input: two calls on the same file produce the same output.
+fn build_within_run_kill_block(path: &Path) -> String {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return String::new();
+    };
+    let mut total: usize = 0;
+    let mut disq: usize = 0;
+    let mut classes: BTreeMap<&'static str, usize> = BTreeMap::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+        total += 1;
+        let is_disq = v.get("disqualified").and_then(serde_json::Value::as_bool) != Some(false)
+            || v.get("outcome")
+                .and_then(serde_json::Value::as_str)
+                .map(|o| o != "winner" && o != "promoted")
+                .unwrap_or(false);
+        if !is_disq {
+            continue;
+        }
+        disq += 1;
+        // Collect kill classes using the same normalizer as proposer_memory.
+        for krs_key in ["kill_reasons", "kill_reason"] {
+            if let Some(val) = v.get(krs_key) {
+                if let Some(arr) = val.as_array() {
+                    for r in arr.iter().filter_map(serde_json::Value::as_str) {
+                        let class = normalize_kill_class_for_within_run(r);
+                        *classes.entry(class).or_insert(0) += 1;
+                    }
+                } else if let Some(s) = val.as_str() {
+                    let class = normalize_kill_class_for_within_run(s);
+                    *classes.entry(class).or_insert(0) += 1;
+                }
+            }
+        }
+        if v.get("outcome").and_then(serde_json::Value::as_str) == Some("parse_error") {
+            *classes.entry("parse_error").or_insert(0) += 1;
+        }
+    }
+    if disq < 5 {
+        return String::new();
+    }
+    let mut sorted: Vec<(&'static str, usize)> = classes.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+    let mut out = String::new();
+    out.push_str(&format!(
+        "\n## WITHIN-RUN KILLS ({total} attempts, {disq} disqualified this run)\n"
+    ));
+    for (class, count) in sorted.iter().take(6) {
+        out.push_str(&format!("  {class}: {count}\n"));
+    }
+    out.push_str(
+        "DON'T repeat mechanism variations that already failed — they will fail again.\n",
+    );
+    out
+}
+
+/// Coarse kill-class normalizer for within-run block (mirrors proposer_memory normalization).
+fn normalize_kill_class_for_within_run(reason: &str) -> &'static str {
+    if reason.contains("UnknownRelation") {
+        "unknown_relation"
+    } else if reason.contains("evidence") {
+        "unbound_evidence"
+    } else if reason.contains("no_hidden_knob") || reason.contains("hidden") {
+        "hidden_knob"
+    } else if reason.contains("FreeParameter") {
+        "free_parameter"
+    } else if reason.contains("UnverifiedDerivation") {
+        "unverified_derivation"
+    } else if reason.contains("Unimplemented") {
+        "unimplemented_modification"
+    } else if reason.contains("Unexplained") {
+        "unexplained_modification"
+    } else if reason.contains("Conflicting") {
+        "conflicting_modification"
+    } else if reason.contains("Screening") || reason.contains("screening") {
+        "screening_implausible"
+    } else {
+        "other"
+    }
+}
+
 /// The V6 free-compute proposer: best-of-K parallel samples per slot, each on its own mechanism
 /// lane, with router-side schema validation, client parse/oracle repair, and total observability.
 pub(crate) struct RouterProposer {
@@ -240,6 +333,9 @@ pub(crate) struct RouterProposer {
     blocks: Vec<openqg_core::scoring::CovarianceBlock>,
     baseline_ll: f64,
     extra_sections: String,
+    /// U3 (Phase 33): path to the current run's proposal-attempts.jsonl — read each propose()
+    /// call to inject within-run kill feedback into the prompt. None if not set.
+    within_run_path: Option<PathBuf>,
     attempts: RefCell<Vec<ProposalAttemptRecord>>,
     /// Deterministic rotation seed: bands shift by one per propose() call.
     call_no: Cell<usize>,
@@ -261,10 +357,16 @@ impl RouterProposer {
             blocks,
             baseline_ll,
             extra_sections,
+            within_run_path: None,
             attempts: RefCell::new(Vec::new()),
             call_no: Cell::new(0),
             caller,
         }
+    }
+
+    /// U3: set the path to the current run's proposal-attempts.jsonl for within-run kill feedback.
+    pub(crate) fn set_within_run_path(&mut self, path: PathBuf) {
+        self.within_run_path = Some(path);
     }
 
     #[cfg(test)]
@@ -281,6 +383,7 @@ impl RouterProposer {
             blocks: Vec::new(),
             baseline_ll,
             extra_sections,
+            within_run_path: None,
             attempts: RefCell::new(Vec::new()),
             call_no: Cell::new(0),
             caller,
@@ -529,12 +632,23 @@ impl Proposer for RouterProposer {
         let k = self.cfg.samples.max(1);
         let stagger = self.cfg.stagger_seconds;
         let counter = AtomicUsize::new(0);
+        // U3: append within-run kill block if the path is set and has enough data.
+        let within = self
+            .within_run_path
+            .as_deref()
+            .map(build_within_run_kill_block)
+            .unwrap_or_default();
+        let combined_extra: std::borrow::Cow<str> = if within.is_empty() {
+            std::borrow::Cow::Borrowed(&self.extra_sections)
+        } else {
+            std::borrow::Cow::Owned(format!("{}{within}", self.extra_sections))
+        };
         let ctx = SampleCtx {
             cfg: &self.cfg,
             observables: &self.observables,
             blocks: &self.blocks,
             baseline_ll: self.baseline_ll,
-            extra_sections: &self.extra_sections,
+            extra_sections: combined_extra.as_ref(),
             caller: &self.caller,
         };
         let outcomes: Vec<SampleOutcome> = std::thread::scope(|scope| {
@@ -770,5 +884,67 @@ mod tests {
         assert!(should_retry(Some(404), 1).is_none());
         assert!(should_retry(Some(400), 1).is_none());
         assert!(should_retry(Some(503), 2).is_none()); // one retry only
+    }
+
+    #[test]
+    fn within_run_kill_block_empty_below_threshold() {
+        // Fewer than 5 disqualified records → empty block (noise floor).
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("proposal-attempts.jsonl");
+        let records = (0..4)
+            .map(|_| {
+                serde_json::json!({
+                    "disqualified": true,
+                    "kill_reasons": ["FreeParameter: extra dial"],
+                    "outcome": "disqualified"
+                })
+                .to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&path, records).unwrap();
+        assert!(build_within_run_kill_block(&path).is_empty());
+    }
+
+    #[test]
+    fn within_run_kill_block_emitted_above_threshold() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("proposal-attempts.jsonl");
+        let mut lines = Vec::new();
+        for _ in 0..8 {
+            lines.push(
+                serde_json::json!({
+                    "disqualified": true,
+                    "kill_reasons": ["UnverifiedDerivation: step 2"],
+                    "outcome": "disqualified"
+                })
+                .to_string(),
+            );
+        }
+        // One non-disqualified record — should not inflate disq count.
+        lines.push(
+            serde_json::json!({
+                "disqualified": false,
+                "outcome": "winner"
+            })
+            .to_string(),
+        );
+        std::fs::write(&path, lines.join("\n")).unwrap();
+        let block = build_within_run_kill_block(&path);
+        assert!(!block.is_empty(), "block should be emitted for 8 disqualified");
+        assert!(
+            block.contains("unverified_derivation"),
+            "block should name the dominant kill class"
+        );
+        assert!(
+            block.contains("WITHIN-RUN KILLS"),
+            "block should have the section header"
+        );
+    }
+
+    #[test]
+    fn within_run_kill_block_missing_file_returns_empty() {
+        let path = std::path::Path::new("/nonexistent/path/proposal-attempts.jsonl");
+        assert!(build_within_run_kill_block(path).is_empty());
     }
 }

@@ -204,7 +204,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 seed,
             };
             let fixture = FixtureProposer;
-            let router = if with_router_proposer {
+            let mut router = if with_router_proposer {
                 let mut cfg = RouterConfig {
                     timeout_seconds: router_timeout_seconds,
                     samples: router_samples,
@@ -230,6 +230,15 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             } else {
                 None
             };
+            // U3: wire within-run kill feedback — reads proposal-attempts.jsonl each propose() call.
+            if let Some(ref mut r) = router {
+                r.set_within_run_path(
+                    output_root
+                        .join("runs")
+                        .join(&run_id)
+                        .join("proposal-attempts.jsonl"),
+                );
+            }
             let budgeted;
             let proposer: Option<&dyn Proposer> = if let Some(r) = router.as_ref() {
                 budgeted = BudgetedProposer::new(r as &dyn Proposer, router_every);
@@ -304,7 +313,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 seed,
             };
             let fixture = FixtureProposer;
-            let router = if with_router_proposer {
+            let mut router = if with_router_proposer {
                 let mut cfg = RouterConfig {
                     timeout_seconds: router_timeout_seconds,
                     samples: router_samples,
@@ -330,6 +339,15 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             } else {
                 None
             };
+            // U3: wire within-run kill feedback.
+            if let Some(ref mut r) = router {
+                r.set_within_run_path(
+                    output_root
+                        .join("runs")
+                        .join(&run_id)
+                        .join("proposal-attempts.jsonl"),
+                );
+            }
             let budgeted;
             let proposer: Option<&dyn Proposer> = if let Some(r) = router.as_ref() {
                 budgeted = BudgetedProposer::new(r as &dyn Proposer, router_every);

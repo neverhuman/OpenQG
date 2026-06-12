@@ -3,7 +3,7 @@
 //! V3's genome scored candidates with `compute_scores` (a deterministic hash-jitter around ~0.6)
 //! that never touched the physics. `score_candidate` replaces it: it runs the candidate `Theory`
 //! through the *same* deterministic physics the rest of the engine uses — the veto cascade and the
-//! data fit (`evaluate` for ε over the GR baseline, `held_out_evaluate` for the sealed-holdout
+//! data fit (`evaluate` for ε over the GR baseline, `split_evaluate` for the sealed-holdout
 //! generalization gap) — assembles a [`DataFitOutcome`], and adjudicates it veto-first against the
 //! M3 [`ScorecardV4`] rubric. A vetoed or gate-failing candidate scores 0; survivors get the real
 //! 100-point critic-proofness score. Pure given its inputs (the forward model is deterministic), so
@@ -11,9 +11,9 @@
 
 use openqg_core::cosmology::BackgroundForwardModel;
 use openqg_core::theory::{
-    alternating_holdout, evaluate_with_blocks, held_out_evaluate,
-    score_with_observables as scorecard_score, ClaimGraph, DataFitOutcome, DerivationObligation,
-    EvidenceStore, ScorecardV4, Theory, UnificationClaim,
+    alternating_split, evaluate_with_blocks, score_with_observables as scorecard_score,
+    split_evaluate, ClaimGraph, DataFitOutcome, DerivationObligation, EvidenceStore, ScorecardV4,
+    Theory, UnificationClaim,
 };
 use openqg_core::ObservableRecord;
 
@@ -78,8 +78,8 @@ pub(crate) fn score_candidate(
     let eval = evaluate_with_blocks(theory, observables, blocks, &model, baseline_log_likelihood);
 
     // Generalization on an alternating sealed split (smaller gap ⇒ more predictive, less overfit).
-    let heldout = alternating_holdout(observables.len());
-    let held = held_out_evaluate(theory, observables, &model, &heldout);
+    let heldout = alternating_split(observables.len());
+    let held = split_evaluate(theory, observables, &model, &heldout);
 
     // A vetoed candidate has no meaningful data fit; the scorecard's own veto gate will disqualify
     // it regardless, so we pass `None` (DataFit scores 0 with a full-uncertainty band).

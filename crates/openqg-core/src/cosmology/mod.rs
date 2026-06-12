@@ -10,8 +10,8 @@ mod subprocess;
 
 pub use background::{BackgroundError, CosmologyParams, MgFamily, C_KM_S};
 pub use forward::{
-    BackgroundForwardModel, ForwardFailure, ForwardKind, ForwardManifest, ForwardModel,
-    ForwardOutcome, ForwardTier,
+    check_instrument_risk, BackgroundForwardModel, ForwardFailure, ForwardKind, ForwardManifest,
+    ForwardModel, ForwardOutcome, ForwardTier, InstrumentRiskKind, SolverManifest,
 };
 pub use growth::GrowthHistory;
 pub use observables::{canonicalize_observable_id, observables_match, CanonicalObservable};

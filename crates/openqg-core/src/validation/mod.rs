@@ -1,3 +1,4 @@
+pub mod audit_cascade;
 pub mod calibration_envelope;
 pub mod claims_linter;
 pub mod data_tier;
@@ -12,6 +13,10 @@ pub mod rigor;
 #[path = "runbook.rs"]
 pub mod zyal;
 
+pub use audit_cascade::{
+    ai_for_science_baselines, v4_v7_audit_cascade, AuditCascadeEntry, AuditCascadeReport,
+    BaselineEntry, BaselineKind, ExploitClass, HeadToHeadResult, TimeToInvalidate,
+};
 pub use calibration_envelope::{CalibrationEnvelope, PredictionResidual};
 pub use claims_linter::{lint_claims, ClaimFinding, ClaimLintReport};
 pub use data_tier::{

@@ -1,0 +1,150 @@
+# V8 Exclusion Search Volume — C_growth-suppression(V8)
+#
+# Machine-readable declaration for the preregistered V8 exclusion campaign.
+# MUST NOT be modified after freezing. Any post-freeze change invalidates the exclusion sentence.
+#
+# Spec reference: S11 §"Convert the null into strength: V8 exclusion protocol"
+
+schema_version: "v8.0.0"
+sealed: false   # set to true when the grammar hash is frozen and timestamped
+seal_timestamp: null
+seal_ots_proof: null
+
+# Class definition: what theories are in scope for this exclusion.
+exclusion_class:
+  name: "C_growth-suppression(V8)"
+  description: >
+    Late-time, GW170817-safe, scale-independent scalar-sector or dark-sector mechanisms
+    whose only admitted first-order cosmological effect is to suppress linear growth
+    relative to profile-fitted ΛCDM over 0 ≤ z ≤ 2.5.
+  constraints:
+    gw170817_safe: true         # scalar speed excess δc_T = 0 required
+    scale_independent: true     # no scale-dependent growth modifications
+    late_time_only: true        # no pre-recombination effects
+    max_redshift: 2.5
+  mechanism_routes:
+    - id: planck_mu0
+      description: "Planck-style μ(a) = 1 + μ0·ΩDE(a)/ΩDE0"
+      relation: "planck_mu0_geff"
+    - id: dark_scattering_drag
+      description: "Dark-scattering drag Γ(a) = A_drag·(1+w(a))·ΩDE(a)"
+      relation: "dark_scattering_growth_drag"
+  background_routes:
+    - lcdm           # fixed Λ
+    - wcdm           # constant w, profile-fitted
+    - w0wa_cpl       # CPL, profile-fitted and DOF-charged
+
+# Parameter boxes (prior bounds define the search volume).
+parameter_boxes:
+  - symbol: mu0
+    description: "Planck-μ0 growth suppression amplitude"
+    lo: -0.30
+    hi: 0.00
+    prior: uniform
+    mechanism_route: planck_mu0
+    unit: dimensionless
+  - symbol: A_drag
+    description: "Dark-scattering drag amplitude"
+    lo: 0.0
+    hi: 10.0
+    prior: uniform
+    mechanism_route: dark_scattering_drag
+    unit: dimensionless
+  - symbol: w0
+    description: "CPL dark energy w0 (companion to A_drag route)"
+    lo: -0.99
+    hi: -0.80
+    prior: uniform
+    mechanism_route: dark_scattering_drag
+    unit: dimensionless
+  - symbol: h
+    description: "Hubble parameter (profiled)"
+    lo: 0.60
+    hi: 0.80
+    prior: uniform
+    mechanism_route: null   # background parameter, profiled and DOF-charged
+    unit: dimensionless
+  - symbol: Omega_m
+    description: "Matter density (profiled)"
+    lo: 0.20
+    hi: 0.45
+    prior: uniform
+    mechanism_route: null
+    unit: dimensionless
+  - symbol: sigma8
+    description: "Clustering amplitude (ALWAYS profile-fitted in null and extension)"
+    lo: 0.60
+    hi: 1.00
+    prior: uniform
+    mechanism_route: null
+    unit: dimensionless
+
+# Data stack (the exact observables that define the evidence comparison).
+data_stack:
+  - data_id: "desi-dr1-bao"
+    kind: "bao_dv_over_rs"
+    covariance: "data/fixtures/cosmology/covariance/desi-dr1-bao.json"
+  - data_id: "planck18-distance-priors"
+    kind: "cmb_distance_prior"
+    covariance: "data/fixtures/cosmology/covariance/planck18-distance-priors.json"
+  - data_id: "growth-rsd-fsigma8"
+    kind: "rsd_fsigma8"
+    covariance: null    # diagonal for now; upgrade required for rank-1 exclusion
+  - data_id: "wl-s8"
+    kind: "weak_lensing_s8"
+    covariance: null
+  - data_id: "bbn-omega_b"
+    kind: "bbn_omega_b"
+    covariance: null
+  - data_id: "h0-panel"
+    kind: "h0_panel"
+    covariance: null    # per-family, see h0-panel.jsonl; SH0ES included as one calibrator
+
+# Exclusion requirements (all must be satisfied before the sentence is printable).
+exclusion_requirements:
+  covariance_complete:
+    required: true
+    note: "full covariance for Planck and DESI blocks; RSD/S8 diagonal accepted for triage"
+  boltzmann_promotion:
+    required: false       # required for rank-1 exclusion; acceptable without for methodology claim
+    note: "upgrade to true before claiming exclusion at rank-1 fidelity"
+  trials_correction:
+    required: true
+    note: "look-elsewhere penalty over the frozen search volume must be computed"
+  rank_stability:
+    required: true
+    note: "rank must hold under jackknife-by-sector, prior-width doubling, SH0ES removal"
+  blind_holdout:
+    required: false       # required for Discovery claim; not for Exclusion claim
+    note: "seal DESI DR3 forecast before DR3 public release for discovery claim"
+  coverage_certificate:
+    required: true
+    note: "all connected components of parameter volume profiled or killed by named veto"
+  profile_fitted_null:
+    required: true
+    note: "ΛCDM baseline must be profile-fitted with σ8 free, not fixed"
+
+# Mandatory caveats (must appear in paper alongside any exclusion sentence).
+mandatory_caveats:
+  - "excludes only scale-independent growth suppression; scale-dependent modifications not covered"
+  - "f(R) and nDGP excluded from scope pending Boltzmann/hi_class promotion lane"
+  - "full Horndeski/EFT α-basis dynamics, EDE, and neutrino-sector extensions not in scope"
+  - "interacting dark energy with background energy-transfer sectors (beyond Γ(a)) not in scope"
+  - "nonlinear screening mechanisms not in scope"
+  - "exclusion fidelity limited by absence of full covariance for RSD and weak-lensing blocks"
+
+# Frozen grammar and relation registry.
+grammar:
+  relation_registry_hash: null    # fill with sha256 of relation registry at seal time
+  openqg_source_hash: null        # fill with git SHA at seal time
+  algebra_schema_version: "v8.0.0"
+  search_optimizer: "deterministic-grid+nelder-mead-proposal"
+  dedup_by: "physics_fingerprint"  # not proposer text
+
+# Coverage protocol.
+coverage:
+  method: "profiling + interval evidence"
+  grid_slices: "1D and 2D projections over each parameter pair"
+  convergence_criterion: "ΔlnZ change < 0.05 nats over successive refinement"
+  kill_classes_accepted: ["FreeParameter", "AntiLaunderingKill", "StructurallyUngenerated",
+                          "ObligationFailed", "GoodnessOfFitFailed"]

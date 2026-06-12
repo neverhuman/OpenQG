@@ -20,6 +20,7 @@ pub mod derivation_trace;
 pub mod dim_vec;
 pub mod evaluate;
 pub mod evidence;
+pub mod exclusion;
 pub mod fingerprint;
 pub mod growth_verdict;
 pub mod holdout;
@@ -64,6 +65,11 @@ pub use dim_vec::{dim_check_term, DimError, DimVec, TermAst};
 pub use evaluate::{derivation_score, evaluate, evaluate_with_blocks, Evaluation};
 pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
+};
+pub use exclusion::{
+    CoverageCertificate, CoverageComponent, CoverageResolution, ExclusionBlocker, ExclusionClass,
+    ExclusionSentence, ExclusionStrength, MechanismRoute, ParameterBox, RankStabilityReport,
+    RankStabilityResult, TrialsCorrection, EXCLUSION_MANDATORY_CAVEATS,
 };
 pub use fingerprint::claim_fingerprint;
 pub use growth_verdict::{GrowthVerdictPack, LensingS8Verdict, RsdMeasurement};

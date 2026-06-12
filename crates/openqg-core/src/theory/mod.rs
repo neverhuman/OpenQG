@@ -36,6 +36,7 @@ pub mod proposal;
 pub mod qsa_gate;
 pub mod recombine_proof;
 pub mod scorecard;
+pub mod screening;
 pub mod search_ledger;
 pub mod search_volume;
 pub mod sectors;
@@ -122,6 +123,10 @@ pub use scorecard::{
     apply_pricing_and_growth_gates, background_dof, score, score_with_observables,
     score_with_v5_context, scorecard_receipt, total_free_dof, ClaimClass, DataFitOutcome,
     GoFOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt, ScorecardV4,
+};
+pub use screening::{
+    check_screening_plausibility, ScreeningPlausibilityOutcome, ScreeningVerdict,
+    CASSINI_ALPHA_M_THRESHOLD, KMOUFLAGE_MIN_KINETICITY, VAINSHTEIN_MIN_BRAIDING,
 };
 pub use search_ledger::{Chi2DofGate, GoFNullReport, SearchLedger, TrialsGate};
 pub use search_volume::{OutOfScopeViolation, SearchParamBox, SearchVolumeSpec};

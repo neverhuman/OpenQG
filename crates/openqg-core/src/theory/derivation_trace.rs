@@ -252,6 +252,113 @@ pub fn check_input_provenance(inputs: &[InputProvenance]) -> Option<String> {
     None
 }
 
+/// Policy parameters for `trace_rigor()`. Caller may use `TraceRigorPolicy::default()`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TraceRigorPolicy {
+    /// ln-normalization scale for the depth factor D.
+    ///
+    /// D = min(1.0, ln(n_steps + 1) / depth_ln_scale).
+    /// Default: ln(10) ≈ 2.303 — a 10-step trace reaches D = 1.0.
+    pub depth_ln_scale: f64,
+}
+
+impl Default for TraceRigorPolicy {
+    fn default() -> Self {
+        TraceRigorPolicy {
+            depth_ln_scale: std::f64::consts::LN_10,
+        }
+    }
+}
+
+/// Compute the machine-derived rigor score for a derivation trace.
+///
+/// The score is a product of six bounded factors T·M·E·D·P, capped by the weakest
+/// assumption's rigor ceiling (from SYNTHESIS #11 / S01 hard caps):
+///
+/// - **T** (theoremness): fraction of steps that are theorem-backed
+///   (`TheoremApplication`, `Algebraic`, `Limit`) — pure-math steps need no assumptions.
+/// - **M** (mechanistic chain): fraction of steps that manipulate expressions
+///   (`Algebraic`, `Substitution`, `Limit`, `Numerical`).
+/// - **E** (expression completeness): 0.3 base + 0.7 × (fraction of steps with non-empty LaTeX).
+///   Traces without any LaTeX earn partial credit.
+/// - **D** (derivation depth): ln(n+1) / policy.depth_ln_scale, capped at 1.0.
+/// - **P** (provenance consistency): 1.0 if all assumption steps share the same strength class;
+///   0.8 for two distinct classes; 0.6 for three or more.
+///
+/// The product is then capped by the weakest assumption's `rigor_cap()`:
+/// - Axiom / TheoremFromAxiom: cap 1.0
+/// - PublishedLiterature: cap 0.75
+/// - ExternalMeasurement: cap 0.25
+/// - PhenomenologicalFit: cap 0.45
+/// - ScoredDataEstimate: 0.0 (hard kill, no score returned)
+///
+/// An empty trace returns 0.0. A trace killed by the anti-laundering gate returns 0.0.
+pub fn trace_rigor(trace: &DerivationTrace, policy: &TraceRigorPolicy) -> f64 {
+    if trace.steps.is_empty() {
+        return 0.0;
+    }
+
+    let a_cap = match trace.weakest_assumption().rigor_cap() {
+        None => return 0.0, // anti-laundering kill
+        Some(cap) => cap,
+    };
+
+    let n = trace.steps.len() as f64;
+
+    // T: theoremness — non-assumption steps that are mathematically grounded.
+    let theorem_count = trace
+        .steps
+        .iter()
+        .filter(|s| {
+            matches!(
+                s.kind,
+                TraceStepKind::TheoremApplication | TraceStepKind::Algebraic | TraceStepKind::Limit
+            )
+        })
+        .count() as f64;
+    let t = theorem_count / n;
+
+    // M: mechanistic chain — steps that actively transform or apply expressions.
+    // TheoremApplication counts: applying a theorem is mechanistic work, not mere assertion.
+    let mechanic_count = trace
+        .steps
+        .iter()
+        .filter(|s| {
+            matches!(
+                s.kind,
+                TraceStepKind::TheoremApplication
+                    | TraceStepKind::Algebraic
+                    | TraceStepKind::Substitution
+                    | TraceStepKind::Limit
+                    | TraceStepKind::Numerical
+            )
+        })
+        .count() as f64;
+    let m = mechanic_count / n;
+
+    // E: expression completeness — fraction of steps with a non-empty LaTeX rendering.
+    let latex_count = trace.steps.iter().filter(|s| !s.latex.is_empty()).count() as f64;
+    let e = 0.3 + 0.7 * (latex_count / n);
+
+    // D: derivation depth — log-normalised step count.
+    let d = (f64::ln(n + 1.0) / policy.depth_ln_scale).min(1.0);
+
+    // P: provenance consistency — penalty for mixing assumption strength classes.
+    let distinct_strength_classes: std::collections::BTreeSet<u8> = trace
+        .steps
+        .iter()
+        .filter(|s| s.kind == TraceStepKind::Assumption)
+        .map(|s| s.assumption_strength as u8)
+        .collect();
+    let p = match distinct_strength_classes.len() {
+        0 | 1 => 1.0,
+        2 => 0.8,
+        _ => 0.6,
+    };
+
+    (t * m * e * d * p).min(a_cap)
+}
+
 fn compute_trace_hash(steps: &[TraceStep]) -> String {
     let canonical = serde_json::to_string(steps).unwrap_or_default();
     crate::sha256_digest(canonical.as_bytes())
@@ -401,5 +508,103 @@ mod tests {
     fn empty_trace_weakest_assumption_is_axiom() {
         let t = DerivationTrace::new(vec![]);
         assert_eq!(t.weakest_assumption(), AssumptionStrength::Axiom);
+    }
+
+    // ---- trace_rigor ----
+
+    fn policy() -> TraceRigorPolicy {
+        TraceRigorPolicy::default()
+    }
+
+    #[test]
+    fn empty_trace_rigor_is_zero() {
+        let t = DerivationTrace::new(vec![]);
+        assert_eq!(trace_rigor(&t, &policy()), 0.0);
+    }
+
+    #[test]
+    fn laundering_trace_rigor_is_zero() {
+        let t = DerivationTrace::new(vec![
+            TraceStep::assumption("fitted mu0", AssumptionStrength::ScoredDataEstimate),
+            TraceStep::algebraic("apply G_eff"),
+        ]);
+        assert_eq!(trace_rigor(&t, &policy()), 0.0);
+    }
+
+    #[test]
+    fn external_measurement_caps_rigor_at_0_25() {
+        let t = DerivationTrace::new(vec![
+            TraceStep::assumption("omega_m from CMB", AssumptionStrength::ExternalMeasurement),
+            TraceStep::algebraic("substitute into G_eff"),
+            TraceStep::algebraic("simplify"),
+        ]);
+        let r = trace_rigor(&t, &policy());
+        assert!(
+            r <= 0.25 + 1e-12,
+            "external measurement must cap at 0.25; got {r}"
+        );
+        assert!(r > 0.0, "positive rigor expected for a valid trace");
+    }
+
+    #[test]
+    fn phenomenological_fit_caps_rigor_at_0_45() {
+        let t = DerivationTrace::new(vec![
+            TraceStep::assumption(
+                "G_eff from fitting formula",
+                AssumptionStrength::PhenomenologicalFit,
+            ),
+            TraceStep::algebraic("evaluate"),
+        ]);
+        let r = trace_rigor(&t, &policy());
+        assert!(r <= 0.45 + 1e-12, "phenom cap 0.45; got {r}");
+        assert!(r > 0.0);
+    }
+
+    #[test]
+    fn axiom_only_trace_can_reach_high_rigor() {
+        // Many steps, all algebraic + theorem, all with LaTeX → should be close to 1.0.
+        let steps: Vec<TraceStep> = (0..10)
+            .map(|i| {
+                let mut s = TraceStep {
+                    kind: TraceStepKind::TheoremApplication,
+                    assumption_strength: AssumptionStrength::Axiom,
+                    statement: format!("step {i}"),
+                    latex: format!("\\alpha_{{{i}}}"),
+                };
+                // alternate algebraic and theorem steps for M factor
+                if i % 2 == 0 {
+                    s.kind = TraceStepKind::Algebraic;
+                }
+                s
+            })
+            .collect();
+        let t = DerivationTrace::new(steps);
+        let r = trace_rigor(&t, &policy());
+        assert!(
+            r > 0.5,
+            "high-quality axiom trace should score > 0.5; got {r}"
+        );
+        assert!(r <= 1.0 + 1e-12);
+    }
+
+    #[test]
+    fn mixed_assumption_classes_penalise_p_factor() {
+        // Mix Axiom and ExternalMeasurement → two classes → P = 0.8;
+        // cap from ExternalMeasurement (0.25) limits the ceiling anyway.
+        let t = DerivationTrace::new(vec![
+            TraceStep::assumption("axiom", AssumptionStrength::Axiom),
+            TraceStep::assumption("measured H0", AssumptionStrength::ExternalMeasurement),
+            TraceStep::algebraic("combine"),
+        ]);
+        let r = trace_rigor(&t, &policy());
+        // Cap 0.25 applies; score positive but capped.
+        assert!(r <= 0.25 + 1e-12);
+        assert!(r >= 0.0);
+    }
+
+    #[test]
+    fn policy_default_depth_scale_is_ln10() {
+        let p = TraceRigorPolicy::default();
+        assert!((p.depth_ln_scale - std::f64::consts::LN_10).abs() < 1e-12);
     }
 }

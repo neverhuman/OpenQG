@@ -24,6 +24,7 @@ pub mod evidence;
 pub mod exclusion;
 pub mod fingerprint;
 pub mod growth_verdict;
+pub mod h0_panel;
 pub mod holdout;
 pub mod league;
 pub mod mutation;
@@ -62,8 +63,8 @@ pub use contenders::{
 };
 pub use data_tier::{DataTierKind, DataTierManifest, DatasetRecord};
 pub use derivation_trace::{
-    check_input_provenance, AssumptionStrength, DerivationTrace, InputProvenance, TraceStep,
-    TraceStepKind, TraceVerdict,
+    check_input_provenance, trace_rigor, AssumptionStrength, DerivationTrace, InputProvenance,
+    TraceRigorPolicy, TraceStep, TraceStepKind, TraceVerdict,
 };
 pub use dim_vec::{dim_check_term, DimError, DimVec, TermAst};
 pub use evaluate::{derivation_score, evaluate, evaluate_with_blocks, Evaluation};
@@ -80,6 +81,7 @@ pub use growth_verdict::{
     all_fiducials_pass, CmbLensingVerdict, DatasetSurvivalRecord, DatasetSurvivalTable,
     GrowthCoverageGate, GrowthVerdictPack, LensingS8Verdict, RsdMeasurement,
 };
+pub use h0_panel::{CalibrationFamily, H0Panel, H0PanelEntry};
 pub use holdout::{
     alternating_holdout, alternating_split, held_out_evaluate, split_evaluate, HeldOutScore,
     SplitScore,

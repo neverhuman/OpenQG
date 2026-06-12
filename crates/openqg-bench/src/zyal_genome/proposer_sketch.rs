@@ -610,6 +610,14 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          6. Background dials (w0, wa) moved off ΛCDM cost parsimony; prefer certified parameters.\n\
          7. Numbers must be JSON numbers, never strings. Omitted optional fields carry sentinels: \"\" / 0.0 \
          / [].\n\
+         8. NovelPrediction obligation witness MUST have: (a) non-empty `observable` + `falsifier` \
+         strings, (b) finite `predicted`, `baseline`, `min_detectable`, (c) `min_detectable > 0`, \
+         and (d) |predicted − baseline| ≥ min_detectable. Setting predicted = baseline or \
+         min_detectable = 0 is a DEGENERATE WITNESS KILL. For growth suppression theories, use \
+         a growth observable (fsigma8 or s8_theory) where MG predicts a non-zero deviation: \
+         e.g. with mu0 = 0.1, fsigma8@0.51 ≈ 0.418 (baseline ≈ 0.413, Δ = +0.005 ≥ \
+         min_detectable 0.003). The claims[].obligations list MUST reference every obligation id \
+         in obligations[] — an orphan obligation (referenced by no claim) earns zero credit.\n\
          \n\
          ## MECHANISM LANE — sample {sample_index}: {lane_name}\n\
          {lane_brief}\n\

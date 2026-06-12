@@ -1,0 +1,100 @@
+# Machine-readable search volume specification — SYNTHESIS #20.
+#
+# Defines the frozen exclusion class C_growth-suppression(V8): the parameter space the engine
+# searches, the stability + observational constraints that bound it, and the sentence template
+# for the exclusion claim once the search completes.
+#
+# This file is the canonical reference for:
+#   (a) what the engine searched (reproducibility)
+#   (b) the trials correction denominator (multiplicity)
+#   (c) the exclusion sentence template (reporting)
+#
+# Any change to this file after the first exclusion campaign is sealed invalidates prior
+# exclusion claims — treat as a frozen sealed document once the campaign begins.
+
+schema_version: "1.0"
+
+exclusion_class:
+  id: C_growth-suppression-V8
+  description: >
+    Late-time modified gravity theories that suppress growth of structure (f*sigma8 low)
+    relative to ΛCDM, constrained to be GW170817-safe and phenomenologically viable.
+  campaign_tag: V8
+
+parameter_space:
+  # Modified-gravity growth suppression parameter (Planck MG notation).
+  # mu0 < 0 suppresses growth; the chosen range excludes extreme modifications.
+  - symbol: mu0
+    description: "linear growth modification parameter (G_eff/G − 1) at z=0"
+    range: [-0.30, 0.0]
+    units: dimensionless
+    prior: uniform
+
+  # Dark-scattering drag parameter.
+  - symbol: A_drag
+    description: "dark-scattering momentum-transfer cross-section amplitude"
+    range: [0.0, 10.0]
+    units: "Mpc^{-1}"
+    prior: log-uniform
+
+  # Dark energy equation of state (late-time only; no early DE).
+  - symbol: w0
+    description: "present-day dark energy equation of state"
+    range: [-0.99, -0.80]
+    units: dimensionless
+    prior: uniform
+
+hard_constraints:
+  # GW170817 multi-messenger bound: tensor speed excess |alpha_T| < 10^-15.
+  - id: gw170817_safe
+    description: "tensor speed excess |alpha_T| < 1e-15 (GW170817 + GRB170817A)"
+    kill_if_violated: true
+
+  # Late-time only: no early dark energy or pre-recombination modifications.
+  - id: late_time_only
+    description: "modification active only at z < 2; no early-universe DE component"
+    kill_if_violated: true
+
+  # Stability: no ghost, no gradient instability.
+  - id: stability_ghost_free
+    description: "Q_s > 0 (no scalar ghost)"
+    kill_if_violated: true
+  - id: stability_gradient
+    description: "c_s^2 >= 0 (no gradient instability)"
+    kill_if_violated: true
+
+mandatory_datasets:
+  # These five categories must all be present in the scored likelihood before an
+  # exclusion claim can be issued (SYNTHESIS #8 GrowthCoverageGate).
+  - category: rsd_full_shape
+    minimum_surveys: 1
+    examples: ["eBOSS DR16", "DESI DR1 full-shape"]
+  - category: weak_lensing
+    minimum_surveys: 2
+    examples: ["KiDS-Legacy", "DES Y6", "HSC Y3"]
+  - category: cmb_lensing
+    minimum_surveys: 1
+    examples: ["ACT DR6", "Planck 2018 lensing"]
+  - category: bao
+    minimum_surveys: 1
+    examples: ["DESI DR2 BAO (S)"]
+  - category: sne_ia
+    minimum_surveys: 1
+    examples: ["Pantheon+ full covariance"]
+
+exclusion_sentence_template: >
+  We exclude the parameter region {exclusion_region} of the class
+  C_growth-suppression(V8) at {confidence_level} confidence
+  (ΔlnZ = {delta_ln_z:.1f} ± {delta_ln_z_err:.1f} after Bonferroni correction
+  over N={n_trials} hypotheses tested; champion rank-1 in {rank_stability_pct:.0f}%
+  of sector jackknife replicates). This exclusion survives a blind rerun on the
+  pre-registered held-out dataset {holdout_dataset}.
+
+reporting_requirements:
+  - trials_correction_method: bonferroni
+    denominator_source: this file (parameter_space × hard_constraints grid)
+  - rank_stability_threshold: 0.80
+  - blind_rerun_required: true
+  - pre_registered_holdout_required: true
+  - time_to_first_invalidated_champion_reported: true
+  - decoy_false_positive_rate_reported: true

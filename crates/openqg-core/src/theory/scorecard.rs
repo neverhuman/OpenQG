@@ -339,6 +339,16 @@ pub struct ScorecardV4 {
     /// disqualified early or the null distribution has not been computed yet).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub discovery_gate_result: Option<profundity::DiscoveryClaimGateResult>,
+    /// V8 Phase 11 (SYNTHESIS #3): `PricingLedger` for this scorecard's DOF choices.
+    /// `None` means no pricing ledger was attached (legacy path; no pricing gate applied).
+    /// When present and `fails_closed()`, the candidate is disqualified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pricing_ledger: Option<super::pricing::PricingLedger>,
+    /// V8 Phase 11 (SYNTHESIS #8): coverage gate for suppressed-growth claims.
+    /// `None` means the gate has not been evaluated (single-observable scoring path).
+    /// When present and `!coverage_satisfied()`, the candidate is disqualified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub growth_coverage_gate: Option<super::growth_verdict::GrowthCoverageGate>,
 }
 
 /// A replay receipt: the canonical hash of the scorecard's inputs and of the scorecard itself, so a
@@ -772,6 +782,8 @@ pub fn score_with_observables(
             forecast_points: 0.0,
             claim_class: ClaimClass::Triage,
             discovery_gate_result: None,
+            pricing_ledger: None,
+            growth_coverage_gate: None,
         };
     }
 
@@ -896,6 +908,8 @@ pub fn score_with_observables(
         forecast_points: 0.0,
         claim_class,
         discovery_gate_result: None,
+        pricing_ledger: None,
+        growth_coverage_gate: None,
     }
 }
 
@@ -976,6 +990,67 @@ pub fn score_with_v5_context(
     }
 
     sc
+}
+
+/// V8 Phase 11 (SYNTHESIS #3, #8): attach pricing and growth-coverage gates to a scorecard.
+///
+/// Call this after any of the `score*` functions to apply the two post-scoring gates:
+///
+/// - **PricingLedger gate** (SYNTHESIS #3): if `pricing.fails_closed()` (any DOF choice lacks an
+///   explicit rubric price), the candidate is disqualified. The ledger is stored on the scorecard
+///   for audit even when the gate fails.
+/// - **GrowthCoverageGate** (SYNTHESIS #8): if `!growth.coverage_satisfied()` (fewer than the
+///   five mandatory datasets are present for a suppressed-growth claim), the candidate is
+///   disqualified. The gate is stored for audit.
+///
+/// If the scorecard is already disqualified (from an earlier gate), the fields are set for
+/// auditability but no new kill reason is appended (the existing kill already blocks scoring).
+pub fn apply_pricing_and_growth_gates(
+    sc: &mut ScorecardV4,
+    pricing: Option<super::pricing::PricingLedger>,
+    growth: Option<super::growth_verdict::GrowthCoverageGate>,
+) {
+    // Store for audit regardless of current disqualification state.
+    sc.pricing_ledger = pricing.clone();
+    sc.growth_coverage_gate = growth.clone();
+
+    if sc.disqualified {
+        return; // already killed; don't append redundant reasons
+    }
+
+    // Gate 1: PricingLedger fails closed.
+    if let Some(ref pl) = pricing {
+        if pl.fails_closed() {
+            let unpriced = pl.unpriced_count();
+            sc.disqualified = true;
+            sc.kill_reasons.push(format!(
+                "pricing_ledger_fails_closed: {unpriced} DOF choice(s) lack an explicit \
+                 rubric price; add pricing entries for all DOF before scoring"
+            ));
+            sc.components.clear();
+            sc.total = 0.0;
+            sc.total_band = (0.0, 0.0);
+            sc.forecast_points = 0.0;
+            return;
+        }
+    }
+
+    // Gate 2: GrowthCoverageGate must be satisfied when present.
+    if let Some(ref gcg) = growth {
+        if !gcg.coverage_satisfied() {
+            let missing = gcg.missing_coverage();
+            sc.disqualified = true;
+            sc.kill_reasons.push(format!(
+                "growth_coverage_gate_failed: suppressed-growth claim requires all 5 \
+                 mandatory dataset categories; missing: [{}]",
+                missing.join(", ")
+            ));
+            sc.components.clear();
+            sc.total = 0.0;
+            sc.total_band = (0.0, 0.0);
+            sc.forecast_points = 0.0;
+        }
+    }
 }
 
 /// Build the replay receipt for a scorecard given a canonical rendering of its inputs.
@@ -1719,6 +1794,132 @@ mod tests {
             result.blocking_reasons.len() >= 2,
             "expected ≥2 blocking reasons: {:?}",
             result.blocking_reasons
+        );
+    }
+
+    // ---- V8 Phase 11: apply_pricing_and_growth_gates ----
+
+    fn unpriced_ledger() -> super::super::pricing::PricingLedger {
+        let mut pl = super::super::pricing::PricingLedger::new();
+        pl.add("alpha_m", "alpha_m dial", 5.0, false); // not priced
+        pl
+    }
+
+    fn priced_ledger() -> super::super::pricing::PricingLedger {
+        let mut pl = super::super::pricing::PricingLedger::new();
+        pl.add("alpha_m", "alpha_m dial", 5.0, true); // explicitly priced
+        pl
+    }
+
+    fn unsatisfied_coverage() -> super::super::growth_verdict::GrowthCoverageGate {
+        super::super::growth_verdict::GrowthCoverageGate {
+            n_rsd_datasets: 0,
+            n_wl_surveys: 0,
+            has_cmb_lensing: false,
+            has_bao: false,
+            has_sne_pantheon_plus: false,
+        }
+    }
+
+    fn satisfied_coverage() -> super::super::growth_verdict::GrowthCoverageGate {
+        super::super::growth_verdict::GrowthCoverageGate {
+            n_rsd_datasets: 1,
+            n_wl_surveys: 2,
+            has_cmb_lensing: true,
+            has_bao: true,
+            has_sne_pantheon_plus: true,
+        }
+    }
+
+    #[test]
+    fn pricing_fails_closed_disqualifies_survivor() {
+        let (t, cg, obs, uni, store) = fixture();
+        let mut sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified, "pre-condition: survivor");
+        apply_pricing_and_growth_gates(&mut sc, Some(unpriced_ledger()), None);
+        assert!(sc.disqualified, "unpriced ledger must kill");
+        assert!(
+            sc.kill_reasons
+                .iter()
+                .any(|r| r.contains("pricing_ledger_fails_closed")),
+            "expected pricing kill reason; got {:?}",
+            sc.kill_reasons
+        );
+        assert_eq!(sc.total, 0.0);
+        assert!(sc.components.is_empty());
+    }
+
+    #[test]
+    fn pricing_fully_priced_does_not_kill() {
+        let (t, cg, obs, uni, store) = fixture();
+        let mut sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified);
+        let total_before = sc.total;
+        apply_pricing_and_growth_gates(&mut sc, Some(priced_ledger()), None);
+        assert!(!sc.disqualified, "priced ledger must not kill");
+        assert!((sc.total - total_before).abs() < 1e-9);
+        assert!(sc.pricing_ledger.is_some());
+    }
+
+    #[test]
+    fn growth_coverage_not_satisfied_disqualifies() {
+        let (t, cg, obs, uni, store) = fixture();
+        let mut sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified);
+        apply_pricing_and_growth_gates(&mut sc, None, Some(unsatisfied_coverage()));
+        assert!(sc.disqualified, "unsatisfied coverage must kill");
+        assert!(
+            sc.kill_reasons
+                .iter()
+                .any(|r| r.contains("growth_coverage_gate_failed")),
+            "expected coverage kill; got {:?}",
+            sc.kill_reasons
+        );
+        assert_eq!(sc.total, 0.0);
+    }
+
+    #[test]
+    fn growth_coverage_satisfied_does_not_kill() {
+        let (t, cg, obs, uni, store) = fixture();
+        let mut sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified);
+        let total_before = sc.total;
+        apply_pricing_and_growth_gates(&mut sc, None, Some(satisfied_coverage()));
+        assert!(!sc.disqualified, "satisfied coverage must not kill");
+        assert!((sc.total - total_before).abs() < 1e-9);
+        assert!(sc.growth_coverage_gate.is_some());
+    }
+
+    #[test]
+    fn already_disqualified_scorecard_gets_fields_set_without_new_kill_reason() {
+        let (mut t, cg, obs, uni, store) = fixture();
+        t.parameters.push(Parameter {
+            symbol: "xi".into(),
+            value: 0.3,
+            physical_meaning: "free knob".into(),
+            provenance: Provenance::Free,
+        });
+        let mut sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(sc.disqualified, "pre-condition: already killed by veto");
+        let reason_count = sc.kill_reasons.len();
+        apply_pricing_and_growth_gates(
+            &mut sc,
+            Some(unpriced_ledger()),
+            Some(unsatisfied_coverage()),
+        );
+        assert!(sc.disqualified);
+        assert_eq!(
+            sc.kill_reasons.len(),
+            reason_count,
+            "no new kill reasons should be added to an already-disqualified scorecard"
+        );
+        assert!(
+            sc.pricing_ledger.is_some(),
+            "pricing_ledger field set for audit"
+        );
+        assert!(
+            sc.growth_coverage_gate.is_some(),
+            "growth_coverage_gate field set for audit"
         );
     }
 }

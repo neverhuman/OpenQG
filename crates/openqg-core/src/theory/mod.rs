@@ -16,6 +16,7 @@ pub mod certificate;
 pub mod claim_graph;
 pub mod component;
 pub mod contenders;
+pub mod data_tier;
 pub mod derivation_trace;
 pub mod dim_vec;
 pub mod evaluate;
@@ -59,6 +60,7 @@ pub use contenders::{
     decoy_contenders, decoy_false_positive_rate, human_contenders, score_contender, Contender,
     ContenderSuite, ExpectedVerdict, MapEvidenceStore,
 };
+pub use data_tier::{DataTierKind, DataTierManifest, DatasetRecord};
 pub use derivation_trace::{
     check_input_provenance, AssumptionStrength, DerivationTrace, InputProvenance, TraceStep,
     TraceStepKind, TraceVerdict,
@@ -101,9 +103,9 @@ pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
 pub use scorecard::{
-    background_dof, score, score_with_observables, score_with_v5_context, scorecard_receipt,
-    total_free_dof, ClaimClass, DataFitOutcome, GoFOutcome, LikelihoodMode, RubricComponent,
-    RubricV4, ScorecardReceipt, ScorecardV4,
+    apply_pricing_and_growth_gates, background_dof, score, score_with_observables,
+    score_with_v5_context, scorecard_receipt, total_free_dof, ClaimClass, DataFitOutcome,
+    GoFOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt, ScorecardV4,
 };
 pub use search_ledger::{SearchLedger, TrialsGate};
 pub use unification::{unification_report, DomainCheck, UnificationReport};

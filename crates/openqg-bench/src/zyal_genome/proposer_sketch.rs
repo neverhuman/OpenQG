@@ -592,14 +592,21 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          3. A certified modified-gravity claim is BOUND into the background the model integrates; \
          unexplained or conflicting modifications are kills.\n\
          4. Every physics claim needs ≥1 obligation; every cited evidence path needs content in \
-         `evidence`.\n\
+         `evidence`. CRITICAL: each entry in `claims[]` MUST have a non-empty `evidence_paths` list \
+         with at least one path; an empty list causes a NO_EVIDENCE_HASH kill. That path's content \
+         MUST appear in `evidence{}`. For a NovelPrediction obligation, the linked physics claim \
+         still needs evidence (cite the paper or derivation explaining WHY the observable changes).\n\
          5. Novelty credit: NEVER claim an observable from the DATA BRIEF as a novel prediction — \
          those are the scored training observables (fsigma8@X, s8, dv_over_rd@X, dm_over_rd@X, \
          dh_over_rd@X, cmb_R, cmb_lA, bbn_yp); they are not novel. A valid novel prediction \
          targets a future observable not yet in the data brief (e.g. an as-yet-unreleased \
          BAO redshift bin). The declared value in NovelPredictionWitness MUST match what the \
          engine computes from your theory parameters — declaring a value the engine does not \
-         reproduce is a FABRICATION KILL (>3× tolerance).\n\
+         reproduce is a FABRICATION KILL (>3× tolerance). PHYSICS HINT: for growth-only MG \
+         theories (mu0, Sigma0, nDGP) that do NOT modify the background expansion, the BAO \
+         distance ratios (dv_over_rd, dm_over_rd, dh_over_rd) are IDENTICAL to ΛCDM — do not \
+         invent a different value; use the ΛCDM value (e.g. dh_over_rd@0.25≈27, @1.03≈15; \
+         dv_over_rd@0.51≈16, @1.03≈21). Only theories that change w0/wa/H0 alter these ratios.\n\
          6. Background dials (w0, wa) moved off ΛCDM cost parsimony; prefer certified parameters.\n\
          7. Numbers must be JSON numbers, never strings. Omitted optional fields carry sentinels: \"\" / 0.0 \
          / [].\n\

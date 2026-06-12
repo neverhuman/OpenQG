@@ -101,6 +101,12 @@ pub(crate) trait Proposer {
     fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
         Vec::new()
     }
+
+    /// Phase 38: drain token receipts accumulated since the last `propose()`. Emitted to
+    /// `token-ledger.jsonl` by `proposal_individual`. Default: no receipts (non-LLM proposers).
+    fn drain_token_receipts(&self) -> Vec<super::token_receipt::LlmCallReceipt> {
+        Vec::new()
+    }
 }
 
 /// Typed off-generation skip: distinguishes "no proposal this generation BY DESIGN" (a budget

@@ -338,6 +338,10 @@ fn proposal_individual(
         rec.generation = generation;
         sink.attempt(&rec);
     }
+    // Phase 38: drain token receipts and emit to token-ledger.jsonl.
+    for rec in proposer.drain_token_receipts() {
+        sink.token_receipt(&rec);
+    }
     let doc = match result {
         Ok(doc) => doc,
         // A budget off-generation is BY DESIGN — silent, not a failure.

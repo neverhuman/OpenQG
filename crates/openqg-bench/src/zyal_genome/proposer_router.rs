@@ -30,6 +30,7 @@ use super::proposer_sketch::{
     build_router_prompt, expand_sketch, parse_sketch_response, proposal_sketch_schema, Lane, LANES,
 };
 use super::theory_population::ProposalAttemptRecord;
+use super::token_receipt::{LlmCallReceipt, TokenUsage, TokenizerRegistry};
 
 /// One structured chat call to the router.
 #[allow(dead_code)] // sample/attempt indices are receipt fields for test callers
@@ -49,7 +50,7 @@ pub(crate) struct RouterRequest {
 pub(crate) struct RouterResponse {
     /// `choices[0].message.content` — canonical JSON when the router validated it.
     pub content: String,
-    /// `extra["jnoccio"]["winner_model_id"]`, falling back to the response `model`.
+    /// `jnoccio.winner_model_id`, falling back to the response `model`.
     pub model: String,
     /// Router-side structured-output verdict ("valid" when schema-checked).
     pub structured_status: Option<String>,
@@ -57,6 +58,9 @@ pub(crate) struct RouterResponse {
     pub upstream_repairs: u64,
     pub elapsed_seconds: f64,
     pub http_status: u16,
+    /// Token usage from `usage.prompt_tokens` / `usage.completion_tokens`; 0 when absent.
+    pub prompt_tokens: u64,
+    pub completion_tokens: u64,
 }
 
 /// Injected transport: production wraps reqwest; tests inject closures.
@@ -164,12 +168,17 @@ fn default_caller(cfg: &RouterConfig) -> RouterCaller {
                         .as_str()
                         .unwrap_or_default()
                         .to_string();
-                    let meta = &v["extra"]["jnoccio"];
+                    // jnoccio returns metadata at v["jnoccio"] (not v["extra"]["jnoccio"]).
+                    let meta = &v["jnoccio"];
                     let model = meta["winner_model_id"]
                         .as_str()
                         .or_else(|| v["model"].as_str())
                         .unwrap_or("unknown")
                         .to_string();
+                    let prompt_tokens =
+                        v["usage"]["prompt_tokens"].as_u64().unwrap_or(0);
+                    let completion_tokens =
+                        v["usage"]["completion_tokens"].as_u64().unwrap_or(0);
                     return Ok(RouterResponse {
                         content,
                         model,
@@ -179,6 +188,8 @@ fn default_caller(cfg: &RouterConfig) -> RouterCaller {
                         upstream_repairs: meta["structured_repair_attempts"].as_u64().unwrap_or(0),
                         elapsed_seconds: start.elapsed().as_secs_f64(),
                         http_status: code,
+                        prompt_tokens,
+                        completion_tokens,
                     });
                 }
                 Ok(resp) => {
@@ -343,6 +354,8 @@ pub(crate) struct RouterProposer {
     /// call to inject within-run kill feedback into the prompt. None if not set.
     within_run_path: Option<PathBuf>,
     attempts: RefCell<Vec<ProposalAttemptRecord>>,
+    /// Phase 38: one LlmCallReceipt per router HTTP call, drained by theory_population into sink.
+    receipts: RefCell<Vec<LlmCallReceipt>>,
     /// Deterministic rotation seed: bands shift by one per propose() call.
     call_no: Cell<usize>,
     caller: RouterCaller,
@@ -365,6 +378,7 @@ impl RouterProposer {
             extra_sections,
             within_run_path: None,
             attempts: RefCell::new(Vec::new()),
+            receipts: RefCell::new(Vec::new()),
             call_no: Cell::new(0),
             caller,
         }
@@ -391,6 +405,7 @@ impl RouterProposer {
             extra_sections,
             within_run_path: None,
             attempts: RefCell::new(Vec::new()),
+            receipts: RefCell::new(Vec::new()),
             call_no: Cell::new(0),
             caller,
         }
@@ -404,6 +419,8 @@ struct SampleOutcome {
     disqualified: bool,
     records: Vec<ProposalAttemptRecord>,
     winner_record_idx: Option<usize>,
+    /// One receipt per HTTP call in this sample's chain.
+    receipts: Vec<LlmCallReceipt>,
 }
 
 fn truncate(raw: &str, max: usize) -> String {
@@ -478,6 +495,8 @@ impl SampleCtx<'_> {
         let base_prompt = build_router_prompt(lane, sample, self.extra_sections);
         let schema = proposal_sketch_schema();
         let mut records = Vec::new();
+        let mut receipts: Vec<LlmCallReceipt> = Vec::new();
+        let registry = TokenizerRegistry::global();
         let mut prompt = base_prompt.clone();
         let mut repair_kind = "none".to_string();
         let mut repairs_left = self.cfg.repairs;
@@ -517,6 +536,22 @@ impl SampleCtx<'_> {
                     break; // terminal for this sample; siblings cover it
                 }
             };
+            // Phase 38: emit token receipt for every successful HTTP call.
+            {
+                let usage = TokenUsage::new(resp.prompt_tokens, resp.completion_tokens);
+                let flagged = resp.prompt_tokens == 0 && resp.completion_tokens == 0;
+                let (cost, _) = registry.estimate_cost(&resp.model, &usage);
+                receipts.push(LlmCallReceipt {
+                    call_id: format!("call_no={call_no}:sample={sample}:attempt={attempt}"),
+                    timestamp_utc: String::new(),
+                    provider: "jnoccio".into(),
+                    model: resp.model.clone(),
+                    usage,
+                    cost,
+                    attributed_to: "proposer".into(),
+                    flagged_estimate: flagged,
+                });
+            }
             let parsed = parse_sketch_response(&resp.content).and_then(|sk| expand_sketch(&sk));
             match parsed {
                 Err(e) => {
@@ -619,6 +654,7 @@ impl SampleCtx<'_> {
                 disqualified: dq,
                 records,
                 winner_record_idx: Some(idx),
+                receipts,
             },
             None => SampleOutcome {
                 doc: None,
@@ -626,6 +662,7 @@ impl SampleCtx<'_> {
                 disqualified: true,
                 records,
                 winner_record_idx: None,
+                receipts,
             },
         }
     }
@@ -697,6 +734,7 @@ impl Proposer for RouterProposer {
         }
 
         let mut attempts = self.attempts.borrow_mut();
+        let mut all_receipts = self.receipts.borrow_mut();
         let mut result: Option<ProposalDoc> = None;
         for (i, mut o) in outcomes.into_iter().enumerate() {
             let is_winner = winner == Some(i);
@@ -707,7 +745,9 @@ impl Proposer for RouterProposer {
                 result = o.doc.take();
             }
             attempts.extend(o.records);
+            all_receipts.extend(o.receipts);
         }
+        drop(all_receipts);
         drop(attempts);
         result.with_context(|| {
             format!("router: no sample produced a parseable proposal (K={k}, call {call_no})")
@@ -716,6 +756,10 @@ impl Proposer for RouterProposer {
 
     fn drain_attempts(&self) -> Vec<ProposalAttemptRecord> {
         std::mem::take(&mut self.attempts.borrow_mut())
+    }
+
+    fn drain_token_receipts(&self) -> Vec<LlmCallReceipt> {
+        std::mem::take(&mut self.receipts.borrow_mut())
     }
 }
 
@@ -743,11 +787,13 @@ mod tests {
     fn ok_response(content: String) -> RouterResponse {
         RouterResponse {
             content,
-            model: "test-model-a".into(),
+            model: "model-not-in-registry".into(),
             structured_status: Some("valid".into()),
             upstream_repairs: 0,
             elapsed_seconds: 0.01,
             http_status: 200,
+            prompt_tokens: 0,
+            completion_tokens: 0,
         }
     }
 
@@ -776,7 +822,7 @@ mod tests {
         assert_eq!(doc.theory.id, fixture_sketch().theory_id);
         let recs = p.drain_attempts();
         assert!(recs.iter().filter(|r| r.winner).count() == 1);
-        assert!(recs.iter().all(|r| r.model == "test-model-a"));
+        assert!(recs.iter().all(|r| r.model == "model-not-in-registry"));
         assert!(recs.iter().all(|r| r.mechanism_lane.is_some()));
     }
 

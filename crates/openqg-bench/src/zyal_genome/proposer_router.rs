@@ -249,6 +249,37 @@ pub(crate) fn router_preflight(cfg: &RouterConfig) -> Result<()> {
 /// Reads the `proposal-attempts.jsonl` that the engine writes after each generation drain.
 /// Returns a non-empty string only when ≥5 disqualified records exist (signal/noise threshold).
 /// Pure w.r.t. its input: two calls on the same file produce the same output.
+/// Parsed example from a `fabricated_novel_prediction` kill message.
+struct FabricatedExample {
+    observable: String,
+    declared: f64,
+    computed: f64,
+}
+
+/// Attempt to extract observable/declared/computed from a raw kill reason string.
+/// Kill format: "fabricated novel prediction: claim X declared OBS=D but the model computes C ..."
+fn parse_fabricated_novel_example(reason: &str) -> Option<FabricatedExample> {
+    // Find "declared OBS=D"
+    let declared_pos = reason.find("declared ")?;
+    let after_declared = &reason[declared_pos + 9..];
+    let eq_pos = after_declared.find('=')?;
+    let observable = after_declared[..eq_pos].trim().to_string();
+    let after_eq = &after_declared[eq_pos + 1..];
+    // D ends at first whitespace
+    let d_end = after_eq
+        .find(|c: char| c.is_whitespace())
+        .unwrap_or(after_eq.len());
+    let declared: f64 = after_eq[..d_end].parse().ok()?;
+    // Find "computes C"
+    let computes_pos = reason.find("computes ")?;
+    let after_computes = &reason[computes_pos + 9..];
+    let c_end = after_computes
+        .find(|c: char| c.is_whitespace() || c == '(')
+        .unwrap_or(after_computes.len());
+    let computed: f64 = after_computes[..c_end].parse().ok()?;
+    Some(FabricatedExample { observable, declared, computed })
+}
+
 fn build_within_run_kill_block(path: &Path) -> String {
     let Ok(text) = std::fs::read_to_string(path) else {
         return String::new();
@@ -256,6 +287,9 @@ fn build_within_run_kill_block(path: &Path) -> String {
     let mut total: usize = 0;
     let mut disq: usize = 0;
     let mut classes: BTreeMap<&'static str, usize> = BTreeMap::new();
+    // Phase 40: collect raw fabricated_novel kill reasons for calibration examples.
+    let mut fabricated_examples: Vec<FabricatedExample> = Vec::new();
+
     for line in text.lines() {
         let line = line.trim();
         if line.is_empty() {
@@ -277,14 +311,27 @@ fn build_within_run_kill_block(path: &Path) -> String {
         // Collect kill classes using the same normalizer as proposer_memory.
         for krs_key in ["kill_reasons", "kill_reason"] {
             if let Some(val) = v.get(krs_key) {
-                if let Some(arr) = val.as_array() {
-                    for r in arr.iter().filter_map(serde_json::Value::as_str) {
-                        let class = normalize_kill_class_for_within_run(r);
-                        *classes.entry(class).or_insert(0) += 1;
-                    }
+                let reasons: Vec<&str> = if let Some(arr) = val.as_array() {
+                    arr.iter().filter_map(serde_json::Value::as_str).collect()
                 } else if let Some(s) = val.as_str() {
-                    let class = normalize_kill_class_for_within_run(s);
+                    vec![s]
+                } else {
+                    vec![]
+                };
+                for r in reasons {
+                    let class = normalize_kill_class_for_within_run(r);
                     *classes.entry(class).or_insert(0) += 1;
+                    // Phase 40: extract calibration examples from fabricated_novel kills.
+                    if class == "fabricated_novel_prediction" {
+                        if let Some(ex) = parse_fabricated_novel_example(r) {
+                            // Keep at most 4 unique observables for prompt brevity.
+                            if fabricated_examples.len() < 4
+                                && !fabricated_examples.iter().any(|e| e.observable == ex.observable)
+                            {
+                                fabricated_examples.push(ex);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -303,6 +350,30 @@ fn build_within_run_kill_block(path: &Path) -> String {
     ));
     for (class, count) in sorted.iter().take(6) {
         out.push_str(&format!("  {class}: {count}\n"));
+    }
+    // Phase 40: inject fabricated_novel calibration examples so the LLM learns the actual
+    // engine-computed physical scale, not a hallucinated value.
+    if !fabricated_examples.is_empty() {
+        out.push_str(
+            "FABRICATED NOVEL KILLS — engine-computed values from this run (use these, not guesses):\n",
+        );
+        for ex in &fabricated_examples {
+            out.push_str(&format!(
+                "  {obs}: engine={comp:.4} (you declared {decl:.4} — WRONG by {ratio:.1}x)\n",
+                obs = ex.observable,
+                comp = ex.computed,
+                decl = ex.declared,
+                ratio = if ex.declared.abs() > 1e-12 {
+                    (ex.computed / ex.declared).abs()
+                } else {
+                    f64::INFINITY
+                },
+            ));
+        }
+        out.push_str(
+            "  RULE: copy the engine-computed value into NovelPredictionWitness.predicted — \
+             never invent a number.\n",
+        );
     }
     out.push_str(
         "DON'T repeat mechanism variations that already failed — they will fail again.\n",

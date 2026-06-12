@@ -60,6 +60,11 @@ pub enum GenomeCommand {
         /// Router base URL (env OPENQG_ROUTER_URL also works).
         #[arg(long)]
         router_url: Option<String>,
+        /// U1: external oracle command run on the champion after evolution. Receives the champion
+        /// theory JSON path as its last argument; exit 0 = accepted, non-zero = rejected. Example:
+        ///   --oracle-command "python scripts/verify_boltzmann.py"
+        #[arg(long)]
+        oracle_command: Option<String>,
     },
     /// V4 TRUST GATE: compose the decoy/human league + a real population run + determinism checks
     /// into trust-gate.json. Must pass before the 1000–10000-gen campaign. Deterministic, no LLM.
@@ -196,6 +201,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
             router_timeout_seconds,
             router_bands,
             router_url,
+            oracle_command,
         } => {
             let run_id = run_id.unwrap_or_else(|| format!("population-g{max_generations}-s{seed}"));
             let config = EvolveConfig {
@@ -255,6 +261,7 @@ pub fn run(command: GenomeCommand) -> Result<()> {
                 &run_id,
                 &covariance,
                 proposer,
+                oracle_command.as_deref(),
             )?;
             println!("wrote v4 population run to {}", dir.display());
             Ok(())

@@ -44,7 +44,39 @@ fn champion_value(i: &Individual) -> Value {
     })
 }
 
+/// Run an external oracle command on the champion theory JSON (U1, Phase 34).
+///
+/// The champion theory is written to a temp file under `run_dir`; the oracle command is
+/// invoked as `<cmd> <champion_theory_path>`. Exit 0 → passed; non-zero → rejected.
+/// Returns `(passed, exit_code)`. Missing/non-executable commands are treated as failures.
+fn run_oracle(cmd: &str, champion_json: &str, run_dir: &Path) -> (bool, i32) {
+    let oracle_input = run_dir.join("oracle-input.json");
+    if fs::write(&oracle_input, champion_json).is_err() {
+        return (false, -1);
+    }
+    let parts: Vec<&str> = cmd.split_whitespace().collect();
+    let (binary, args) = match parts.split_first() {
+        Some(split) => split,
+        None => return (false, -1),
+    };
+    let status = std::process::Command::new(binary)
+        .args(args)
+        .arg(&oracle_input)
+        .status();
+    match status {
+        Ok(s) => {
+            let code = s.code().unwrap_or(-1);
+            (s.success(), code)
+        }
+        Err(_) => (false, -1),
+    }
+}
+
 /// Run the real-engine population search and write the run directory. Returns the run dir.
+///
+/// `oracle_command` — if Some, the champion theory is passed to this external command after
+/// evolution completes. The command receives the champion JSON path as its last argument and
+/// must exit 0 for the champion to be accepted. The oracle result is included in `quality-gate.json`.
 pub(crate) fn run_population(
     observables_path: &Path,
     output_root: &Path,
@@ -52,6 +84,7 @@ pub(crate) fn run_population(
     run_id: &str,
     covariance: &[PathBuf],
     proposer: Option<&dyn Proposer>,
+    oracle_command: Option<&str>,
 ) -> Result<PathBuf> {
     let blocks = load_covariance_blocks(covariance)?;
     let observables = load_observables(observables_path)?;
@@ -72,12 +105,19 @@ pub(crate) fn run_population(
     // (progress-ledger.jsonl and proposal-ledger.jsonl are STREAMED by the RunDirSink above.)
 
     // Champion.
-    if let Some(best) = &run.best {
-        fs::write(
-            run_dir.join("champion.json"),
-            serde_json::to_string_pretty(&champion_value(best))?,
-        )?;
-    }
+    let champion_json = run
+        .best
+        .as_ref()
+        .map(|best| {
+            let val = champion_value(best);
+            fs::write(
+                run_dir.join("champion.json"),
+                serde_json::to_string_pretty(&val).unwrap_or_default(),
+            )
+            .ok();
+            serde_json::to_string_pretty(&val).unwrap_or_default()
+        })
+        .unwrap_or_default();
 
     // V4 hard gates.
     let progress_ok = population_progress_ok(&run.progress);
@@ -87,14 +127,29 @@ pub(crate) fn run_population(
         .filter(|c| c.generation > 1)
         .all(|c| !c.parent_ids.is_empty());
     let has_survivor = run.best.as_ref().map(|b| !b.disqualified).unwrap_or(false);
-    let gate_passed = progress_ok && non_root_ok && has_survivor;
+
+    // U1: oracle gate — runs external command on champion theory; exit 0 = accepted.
+    let oracle_result = oracle_command.map(|cmd| {
+        let (passed, code) = run_oracle(cmd, &champion_json, &run_dir);
+        json!({ "command": cmd, "passed": passed, "exit_code": code })
+    });
+    let oracle_passed = oracle_result
+        .as_ref()
+        .map(|r| r["passed"].as_bool().unwrap_or(false))
+        .unwrap_or(true); // no oracle ⇒ trivially passed
+
+    let gate_passed = progress_ok && non_root_ok && has_survivor && oracle_passed;
+    let mut checks = json!({
+        "population_progress": progress_ok,
+        "non_root_lineage_after_gen1": non_root_ok,
+        "has_non_disqualified_champion": has_survivor,
+    });
+    if let Some(ref or_) = oracle_result {
+        checks["oracle"] = or_.clone();
+    }
     let quality_gate = json!({
         "record_kind": "quality_gate",
-        "checks": {
-            "population_progress": progress_ok,
-            "non_root_lineage_after_gen1": non_root_ok,
-            "has_non_disqualified_champion": has_survivor,
-        },
+        "checks": checks,
         "passed": gate_passed,
     });
     fs::write(
@@ -115,6 +170,7 @@ pub(crate) fn run_population(
         "best_score": run.best.as_ref().map(|b| b.final_score),
         "best_fingerprint": run.best.as_ref().map(|b| b.fingerprint.clone()),
         "progress_ok": progress_ok,
+        "oracle_passed": oracle_passed,
         "quality_gate_passed": gate_passed,
     });
     fs::write(
@@ -241,7 +297,7 @@ mod tests {
             max_generations: 6,
             seed: 1,
         };
-        let run_dir = run_population(&obs, &tmp, cfg, "test-pop", &[], None).expect("run");
+        let run_dir = run_population(&obs, &tmp, cfg, "test-pop", &[], None, None).expect("run");
 
         // Artifacts exist.
         for f in [
@@ -271,6 +327,69 @@ mod tests {
             let g: Value = serde_json::from_str(line).unwrap();
             assert!(g["new_fingerprints"].as_u64().unwrap() >= 1);
         }
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn oracle_command_passing_exit0_keeps_gate_passed() {
+        let tmp =
+            std::env::temp_dir().join(format!("openqg-oracle-pass-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let obs = write_observables(&tmp);
+
+        let cfg = EvolveConfig {
+            population_size: 9,
+            max_generations: 6,
+            seed: 2,
+        };
+        // `true` (or `sh -c true`) exits 0 — oracle should pass.
+        let run_dir =
+            run_population(&obs, &tmp, cfg, "oracle-pass", &[], None, Some("true")).expect("run");
+
+        let qg: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(run_dir.join("quality-gate.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            qg["checks"]["oracle"]["passed"],
+            serde_json::Value::Bool(true),
+            "oracle=true should pass: {qg}"
+        );
+        assert_eq!(qg["passed"], serde_json::Value::Bool(true));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn oracle_command_failing_exit1_fails_gate() {
+        let tmp =
+            std::env::temp_dir().join(format!("openqg-oracle-fail-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let obs = write_observables(&tmp);
+
+        let cfg = EvolveConfig {
+            population_size: 9,
+            max_generations: 6,
+            seed: 3,
+        };
+        // `false` exits 1 — oracle should reject.
+        let run_dir =
+            run_population(&obs, &tmp, cfg, "oracle-fail", &[], None, Some("false")).expect("run");
+
+        let qg: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(run_dir.join("quality-gate.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            qg["checks"]["oracle"]["passed"],
+            serde_json::Value::Bool(false),
+            "oracle=false should fail: {qg}"
+        );
+        // Overall gate must also fail when oracle rejects.
+        assert_eq!(qg["passed"], serde_json::Value::Bool(false));
 
         let _ = fs::remove_dir_all(&tmp);
     }

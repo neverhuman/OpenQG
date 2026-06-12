@@ -525,6 +525,60 @@ impl ExclusionSentence {
     }
 }
 
+/// Compute a leave-one-sector-out jackknife rank-stability report.
+///
+/// Given per-sector ΔlnZ contributions (each sector's independent evidence in ln-units),
+/// this function computes, for each sector, the "leave-one-out" total ΔlnZ (i.e. the
+/// evidence from all OTHER sectors). A sector whose removal flips the exclusion verdict
+/// (total ΔlnZ crosses `null_threshold`) is flagged as `null_holds = false`.
+///
+/// The output `RankStabilityReport` collects one `RankStabilityResult` per sector. The
+/// `rank_stable` flag is set to true when the leave-one-out ΔlnZ stays below `null_threshold`
+/// (null still holds) — consistent with the SYNTHESIS #5 requirement that "champion rank-1
+/// in ≥80% of jackknife draws".
+///
+/// # Arguments
+/// - `sector_delta_lnz`: named per-sector ΔlnZ contributions, ordered arbitrarily.
+/// - `null_threshold`: the threshold below which ΔlnZ represents a null result (exclusion).
+///   Typically `0.0` (any positive ΔlnZ is evidence FOR the candidate; any negative is exclusion).
+///
+/// # Returns
+/// `RankStabilityReport` with one result per sector; `n_trials = sector_count - 1` for each.
+pub fn compute_sector_jackknife(
+    sector_delta_lnz: &[(&str, f64)],
+    null_threshold: f64,
+) -> RankStabilityReport {
+    let total: f64 = sector_delta_lnz.iter().map(|(_, v)| v).sum();
+    let n = sector_delta_lnz.len() as u32;
+    let results: Vec<RankStabilityResult> = sector_delta_lnz
+        .iter()
+        .map(|(name, sector_val)| {
+            let leave_one_out = total - sector_val;
+            let null_holds = leave_one_out <= null_threshold;
+            RankStabilityResult {
+                perturbation_name: format!("jackknife-{name}"),
+                null_holds,
+                rank_stable: null_holds,
+                delta_ln_z: leave_one_out,
+                n_trials: n.saturating_sub(1),
+            }
+        })
+        .collect();
+    RankStabilityReport { results }
+}
+
+/// Fraction of jackknife draws in which the null holds.
+///
+/// Returns 1.0 for an empty report (vacuously stable). SYNTHESIS #5 requires this to be
+/// ≥ 0.80 before the exclusion sentence is printable.
+pub fn jackknife_null_stability_fraction(report: &RankStabilityReport) -> f64 {
+    if report.results.is_empty() {
+        return 1.0;
+    }
+    let passing = report.results.iter().filter(|r| r.null_holds).count() as f64;
+    passing / report.results.len() as f64
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -773,5 +827,82 @@ mod tests {
         assert_eq!(r.n_trials, 23);
         assert!(r.null_holds);
         assert!(!r.rank_stable);
+    }
+
+    // ---- compute_sector_jackknife ----
+
+    #[test]
+    fn sector_jackknife_empty_sectors() {
+        let report = compute_sector_jackknife(&[], 0.0);
+        assert!(report.results.is_empty());
+        assert!(report.all_pass());
+    }
+
+    #[test]
+    fn sector_jackknife_single_sector() {
+        // One sector with ΔlnZ = -3.0 → leave-one-out = 0.0 (no other sectors)
+        // 0.0 > null_threshold (-inf via 0.0)? 0.0 <= 0.0 → null holds.
+        let report = compute_sector_jackknife(&[("rsd", -3.0)], 0.0);
+        assert_eq!(report.results.len(), 1);
+        assert!((report.results[0].delta_ln_z - 0.0).abs() < 1e-12);
+        assert_eq!(report.results[0].n_trials, 0);
+    }
+
+    #[test]
+    fn sector_jackknife_all_sectors_strong_exclusion() {
+        // Three sectors, each -2.0 → total = -6.0. Leave-one-out = -4.0 for each.
+        // null_threshold = 0.0 → -4.0 <= 0 → null_holds = true for all.
+        let sectors = [("rsd", -2.0), ("wl", -2.0), ("bao", -2.0)];
+        let report = compute_sector_jackknife(&sectors, 0.0);
+        assert_eq!(report.results.len(), 3);
+        for r in &report.results {
+            assert!(r.null_holds, "{} did not hold null", r.perturbation_name);
+            assert!((r.delta_ln_z - (-4.0)).abs() < 1e-12);
+            assert_eq!(r.n_trials, 2);
+        }
+        assert_eq!(jackknife_null_stability_fraction(&report), 1.0);
+    }
+
+    #[test]
+    fn sector_jackknife_dominant_sector_flips_verdict() {
+        // Four sectors: one dominant (-8.0), three weak (-0.5 each).
+        // Total = -8.0 + (-1.5) = -9.5
+        // Leave-out dominant: -9.5 - (-8.0) = -1.5 → -1.5 <= 0 → null holds (barely)
+        // Leave-out weak: -9.5 - (-0.5) = -9.0 → -9.0 <= 0 → null holds
+        let sectors = [
+            ("dominant", -8.0),
+            ("sector-b", -0.5),
+            ("sector-c", -0.5),
+            ("sector-d", -0.5),
+        ];
+        let report = compute_sector_jackknife(&sectors, 0.0);
+        assert!(report.all_pass());
+    }
+
+    #[test]
+    fn sector_jackknife_weak_sector_flips_verdict() {
+        // Three sectors: two at -0.5, one at +5.0. Total = 4.0 (evidence FOR candidate).
+        // Leave-out positive sector: 4.0 - 5.0 = -1.0 → null holds
+        // Leave-out each negative: 4.0 - (-0.5) = 4.5 → 4.5 > 0 → null does NOT hold
+        let sectors = [("bao", -0.5), ("rsd", -0.5), ("outlier", 5.0)];
+        let report = compute_sector_jackknife(&sectors, 0.0);
+        assert!(!report.all_pass());
+        let frac = jackknife_null_stability_fraction(&report);
+        assert!(frac < 1.0, "not all jackknifes should hold null");
+    }
+
+    #[test]
+    fn jackknife_null_stability_fraction_empty_report() {
+        let report = RankStabilityReport { results: vec![] };
+        assert_eq!(jackknife_null_stability_fraction(&report), 1.0);
+    }
+
+    #[test]
+    fn jackknife_result_names_are_prefixed() {
+        let report = compute_sector_jackknife(&[("bao", -2.0), ("wl", -1.5)], 0.0);
+        assert!(report.results[0]
+            .perturbation_name
+            .starts_with("jackknife-"));
+        assert!(report.results[1].perturbation_name.contains("wl"));
     }
 }

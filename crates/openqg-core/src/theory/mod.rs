@@ -78,9 +78,10 @@ pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
 };
 pub use exclusion::{
-    CoverageCertificate, CoverageComponent, CoverageResolution, ExclusionBlocker, ExclusionClass,
-    ExclusionSentence, ExclusionStrength, MechanismRoute, ParameterBox, RankStabilityReport,
-    RankStabilityResult, TrialsCorrection, EXCLUSION_MANDATORY_CAVEATS,
+    compute_sector_jackknife, jackknife_null_stability_fraction, CoverageCertificate,
+    CoverageComponent, CoverageResolution, ExclusionBlocker, ExclusionClass, ExclusionSentence,
+    ExclusionStrength, MechanismRoute, ParameterBox, RankStabilityReport, RankStabilityResult,
+    TrialsCorrection, EXCLUSION_MANDATORY_CAVEATS,
 };
 pub use fingerprint::claim_fingerprint;
 pub use growth_verdict::{

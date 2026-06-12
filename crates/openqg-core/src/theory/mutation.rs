@@ -91,8 +91,11 @@ pub fn mutate(theory: &Theory, rng: &mut Rng, rate: f64) -> Theory {
     // a bare mechanism label was the V5 pass-token cheat (adjudication now demands the number).
     // The recovery here is an explicit, costed modeling choice the oracle re-tests via the
     // Cassini residual; mutants that modify gravity without it die at the unified gate.
+    // V8 Phase 31: chameleon is chosen over vainshtein because chameleon is density-threshold
+    // based (always structurally plausible per the Phase 22 ScreeningMechanismImplausible veto),
+    // while vainshtein requires |alpha_b| >= 0.01 which many one-parameter mutants lack.
     if t.modifies_gravity() && t.screening.is_none() && rng.chance(0.5) {
-        t.screening = Some("vainshtein".into());
+        t.screening = Some("chameleon".into());
         t.screening_recovery = Some(0.999_999);
     }
     // Bounded, deterministic id (lineage is not encoded in the id to avoid unbounded growth).

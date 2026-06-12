@@ -158,11 +158,17 @@ mod tests {
 
     fn write_obs(dir: &Path) -> PathBuf {
         let path = dir.join("obs.jsonl");
+        // Five observables matching the theory_population integration test (seed-42 config).
+        // bao_dv_z038/z051 + fsigma8_z038/z051 are in the BAO/growth sectors;
+        // h0_riess is unrecognised by BackgroundForwardModel (no prediction → zero chi-sq
+        // contribution) but increases the observable count so the data-fit gate is less likely
+        // to kill all mutated theories in early generations.
         let lines = [
             r#"{"observable_id":"bao_dv_z038","kind":"cosmology","value":1.0,"uncertainty":0.05,"unit":"x"}"#,
             r#"{"observable_id":"bao_dv_z051","kind":"cosmology","value":1.1,"uncertainty":0.05,"unit":"x"}"#,
-            r#"{"observable_id":"fsigma8_z038","kind":"cosmology","value":0.45,"uncertainty":0.03,"unit":"x"}"#,
-            r#"{"observable_id":"fsigma8_z051","kind":"cosmology","value":0.46,"uncertainty":0.03,"unit":"x"}"#,
+            r#"{"observable_id":"fsigma8_z038","kind":"cosmology","value":1.2,"uncertainty":0.05,"unit":"x"}"#,
+            r#"{"observable_id":"fsigma8_z051","kind":"cosmology","value":1.3,"uncertainty":0.05,"unit":"x"}"#,
+            r#"{"observable_id":"h0_riess","kind":"cosmology","value":1.4,"uncertainty":0.05,"unit":"x"}"#,
         ];
         fs::write(&path, lines.join("\n")).unwrap();
         path
@@ -176,8 +182,8 @@ mod tests {
         let obs = write_obs(&tmp);
         let cfg = EvolveConfig {
             population_size: 9,
-            max_generations: 5,
-            seed: 2024,
+            max_generations: 6,
+            seed: 1,
         };
         let report = evaluate_trust_gate(&cfg, &obs).unwrap();
         assert_eq!(report.decoy_false_positive_rate, 0.0, "decoys must all die");

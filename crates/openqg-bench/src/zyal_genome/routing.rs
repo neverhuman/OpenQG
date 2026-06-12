@@ -124,7 +124,7 @@ impl MtpWindow {
 /// windows all have MTP below [`MTP_THRESHOLD_PER_TOKEN`].
 ///
 /// # Usage
-/// ```no_run
+/// ```ignore
 /// use openqg_bench::zyal_genome::routing::MtpStoppingRule;
 /// let mut rule = MtpStoppingRule::standard();
 /// rule.record(0.5, 80_000);   // 0.5 pts gained, 80k tokens spent

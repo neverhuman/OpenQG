@@ -659,10 +659,17 @@ mod v6_novelty_tests {
             mass_dimension: 4,
             free_lorentz_indices: 0,
         });
-        t.screening = Some("vainshtein".into());
+        // chameleon is density-threshold based: always structurally plausible even with alpha_b=0
+        // (vainshtein requires |alpha_b| >= 0.01, which would kill this test theory)
+        t.screening = Some("chameleon".into());
         t.screening_recovery = Some(0.999_999); // quantified — passes the unified gate
         let observables = obs();
         let sc = score_theory(&t, &observables, &[], baseline_log_likelihood(&observables));
+        assert!(
+            !sc.disqualified,
+            "theory must survive the veto cascade; kill_reasons: {:?}",
+            sc.kill_reasons
+        );
         let nov = sc
             .components
             .iter()

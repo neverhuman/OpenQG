@@ -763,7 +763,7 @@ mod tests {
         let cfg = EvolveConfig {
             population_size: 9,
             max_generations: 6,
-            seed: 42,
+            seed: 1,
         };
         let run = evolve_population(
             &cfg,

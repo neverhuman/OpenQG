@@ -9,6 +9,7 @@
 //!
 //! Spec reference: S11 §"Convert the null into strength: V8 exclusion protocol"
 
+use super::search_volume::{SearchParamBox, SearchVolumeSpec};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -166,6 +167,118 @@ impl ExclusionClass {
             .find(|b| b.symbol == symbol)
             .map(|b| b.contains(value))
             .unwrap_or(false)
+    }
+
+    // ---- V8 Phase 29 (SYNTHESIS #20): ExclusionClass ↔ SearchVolumeSpec bridge ----
+
+    /// Convert this `ExclusionClass` to the machine-readable [`SearchVolumeSpec`] form used
+    /// for the YAML companion (`data/search-volume.yml`).
+    ///
+    /// The produced spec carries every parameter box from the class (mechanism-specific and
+    /// background) plus the structural constraints (GW170817-safe, scale-independent,
+    /// max-redshift). Background boxes with no mechanism route are included unchanged.
+    pub fn to_search_volume_spec(&self) -> SearchVolumeSpec {
+        SearchVolumeSpec {
+            schema_version: "v8.0.0".into(),
+            exclusion_class_name: self.name.clone(),
+            parameter_boxes: self
+                .parameter_boxes
+                .iter()
+                .map(|b| SearchParamBox {
+                    symbol: b.symbol.clone(),
+                    lo: b.lo,
+                    hi: b.hi,
+                    mechanism_route: b.mechanism_route.clone(),
+                })
+                .collect(),
+            gw170717_safe: self.gw170817_safe,
+            scale_independent: self.scale_independent,
+            max_redshift: self.max_redshift,
+        }
+    }
+
+    /// Compare this `ExclusionClass` against a loaded `SearchVolumeSpec` (e.g. from
+    /// `data/search-volume.yml`) and return a list of human-readable mismatches.
+    ///
+    /// An empty return value means the two representations are consistent; any entry
+    /// means the spec has drifted from the canonical Rust definition. Checks:
+    /// - Every mechanism-specific `ParameterBox` in this class has a matching entry in
+    ///   `spec` with the same `lo` and `hi` (within 1e-9 floating-point tolerance).
+    /// - Every mechanism-specific `SearchParamBox` in `spec` has a matching entry here.
+    /// - Structural gates (`gw170817_safe`, `scale_independent`, `max_redshift`) agree.
+    pub fn matches_search_volume_spec(&self, spec: &SearchVolumeSpec) -> Vec<String> {
+        let mut mismatches = Vec::new();
+        const TOL: f64 = 1e-9;
+
+        // 1. Structural gate checks.
+        if self.gw170817_safe != spec.gw170717_safe {
+            mismatches.push(format!(
+                "gw170817_safe mismatch: class={} spec={}",
+                self.gw170817_safe, spec.gw170717_safe
+            ));
+        }
+        if self.scale_independent != spec.scale_independent {
+            mismatches.push(format!(
+                "scale_independent mismatch: class={} spec={}",
+                self.scale_independent, spec.scale_independent
+            ));
+        }
+        if (self.max_redshift - spec.max_redshift).abs() > TOL {
+            mismatches.push(format!(
+                "max_redshift mismatch: class={} spec={}",
+                self.max_redshift, spec.max_redshift
+            ));
+        }
+
+        // 2. Mechanism-specific boxes: every class box must appear in the spec.
+        let mechanism_boxes: Vec<&ParameterBox> = self
+            .parameter_boxes
+            .iter()
+            .filter(|b| b.mechanism_route.is_some())
+            .collect();
+        for cb in &mechanism_boxes {
+            match spec
+                .parameter_boxes
+                .iter()
+                .find(|sb| sb.symbol == cb.symbol)
+            {
+                None => mismatches.push(format!(
+                    "class ParameterBox '{}' has no matching entry in SearchVolumeSpec",
+                    cb.symbol
+                )),
+                Some(sb) => {
+                    if (sb.lo - cb.lo).abs() > TOL {
+                        mismatches.push(format!(
+                            "'{}' lo mismatch: class={} spec={}",
+                            cb.symbol, cb.lo, sb.lo
+                        ));
+                    }
+                    if (sb.hi - cb.hi).abs() > TOL {
+                        mismatches.push(format!(
+                            "'{}' hi mismatch: class={} spec={}",
+                            cb.symbol, cb.hi, sb.hi
+                        ));
+                    }
+                }
+            }
+        }
+
+        // 3. Mechanism-specific spec boxes: every spec box must appear in the class.
+        let spec_mechanism_boxes: Vec<&SearchParamBox> = spec
+            .parameter_boxes
+            .iter()
+            .filter(|sb| sb.mechanism_route.is_some())
+            .collect();
+        for sb in &spec_mechanism_boxes {
+            if !self.parameter_boxes.iter().any(|cb| cb.symbol == sb.symbol) {
+                mismatches.push(format!(
+                    "SearchVolumeSpec has '{}' but ExclusionClass does not",
+                    sb.symbol
+                ));
+            }
+        }
+
+        mismatches
     }
 }
 
@@ -1093,5 +1206,85 @@ mod tests {
         let sectors = [("a", -2.0), ("b", -1.5), ("c", 0.5)];
         let r = block_bootstrap_lnz(&sectors, 0.0, 200, 0);
         assert!((r.observed_total_lnz - (-3.0)).abs() < 1e-12);
+    }
+
+    // ---- V8 Phase 29 (SYNTHESIS #20): ExclusionClass ↔ SearchVolumeSpec bridge ----
+
+    #[test]
+    fn v8_exclusion_class_converts_to_search_volume_spec() {
+        let class = ExclusionClass::v8_growth_suppression();
+        let spec = class.to_search_volume_spec();
+        assert_eq!(spec.exclusion_class_name, class.name);
+        assert_eq!(spec.gw170717_safe, class.gw170817_safe);
+        assert_eq!(spec.scale_independent, class.scale_independent);
+        assert!((spec.max_redshift - class.max_redshift).abs() < 1e-9);
+        // Every class parameter box must appear in the spec.
+        for cb in &class.parameter_boxes {
+            let found = spec.parameter_boxes.iter().any(|sb| {
+                sb.symbol == cb.symbol
+                    && (sb.lo - cb.lo).abs() < 1e-9
+                    && (sb.hi - cb.hi).abs() < 1e-9
+            });
+            assert!(
+                found,
+                "class box '{}' must appear in converted spec",
+                cb.symbol
+            );
+        }
+    }
+
+    #[test]
+    fn v8_exclusion_class_matches_canonical_search_volume_spec() {
+        // The two canonical v8_growth_suppression() definitions must be fully consistent.
+        use super::super::search_volume::SearchVolumeSpec;
+        let class = ExclusionClass::v8_growth_suppression();
+        let spec = SearchVolumeSpec::v8_growth_suppression();
+        let mismatches = class.matches_search_volume_spec(&spec);
+        assert!(
+            mismatches.is_empty(),
+            "ExclusionClass and SearchVolumeSpec v8 definitions must agree; mismatches: {mismatches:?}"
+        );
+    }
+
+    #[test]
+    fn mismatched_bounds_detected_by_bridge() {
+        use super::super::search_volume::{SearchParamBox, SearchVolumeSpec};
+        let class = ExclusionClass::v8_growth_suppression();
+        // Build a spec with a deliberately wrong 'mu0' upper bound.
+        let mut spec = class.to_search_volume_spec();
+        if let Some(mu0) = spec.parameter_boxes.iter_mut().find(|b| b.symbol == "mu0") {
+            mu0.hi = 0.5; // wrong: should be 0.0
+        }
+        // Also inject a stray box to test the reverse direction.
+        spec.parameter_boxes.push(SearchParamBox {
+            symbol: "mystery_param".into(),
+            lo: -1.0,
+            hi: 1.0,
+            mechanism_route: Some("unknown_route".into()),
+        });
+        let mismatches = class.matches_search_volume_spec(&spec);
+        assert!(
+            mismatches
+                .iter()
+                .any(|m| m.contains("mu0") && m.contains("hi")),
+            "mu0 hi mismatch must be detected; got: {mismatches:?}"
+        );
+        assert!(
+            mismatches.iter().any(|m| m.contains("mystery_param")),
+            "stray spec box must be detected; got: {mismatches:?}"
+        );
+    }
+
+    #[test]
+    fn structural_gate_mismatch_detected_by_bridge() {
+        use super::super::search_volume::SearchVolumeSpec;
+        let class = ExclusionClass::v8_growth_suppression();
+        let mut spec = class.to_search_volume_spec();
+        spec.gw170717_safe = false; // contradict the class
+        let mismatches = class.matches_search_volume_spec(&spec);
+        assert!(
+            mismatches.iter().any(|m| m.contains("gw170817_safe")),
+            "gw170817_safe mismatch must be detected; got: {mismatches:?}"
+        );
     }
 }

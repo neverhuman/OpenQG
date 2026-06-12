@@ -124,6 +124,66 @@ mod tests {
         );
     }
 
+    // V8 Phase 1 integration tests
+
+    #[test]
+    fn forward_tier_background_model_is_t1_not_promotion_grade() {
+        use openqg_core::cosmology::BackgroundForwardModel;
+        use openqg_core::cosmology::ForwardModel;
+        let m = BackgroundForwardModel.manifest();
+        assert_eq!(m.tier, openqg_core::cosmology::ForwardTier::T1Emulator);
+        assert!(!m.tier.is_promotion_grade());
+        assert!(!m.tier.is_publication_grade());
+    }
+
+    #[test]
+    fn data_tier_sealed_entries_recognized() {
+        use openqg_core::validation::{DataTier, DataTierManifest};
+        let m = DataTierManifest::new("desi-dr3-bao-v1", DataTier::FutureSealed);
+        assert!(m.tier.is_sealed());
+        assert!(m.tier.earns_novelty_credit());
+        let m2 = DataTierManifest::new("planck-pr4-tt", DataTier::OpenFit);
+        assert!(!m2.tier.is_sealed());
+        assert!(!m2.tier.earns_novelty_credit());
+    }
+
+    #[test]
+    fn value_firewall_blocks_sealed_dataset_reference() {
+        use openqg_core::validation::check_value_firewall;
+        use std::collections::BTreeSet;
+        let sealed = BTreeSet::from(["future-euclid-wl".to_string()]);
+        let packet = serde_json::json!({
+            "theory_id": "ndgp",
+            "training_data": "future-euclid-wl"
+        });
+        let report = check_value_firewall(&sealed, &packet);
+        assert!(
+            report.blocked,
+            "firewall must block sealed dataset reference"
+        );
+    }
+
+    #[test]
+    fn search_ledger_trials_gate_grows_with_n() {
+        use openqg_core::theory::SearchLedger;
+        let mut l1 = SearchLedger::new();
+        l1.record_evaluation();
+        let mut l100 = SearchLedger::new();
+        for _ in 0..100 {
+            l100.record_evaluation();
+        }
+        assert!(l100.standard_gate().threshold() > l1.standard_gate().threshold());
+    }
+
+    #[test]
+    fn engine_kpis_healthy_check() {
+        use openqg_core::validation::EngineKpis;
+        let healthy = EngineKpis::new(200, 200, 120, 12);
+        assert!(healthy.is_healthy());
+        let not_enough_replays = EngineKpis::new(200, 150, 120, 12);
+        assert!(!not_enough_replays.is_healthy());
+    }
+
     // Phase 0: the on-disk tension fixture must parse, leave real headroom over the
     // baseline, and correctly calibrate the anchor/decoy set via the real scoring engine.
     #[test]

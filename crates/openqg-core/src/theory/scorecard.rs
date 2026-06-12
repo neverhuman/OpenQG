@@ -144,6 +144,20 @@ pub struct ScorecardV4 {
     pub components: Vec<RubricComponent>,
     pub total: f64,
     pub total_band: (f64, f64),
+    /// V8 Phase 1 (#6): the fidelity tier of the forward model that produced `data_fit`.
+    /// `None` means the scorecard was produced without a manifested forward model (legacy path).
+    /// T0/T1 instrument → promotion-grade claims are flagged by the InstrumentRisk gate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instrument_tier: Option<crate::cosmology::ForwardTier>,
+    /// V8 Phase 1 (#5): the trials gate applied to this theory's evidence claim, if a search
+    /// ledger was active. `None` means no ledger was attached (single-hypothesis evaluation).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trials_correction: Option<super::search_ledger::TrialsGate>,
+    /// V8 Phase 1 (#3): points earned from the pre-registered prediction registry (0–30).
+    /// Added to `total` on top of the 100-point rubric. Zero until the prediction registry is
+    /// wired (Phase 1 #8 / #9 growth verdict pack).
+    #[serde(default)]
+    pub forecast_points: f64,
 }
 
 /// A replay receipt: the canonical hash of the scorecard's inputs and of the scorecard itself, so a
@@ -564,6 +578,9 @@ pub fn score_with_observables(
             components: Vec::new(),
             total: 0.0,
             total_band: (0.0, 0.0),
+            instrument_tier: None,
+            trials_correction: None,
+            forecast_points: 0.0,
         };
     }
 
@@ -676,7 +693,83 @@ pub fn score_with_observables(
         components,
         total,
         total_band: (band_lo, band_hi),
+        instrument_tier: None,
+        trials_correction: None,
+        forecast_points: 0.0,
     }
+}
+
+/// V8 Phase 1: instrument risk + trials correction overlay on top of the standard scorecard.
+///
+/// Calls `score_with_observables` then applies:
+/// - **InstrumentRisk gate**: if `instrument_tier` is T0Formula or T1Emulator (not promotion-grade)
+///   AND the data fit claims strong positive evidence (Δln Z > 2.0), the score is flagged with
+///   an instrument-risk kill reason and `disqualified = true`. T2/T3 instruments are unaffected.
+/// - **Forecast points**: added directly to `total` and `total_band` (not a rubric component).
+/// - **Trials gate**: stored on the scorecard; callers can check `gate.passes(delta_lnz)`.
+#[allow(clippy::too_many_arguments)]
+pub fn score_with_v5_context(
+    theory: &Theory,
+    cg: &ClaimGraph,
+    obligations: &[DerivationObligation],
+    unification: &UnificationClaim,
+    store: &dyn EvidenceStore,
+    evidence_schema: &str,
+    data_fit: Option<DataFitOutcome>,
+    fit_observables: &[crate::ObservableRecord],
+    instrument_tier: Option<crate::cosmology::ForwardTier>,
+    trials_correction: Option<super::search_ledger::TrialsGate>,
+    forecast_points: f64,
+) -> ScorecardV4 {
+    let mut sc = score_with_observables(
+        theory,
+        cg,
+        obligations,
+        unification,
+        store,
+        evidence_schema,
+        data_fit,
+        fit_observables,
+    );
+
+    sc.instrument_tier = instrument_tier;
+    sc.trials_correction = trials_correction;
+    sc.forecast_points = forecast_points.max(0.0).min(30.0);
+
+    // InstrumentRisk gate: a sub-promotion-grade instrument cannot report strong evidence.
+    if !sc.disqualified {
+        if let Some(tier) = instrument_tier {
+            if !tier.is_promotion_grade() {
+                if let Some(f) = data_fit {
+                    if f.delta_lnz > 2.0 {
+                        sc.disqualified = true;
+                        sc.kill_reasons.push(format!(
+                            "instrument_risk[{}]: data_fit delta_lnz={:.2} > 2.0 but instrument \
+                             tier {} is not promotion-grade (requires T2Boltzmann or T3CrossSolver); \
+                             upgrade the solver before reporting this as evidence",
+                            tier, f.delta_lnz, tier
+                        ));
+                        sc.components.clear();
+                        sc.total = 0.0;
+                        sc.total_band = (0.0, 0.0);
+                        sc.forecast_points = 0.0;
+                        return sc;
+                    }
+                }
+            }
+        }
+    }
+
+    // Apply forecast points to total.
+    if sc.forecast_points > 0.0 && !sc.disqualified {
+        sc.total += sc.forecast_points;
+        sc.total_band = (
+            sc.total_band.0 + sc.forecast_points,
+            sc.total_band.1 + sc.forecast_points,
+        );
+    }
+
+    sc
 }
 
 /// Build the replay receipt for a scorecard given a canonical rendering of its inputs.
@@ -1009,5 +1102,201 @@ mod tests {
         assert_eq!(r1, r2);
         assert_eq!(r1.inputs_sha256.len(), 64);
         assert_eq!(r1.scorecard_sha256.len(), 64);
+    }
+
+    // ---- V8 Phase 1: InstrumentRisk gate + forecast_points ----
+
+    fn strong_fit() -> DataFitOutcome {
+        DataFitOutcome {
+            delta_aic: -6.0,
+            delta_lnz: 3.5,
+            generalization_gap: 0.01,
+            coverage: 1.0,
+            boundary_hit: false,
+            likelihood_mode: LikelihoodMode::Covariance,
+            covariance_block_count: 3,
+        }
+    }
+
+    #[test]
+    fn instrument_risk_gate_blocks_t0_with_strong_evidence() {
+        use crate::cosmology::ForwardTier;
+        let (t, cg, obs, uni, store) = fixture();
+        // T0Formula + delta_lnz = 3.5 > 2.0 → must be blocked by InstrumentRisk gate.
+        let sc = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(strong_fit()),
+            &[],
+            Some(ForwardTier::T0Formula),
+            None,
+            0.0,
+        );
+        assert!(
+            sc.disqualified,
+            "T0 with delta_lnz > 2 must be disqualified"
+        );
+        assert!(
+            sc.kill_reasons
+                .iter()
+                .any(|r| r.contains("instrument_risk")),
+            "expected instrument_risk kill reason; got {:?}",
+            sc.kill_reasons
+        );
+        assert_eq!(sc.total, 0.0);
+    }
+
+    #[test]
+    fn instrument_risk_gate_blocks_t1_with_strong_evidence() {
+        use crate::cosmology::ForwardTier;
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(strong_fit()),
+            &[],
+            Some(ForwardTier::T1Emulator),
+            None,
+            0.0,
+        );
+        assert!(sc.disqualified);
+        assert!(sc
+            .kill_reasons
+            .iter()
+            .any(|r| r.contains("instrument_risk")));
+    }
+
+    #[test]
+    fn instrument_risk_gate_allows_t2_with_strong_evidence() {
+        use crate::cosmology::ForwardTier;
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(strong_fit()),
+            &[],
+            Some(ForwardTier::T2Boltzmann),
+            None,
+            0.0,
+        );
+        // T2 is promotion-grade: strong evidence is reportable.
+        assert!(
+            !sc.disqualified,
+            "T2 must not be blocked; reasons={:?}",
+            sc.kill_reasons
+        );
+        assert!(sc.total > 0.0);
+    }
+
+    #[test]
+    fn instrument_risk_gate_allows_t1_with_weak_evidence() {
+        use crate::cosmology::ForwardTier;
+        let (t, cg, obs, uni, store) = fixture();
+        // T1 + delta_lnz = 1.0 (≤ 2.0) → not strong enough to trigger the gate.
+        let sc = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(good_fit()),
+            &[],
+            Some(ForwardTier::T1Emulator),
+            None,
+            0.0,
+        );
+        assert!(
+            !sc.disqualified,
+            "T1 with weak evidence must not be blocked; reasons={:?}",
+            sc.kill_reasons
+        );
+    }
+
+    #[test]
+    fn forecast_points_added_to_total() {
+        use crate::cosmology::ForwardTier;
+        let (t, cg, obs, uni, store) = fixture();
+        let sc_base = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        let sc_v5 = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(good_fit()),
+            &[],
+            Some(ForwardTier::T1Emulator),
+            None,
+            15.0,
+        );
+        assert!(
+            (sc_v5.total - sc_base.total - 15.0).abs() < 1e-9,
+            "forecast_points must add to total: base={} v5={}",
+            sc_base.total,
+            sc_v5.total
+        );
+        assert_eq!(sc_v5.forecast_points, 15.0);
+    }
+
+    #[test]
+    fn forecast_points_capped_at_30() {
+        use crate::cosmology::ForwardTier;
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(good_fit()),
+            &[],
+            Some(ForwardTier::T2Boltzmann),
+            None,
+            999.0,
+        );
+        assert_eq!(
+            sc.forecast_points, 30.0,
+            "forecast_points must be capped at 30"
+        );
+    }
+
+    #[test]
+    fn trials_gate_stored_on_scorecard() {
+        use crate::cosmology::ForwardTier;
+        use crate::theory::search_ledger::TrialsGate;
+        let (t, cg, obs, uni, store) = fixture();
+        let gate = TrialsGate {
+            n_trials: 50,
+            base_ln_z: 2.0,
+        };
+        let sc = score_with_v5_context(
+            &t,
+            &cg,
+            &obs,
+            &uni,
+            &store,
+            "schema.v1",
+            Some(good_fit()),
+            &[],
+            Some(ForwardTier::T1Emulator),
+            Some(gate),
+            0.0,
+        );
+        assert_eq!(sc.trials_correction, Some(gate));
     }
 }

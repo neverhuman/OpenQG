@@ -61,6 +61,50 @@ pub enum ForwardKind {
     Boltzmann,
 }
 
+/// V8 Phase 1 (#6): the instrument tier of a score — how trustworthy the forward model is.
+/// Ordered from lowest (T0) to highest (T3) fidelity. Any promotion-grade claim (ΔlnZ > 2,
+/// "beats ΛCDM") requires T2 or above; a T0 score is provisional only.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ForwardTier {
+    /// T0: Fitting formula / parametric stand-in. Fast; instrument risk HIGH. Cannot promote.
+    T0Formula,
+    /// T1: In-repo numerical integration or fitted emulator. Medium accuracy. Provisional results.
+    T1Emulator,
+    /// T2: External Boltzmann solver (CLASS / hi_class). Required for promotion-grade claims.
+    T2Boltzmann,
+    /// T3: Cross-solver consistency (UltraNest + dynesty). Both solvers agree within 2 SE.
+    /// Publication grade — this tier is required for the 5σ threshold.
+    T3CrossSolver,
+}
+
+impl ForwardTier {
+    /// True when this tier is sufficient to make promotion-grade claims (ΔlnZ ≥ 2 reportable).
+    pub fn is_promotion_grade(self) -> bool {
+        self >= ForwardTier::T2Boltzmann
+    }
+
+    /// True when this tier is sufficient to make publication-grade claims (5σ threshold).
+    pub fn is_publication_grade(self) -> bool {
+        self == ForwardTier::T3CrossSolver
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ForwardTier::T0Formula => "T0Formula",
+            ForwardTier::T1Emulator => "T1Emulator",
+            ForwardTier::T2Boltzmann => "T2Boltzmann",
+            ForwardTier::T3CrossSolver => "T3CrossSolver",
+        }
+    }
+}
+
+impl std::fmt::Display for ForwardTier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Reproducibility receipt for a forward model: stamped into every score so two runs with the
 /// same manifest hash are provably comparable, and a different code/data version is visible.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -71,9 +115,16 @@ pub struct ForwardManifest {
     pub version: String,
     /// What class of computation produced the predictions.
     pub kind: ForwardKind,
+    /// V8 Phase 1: instrument fidelity tier (T0–T3). Governs what claims are reportable.
+    #[serde(default = "default_forward_tier")]
+    pub tier: ForwardTier,
     /// Content hash of the external code + data the predictions depend on. Empty for a pure,
     /// deterministic in-repo model that needs no external inputs.
     pub provenance_hash: String,
+}
+
+fn default_forward_tier() -> ForwardTier {
+    ForwardTier::T0Formula
 }
 
 /// A forward model turns a theory representation into predicted observables.
@@ -218,6 +269,9 @@ impl ForwardModel for BackgroundForwardModel {
             model_id: Self::MODEL_ID.to_string(),
             version: Self::VERSION.to_string(),
             kind: ForwardKind::Derivation,
+            // In-repo numerical derivation (ODE integration + fitting formulae) → T1Emulator.
+            // Promotion-grade claims require upgrading to CLASS/hi_class (T2Boltzmann).
+            tier: ForwardTier::T1Emulator,
             // Pure, deterministic, no external inputs ⇒ no external provenance to hash.
             provenance_hash: String::new(),
         }
@@ -282,6 +336,11 @@ mod tests {
     fn manifest_is_stable_and_marks_derivation() {
         let m = BackgroundForwardModel.manifest();
         assert_eq!(m.kind, ForwardKind::Derivation);
+        assert_eq!(m.tier, ForwardTier::T1Emulator);
+        assert!(
+            !m.tier.is_promotion_grade(),
+            "background model is not promotion grade"
+        );
         assert_eq!(m.model_id, "openqg-background");
         assert!(m.provenance_hash.is_empty());
     }

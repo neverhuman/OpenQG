@@ -25,6 +25,7 @@ pub mod obligation;
 pub mod proposal;
 pub mod recombine_proof;
 pub mod scorecard;
+pub mod search_ledger;
 pub mod sectors;
 pub mod unification;
 pub mod unification_data;
@@ -69,9 +70,11 @@ pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };
 pub use scorecard::{
-    background_dof, score, score_with_observables, scorecard_receipt, total_free_dof,
-    DataFitOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt, ScorecardV4,
+    background_dof, score, score_with_observables, score_with_v5_context, scorecard_receipt,
+    total_free_dof, DataFitOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt,
+    ScorecardV4,
 };
+pub use search_ledger::{SearchLedger, TrialsGate};
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{
     adjudicate, is_adjudicated_out, obligation_vetoes, physics_kills, run_veto_cascade,

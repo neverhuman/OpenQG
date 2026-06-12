@@ -84,6 +84,8 @@ impl ForwardModel for SubprocessForwardModel {
             model_id: self.model_id.clone(),
             version: self.version.clone(),
             kind: ForwardKind::Boltzmann,
+            // External Boltzmann solver backend → T2Boltzmann (promotion-grade).
+            tier: super::ForwardTier::T2Boltzmann,
             // The provenance hash should be filled by the adapter (code+data versions); empty here.
             provenance_hash: String::new(),
         }

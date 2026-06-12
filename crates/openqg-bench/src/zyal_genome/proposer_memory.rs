@@ -230,6 +230,14 @@ fn normalize_kill_reason(reason: &str) -> &'static str {
         "free_parameter"
     } else if reason.contains("UnverifiedDerivation") {
         "unverified_derivation"
+    } else if reason.contains("FailedDerivationCertificate") {
+        "failed_derivation_certificate"
+    } else if reason.contains("fabricated novel prediction") || reason.contains("fabricated_novel") {
+        "fabricated_novel_prediction"
+    } else if reason.contains("data_fit_gate_failed") {
+        "data_fit_gate_failed"
+    } else if reason.contains("Screening") || reason.contains("screening") {
+        "screening_implausible"
     } else if reason.contains("Unimplemented") {
         "unimplemented_modification"
     } else if reason.contains("Unexplained") {
@@ -449,6 +457,36 @@ pub(crate) fn assemble_memory(runs_root: &Path, current_records: &[Value]) -> Pr
     }
     if has_class("parse_error") {
         do_lines.push("emit ONE valid JSON object, all magnitudes as numbers".to_string());
+    }
+    if has_class("failed_derivation_certificate") {
+        dont_lines.push(
+            "certify a relation unless your inputs reproduce the engine's calculation within \
+             tolerance — the engine re-derives from your inputs and kills on mismatch"
+                .to_string(),
+        );
+    }
+    if has_class("fabricated_novel_prediction") {
+        dont_lines.push(
+            "claim a scored observable (fsigma8, S8, BAO, H0) as a novel pre-registered \
+             prediction — novel predictions must reference the sealed forecast registry and \
+             concern future data releases the engine has not yet seen"
+                .to_string(),
+        );
+    }
+    if has_class("data_fit_gate_failed") {
+        dont_lines.push(
+            "propose a theory that substantially worsens the data fit relative to ΛCDM — \
+             the data-fit gate kills it before scoring; your mechanism must help at least one \
+             observable without worsening the others"
+                .to_string(),
+        );
+    }
+    if has_class("screening_implausible") {
+        dont_lines.push(
+            "declare vainshtein screening without |alpha_B| >= 0.01 — use chameleon \
+             (density-threshold) instead, which is always structurally plausible"
+                .to_string(),
+        );
     }
     // The diversity directive: when one family dominates the promotable pool, push outward.
     if let Some((dominant, count)) = families.iter().max_by_key(|(_, c)| **c) {

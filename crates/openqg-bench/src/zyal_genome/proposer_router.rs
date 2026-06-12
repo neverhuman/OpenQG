@@ -311,14 +311,20 @@ fn normalize_kill_class_for_within_run(reason: &str) -> &'static str {
         "free_parameter"
     } else if reason.contains("UnverifiedDerivation") {
         "unverified_derivation"
+    } else if reason.contains("FailedDerivationCertificate") {
+        "failed_derivation_certificate"
+    } else if reason.contains("fabricated novel prediction") || reason.contains("fabricated_novel") {
+        "fabricated_novel_prediction"
+    } else if reason.contains("data_fit_gate_failed") {
+        "data_fit_gate_failed"
+    } else if reason.contains("Screening") || reason.contains("screening") {
+        "screening_implausible"
     } else if reason.contains("Unimplemented") {
         "unimplemented_modification"
     } else if reason.contains("Unexplained") {
         "unexplained_modification"
     } else if reason.contains("Conflicting") {
         "conflicting_modification"
-    } else if reason.contains("Screening") || reason.contains("screening") {
-        "screening_implausible"
     } else {
         "other"
     }

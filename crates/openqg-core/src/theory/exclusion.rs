@@ -579,6 +579,116 @@ pub fn jackknife_null_stability_fraction(report: &RankStabilityReport) -> f64 {
     passing / report.results.len() as f64
 }
 
+/// Summary statistics from a block bootstrap of the sector ΔlnZ distribution.
+///
+/// Produced by [`block_bootstrap_lnz`]. SYNTHESIS #5 requires the `rank_stable_fraction`
+/// to be ≥ 0.80 before an exclusion sentence is printable.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BootstrapRankReport {
+    /// Number of bootstrap resamples performed.
+    pub n_bootstrap: usize,
+    /// The observed total ΔlnZ (sum of all sector contributions, without resampling).
+    pub observed_total_lnz: f64,
+    /// Mean of the bootstrap distribution of resampled ΔlnZ.
+    pub bootstrap_mean_lnz: f64,
+    /// Standard deviation of the bootstrap distribution.
+    pub bootstrap_std_lnz: f64,
+    /// Fraction of bootstrap draws where the resampled total ΔlnZ ≤ null_threshold.
+    /// 1.0 = all draws are null-consistent (clean exclusion); 0.0 = none are.
+    pub null_fraction: f64,
+    /// Null threshold used for the `null_fraction` calculation.
+    pub null_threshold: f64,
+}
+
+impl BootstrapRankReport {
+    /// True when ≥ 80 % of bootstrap draws are null-consistent (SYNTHESIS #5 threshold).
+    pub fn rank_stable(&self) -> bool {
+        self.null_fraction >= 0.80
+    }
+}
+
+/// Block bootstrap of the sector ΔlnZ distribution.
+///
+/// Resamples the `sector_delta_lnz` sectors with replacement `n_bootstrap` times and reports
+/// statistics on the bootstrap distribution of the resampled total. Uses a seeded splitmix64
+/// PRNG so results are bit-reproducible across platforms.
+///
+/// # Arguments
+/// - `sector_delta_lnz`: named per-sector ΔlnZ contributions.
+/// - `null_threshold`: total ΔlnZ ≤ this ⇒ null holds in that bootstrap draw.
+/// - `n_bootstrap`: number of resamples (≥ 200 for a stable estimate; SYNTHESIS #5 uses 500).
+/// - `seed`: PRNG seed for reproducibility.
+///
+/// Returns an empty-equivalent `BootstrapRankReport` when the sector list is empty.
+pub fn block_bootstrap_lnz(
+    sector_delta_lnz: &[(&str, f64)],
+    null_threshold: f64,
+    n_bootstrap: usize,
+    seed: u64,
+) -> BootstrapRankReport {
+    let n = sector_delta_lnz.len();
+    let observed_total: f64 = sector_delta_lnz.iter().map(|(_, v)| v).sum();
+
+    if n == 0 || n_bootstrap == 0 {
+        return BootstrapRankReport {
+            n_bootstrap,
+            observed_total_lnz: observed_total,
+            bootstrap_mean_lnz: observed_total,
+            bootstrap_std_lnz: 0.0,
+            null_fraction: if observed_total <= null_threshold {
+                1.0
+            } else {
+                0.0
+            },
+            null_threshold,
+        };
+    }
+
+    // Inline splitmix64 so exclusion.rs has no dependency on mutation.rs.
+    let mut state = seed;
+    let mut splitmix64 = move || -> u64 {
+        state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    };
+
+    let values: Vec<f64> = sector_delta_lnz.iter().map(|(_, v)| *v).collect();
+    let mut bootstrap_totals: Vec<f64> = Vec::with_capacity(n_bootstrap);
+
+    for _ in 0..n_bootstrap {
+        let mut total = 0.0;
+        for _ in 0..n {
+            let idx = (splitmix64() % n as u64) as usize;
+            total += values[idx];
+        }
+        bootstrap_totals.push(total);
+    }
+
+    let mean = bootstrap_totals.iter().sum::<f64>() / n_bootstrap as f64;
+    let variance = bootstrap_totals
+        .iter()
+        .map(|&x| (x - mean) * (x - mean))
+        .sum::<f64>()
+        / n_bootstrap as f64;
+    let std = variance.sqrt();
+    let null_count = bootstrap_totals
+        .iter()
+        .filter(|&&t| t <= null_threshold)
+        .count();
+    let null_fraction = null_count as f64 / n_bootstrap as f64;
+
+    BootstrapRankReport {
+        n_bootstrap,
+        observed_total_lnz: observed_total,
+        bootstrap_mean_lnz: mean,
+        bootstrap_std_lnz: std,
+        null_fraction,
+        null_threshold,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -904,5 +1014,84 @@ mod tests {
             .perturbation_name
             .starts_with("jackknife-"));
         assert!(report.results[1].perturbation_name.contains("wl"));
+    }
+
+    // ---- block_bootstrap_lnz ----
+
+    #[test]
+    fn bootstrap_empty_sectors_returns_degenerate_report() {
+        let r = block_bootstrap_lnz(&[], 0.0, 100, 42);
+        assert_eq!(r.n_bootstrap, 100);
+        assert_eq!(r.observed_total_lnz, 0.0);
+        assert_eq!(r.bootstrap_std_lnz, 0.0);
+    }
+
+    #[test]
+    fn bootstrap_single_sector_has_zero_std() {
+        let r = block_bootstrap_lnz(&[("bao", -3.0)], 0.0, 200, 7);
+        assert_eq!(r.n_bootstrap, 200);
+        assert!((r.observed_total_lnz - (-3.0)).abs() < 1e-12);
+        assert!(r.bootstrap_std_lnz.abs() < 1e-12, "single sector → std = 0");
+        assert!((r.bootstrap_mean_lnz - (-3.0)).abs() < 1e-12);
+        assert_eq!(r.null_fraction, 1.0, "total < 0 always below threshold 0.0");
+    }
+
+    #[test]
+    fn bootstrap_all_null_consistent_sectors() {
+        // All sectors strongly negative → all bootstrap draws should be null-consistent.
+        let sectors = [("rsd", -5.0), ("wl", -4.0), ("bao", -3.0)];
+        let r = block_bootstrap_lnz(&sectors, 0.0, 500, 12345);
+        assert_eq!(
+            r.null_fraction, 1.0,
+            "all draws should be null; got {}",
+            r.null_fraction
+        );
+        assert!(r.rank_stable(), "100 % null-consistent is rank-stable");
+    }
+
+    #[test]
+    fn bootstrap_all_positive_sectors_never_null() {
+        // All sectors positive → no bootstrap draw can be null-consistent.
+        let sectors = [("a", 3.0), ("b", 5.0), ("c", 2.0)];
+        let r = block_bootstrap_lnz(&sectors, 0.0, 500, 99);
+        assert_eq!(
+            r.null_fraction, 0.0,
+            "no draw should be null; got {}",
+            r.null_fraction
+        );
+        assert!(!r.rank_stable());
+    }
+
+    #[test]
+    fn bootstrap_is_deterministic_with_same_seed() {
+        let sectors = [("a", -1.5), ("b", 0.5), ("c", -2.0)];
+        let r1 = block_bootstrap_lnz(&sectors, 0.0, 300, 777);
+        let r2 = block_bootstrap_lnz(&sectors, 0.0, 300, 777);
+        assert_eq!(r1.null_fraction, r2.null_fraction);
+        assert!((r1.bootstrap_mean_lnz - r2.bootstrap_mean_lnz).abs() < 1e-15);
+    }
+
+    #[test]
+    fn bootstrap_different_seeds_give_different_results() {
+        let sectors = [("a", -1.5), ("b", 0.5), ("c", -2.0)];
+        let r1 = block_bootstrap_lnz(&sectors, 0.0, 500, 1);
+        let r2 = block_bootstrap_lnz(&sectors, 0.0, 500, 2);
+        assert_ne!(r1.null_fraction, r2.null_fraction);
+    }
+
+    #[test]
+    fn bootstrap_report_serde_round_trip() {
+        let sectors = [("a", -2.0), ("b", -1.5)];
+        let r = block_bootstrap_lnz(&sectors, 0.0, 200, 42);
+        let json = serde_json::to_string(&r).unwrap();
+        let back: BootstrapRankReport = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, r);
+    }
+
+    #[test]
+    fn bootstrap_observed_total_matches_sum() {
+        let sectors = [("a", -2.0), ("b", -1.5), ("c", 0.5)];
+        let r = block_bootstrap_lnz(&sectors, 0.0, 200, 0);
+        assert!((r.observed_total_lnz - (-3.0)).abs() < 1e-12);
     }
 }

@@ -10,6 +10,8 @@
 //! GW170817 tensor speed → ghost/Ostrogradsky → gradient stability → PPN screening.
 
 use super::obligation::{DerivationObligation, DerivationObligationKind, ObligationOutcome};
+use super::qsa_gate::QsaEpsilonGate;
+use super::screening::check_screening_plausibility;
 use super::{Provenance, Theory};
 
 /// GW170817 bound: c_GW = c forces the tensor-speed excess α_T to ~0. We allow a 1% structural
@@ -100,6 +102,34 @@ pub enum VetoReason {
         predicted_gamma_minus_one: f64,
         /// The Cassini 1σ bound it exceeded.
         bound: f64,
+    },
+
+    // --- V8 Phase 23: structural screening plausibility + QSA validity ---
+    /// V8 Phase 23 (SYNTHESIS #13): the declared screening mechanism cannot operate given the
+    /// theory's α-basis parameters. Checked at triage (O(1), no forward model needed):
+    /// - Vainshtein requires |α_B| ≥ 0.01 (braiding-driven suppression)
+    /// - k-mouflage requires α_K ≥ 0.01 (kineticity-driven suppression)
+    /// - No declared screening + |α_M| ≥ 0.1 violates the Cassini PPN γ bound
+    ///
+    /// A proposer can declare any screening string with a numeric recovery, but if the α-basis
+    /// does not support that mechanism the claim is incoherent regardless of the number.
+    ScreeningMechanismImplausible {
+        /// The declared mechanism string, or `None` when the Cassini no-screening kill fires.
+        mechanism: Option<String>,
+        /// Human-readable explanation from `check_screening_plausibility`.
+        reason: String,
+    },
+    /// V8 Phase 23 (SYNTHESIS #13): the theory is kineticity-dominated (ε_QSA > threshold),
+    /// so the quasi-static approximation underlying the fitting-formula forward model is
+    /// unreliable. Without a Boltzmann tier, the score is not reportable and the theory
+    /// cannot be promoted. ε_QSA = |α_K| / max(6·α_B², ε_floor); threshold = 1.0 (standard).
+    ///
+    /// Checked at adjudication (promotability gate, not triage kill).
+    QsaEscalationRequired {
+        /// The computed ε_QSA value (exceeds `threshold`).
+        epsilon: f64,
+        /// The threshold it exceeded.
+        threshold: f64,
     },
     /// ADJUDICATION: the theory's own background is unphysical (the Friedmann sum E(z)² went
     /// negative at some probed redshift) — recomputed, not clamped.
@@ -342,6 +372,25 @@ pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
         reasons.push(VetoReason::MissingScreening {
             modification_scale: scale,
         });
+    }
+
+    // 7.5. V8 Phase 23 (SYNTHESIS #13): screening mechanism structural plausibility vs α-basis.
+    //      Independent of step 7: checks that a *declared* mechanism can actually operate, and
+    //      that a theory with no declared screening does not violate Cassini via |α_M|.
+    {
+        let ab = &theory.alpha;
+        let spo = check_screening_plausibility(
+            theory.screening.as_deref(),
+            ab.alpha_m,
+            ab.alpha_b,
+            ab.alpha_k,
+        );
+        if spo.is_implausible() {
+            reasons.push(VetoReason::ScreeningMechanismImplausible {
+                mechanism: spo.declared_mechanism,
+                reason: spo.reason,
+            });
+        }
     }
 
     // 8. V5 truth-binding: certified modifications must bind into a background the forward model
@@ -588,6 +637,21 @@ pub fn adjudicate(theory: &Theory) -> Vec<VetoReason> {
             theory.background.try_e_of_z(z)
         {
             reasons.push(VetoReason::UnphysicalBackground { z, e_squared });
+        }
+    }
+
+    // 4. V8 Phase 23 (SYNTHESIS #13): QSA validity gate. A kineticity-dominated theory
+    //    (ε_QSA > 1) cannot be scored via the fitting-formula forward model — the quasi-static
+    //    approximation fails when |α_K| >> 6·α_B² (Peirone et al. 2018, PRD 97, 043519).
+    //    Without a Boltzmann tier this is a promotability kill.
+    {
+        let gate = QsaEpsilonGate::standard();
+        let qo = gate.evaluate(theory.alpha.alpha_k, theory.alpha.alpha_b);
+        if qo.requires_boltzmann() {
+            reasons.push(VetoReason::QsaEscalationRequired {
+                epsilon: qo.epsilon,
+                threshold: gate.threshold,
+            });
         }
     }
 
@@ -1005,9 +1069,14 @@ mod tests {
             mass_dimension: 4,
             free_lorentz_indices: 0,
         });
+        // V8 Phase 23: QSA gate requires ε_QSA = |α_K|/max(6·α_B²,1e-4) ≤ 1.0.
+        // With α_K = 0.2, we need α_B² ≥ 0.2/6 ≈ 0.0333, i.e. |α_B| ≥ 0.183.
+        // Set α_B = 0.2: modification_scale stays max(0.1, 0.2, 0.2) = 0.2, so
+        // Cassini residual = 0.2 × (1 − 0.9999) = 2e-5 < 2.3e-5 bound still clears.
+        t.alpha.alpha_b = 0.2;
         assert!(
             adjudicate(&t).is_empty(),
-            "a deeply-screened theory must clear adjudication, got {:?}",
+            "a deeply-screened, QSA-valid theory must clear adjudication, got {:?}",
             adjudicate(&t)
         );
     }
@@ -1094,6 +1163,158 @@ mod tests {
                 .iter()
                 .any(|r| matches!(r, VetoReason::UnphysicalBackground { .. })),
             "a negative Friedmann sum must be reported, got {verdict:?}"
+        );
+    }
+
+    // ---- V8 Phase 23: ScreeningMechanismImplausible (triage) + QsaEscalationRequired (adjudicate) ----
+
+    #[test]
+    fn vainshtein_with_zero_braiding_fires_screening_implausible_at_triage() {
+        let mut t = baseline();
+        t.alpha = AlphaBasis {
+            alpha_m: 0.2,
+            alpha_b: 0.0,
+            alpha_k: 0.05,
+            alpha_t: 0.0,
+        };
+        t.screening = Some("vainshtein".into());
+        let reasons = run_veto_cascade(&t);
+        assert!(
+            reasons
+                .iter()
+                .any(|r| matches!(r, VetoReason::ScreeningMechanismImplausible { .. })),
+            "zero braiding with Vainshtein must fire ScreeningMechanismImplausible; got {reasons:?}"
+        );
+    }
+
+    #[test]
+    fn kmouflage_with_zero_kineticity_fires_screening_implausible_at_triage() {
+        let mut t = baseline();
+        t.alpha = AlphaBasis {
+            alpha_m: 0.05,
+            alpha_b: 0.3,
+            alpha_k: 0.0,
+            alpha_t: 0.0,
+        };
+        t.screening = Some("k-mouflage".into());
+        let reasons = run_veto_cascade(&t);
+        assert!(
+            reasons
+                .iter()
+                .any(|r| matches!(r, VetoReason::ScreeningMechanismImplausible { .. })),
+            "zero kineticity with k-mouflage must fire ScreeningMechanismImplausible; got {reasons:?}"
+        );
+    }
+
+    #[test]
+    fn no_screening_large_alpha_m_fires_implausible_at_triage() {
+        let mut t = baseline();
+        // α_M = 0.15 > CASSINI_ALPHA_M_THRESHOLD (0.1), no declared screening.
+        t.alpha = AlphaBasis {
+            alpha_m: 0.15,
+            alpha_b: 0.0,
+            alpha_k: 0.0,
+            alpha_t: 0.0,
+        };
+        t.screening = None;
+        let reasons = run_veto_cascade(&t);
+        assert!(
+            reasons
+                .iter()
+                .any(|r| matches!(r, VetoReason::ScreeningMechanismImplausible { .. })),
+            "large α_M without screening must fire ScreeningMechanismImplausible; got {reasons:?}"
+        );
+    }
+
+    #[test]
+    fn chameleon_screening_always_passes_structural_plausibility() {
+        // Chameleon is a density-threshold mechanism — the α-basis check is structural only.
+        let mut t = baseline();
+        t.alpha = AlphaBasis {
+            alpha_m: 0.05,
+            alpha_b: 0.0,
+            alpha_k: 0.0,
+            alpha_t: 0.0,
+        };
+        t.screening = Some("chameleon".into());
+        // The triage cascade must not emit ScreeningMechanismImplausible for chameleon.
+        assert!(
+            !run_veto_cascade(&t)
+                .iter()
+                .any(|r| matches!(r, VetoReason::ScreeningMechanismImplausible { .. })),
+            "chameleon must pass the structural plausibility gate"
+        );
+    }
+
+    #[test]
+    fn kineticity_dominated_theory_is_blocked_at_adjudication() {
+        // α_K = 5.0, α_B = 0.1 → ε_QSA = 5.0/(6×0.01) ≈ 83 >> 1.0 → EscalateToboltzmann.
+        let mut t = baseline();
+        t.alpha = AlphaBasis {
+            alpha_m: 0.0,
+            alpha_b: 0.1,
+            alpha_k: 5.0,
+            alpha_t: 0.0,
+        };
+        t.screening = Some("chameleon".into());
+        let verdict = adjudicate(&t);
+        assert!(
+            verdict.iter().any(
+                |r| matches!(r, VetoReason::QsaEscalationRequired { epsilon, .. } if *epsilon > 1.0)
+            ),
+            "kineticity-dominated theory must fire QsaEscalationRequired; got {verdict:?}"
+        );
+    }
+
+    #[test]
+    fn braiding_dominated_theory_clears_qsa_gate_at_adjudication() {
+        // α_K = 0.1, α_B = 1.0 → ε_QSA = 0.1/6 ≈ 0.017 << 1.0 → QsaValid.
+        let mut t = baseline();
+        t.alpha = AlphaBasis {
+            alpha_m: 0.0,
+            alpha_b: 1.0,
+            alpha_k: 0.1,
+            alpha_t: 0.0,
+        };
+        t.screening = Some("vainshtein".into());
+        t.screening_recovery = Some(0.999_99);
+        assert!(
+            !adjudicate(&t)
+                .iter()
+                .any(|r| matches!(r, VetoReason::QsaEscalationRequired { .. })),
+            "braiding-dominated theory must clear the QSA gate"
+        );
+    }
+
+    #[test]
+    fn gr_baseline_passes_qsa_gate() {
+        // GR has α_K = 0, so ε_QSA = 0.0 → QsaValid by definition.
+        assert!(
+            !adjudicate(&Theory::baseline_lcdm())
+                .iter()
+                .any(|r| matches!(r, VetoReason::QsaEscalationRequired { .. })),
+            "GR baseline must not trigger QSA escalation"
+        );
+    }
+
+    #[test]
+    fn qsa_escalation_required_is_a_kill() {
+        let r = VetoReason::QsaEscalationRequired {
+            epsilon: 83.0,
+            threshold: 1.0,
+        };
+        assert!(r.is_kill(), "QsaEscalationRequired must be a hard kill");
+    }
+
+    #[test]
+    fn screening_mechanism_implausible_is_a_kill() {
+        let r = VetoReason::ScreeningMechanismImplausible {
+            mechanism: Some("vainshtein".into()),
+            reason: "zero braiding".into(),
+        };
+        assert!(
+            r.is_kill(),
+            "ScreeningMechanismImplausible must be a hard kill"
         );
     }
 }

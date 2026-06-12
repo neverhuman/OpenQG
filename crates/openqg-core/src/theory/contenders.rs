@@ -94,6 +94,8 @@ fn tie_fit() -> DataFitOutcome {
         generalization_gap: 0.01,
         coverage: 1.0,
         boundary_hit: false,
+        n_observations: 23,
+        gof_outcome: None,
     }
 }
 
@@ -505,7 +507,7 @@ pub fn score_contender(c: &Contender, store: &dyn EvidenceStore) -> ScorecardV4 
         &c.unification,
         store,
         EVIDENCE_SCHEMA,
-        c.data_fit,
+        c.data_fit.clone(),
     )
 }
 

@@ -118,6 +118,25 @@ pub enum VetoReason {
     /// (GR/QM/QFT/SM/ΛCDM) in the stated limit to within the bound.
     LimitFailure { obligation: String, detail: String },
 
+    // --- V8 Phase 5: knowledge-layer laundering kills ---
+    /// S09: a `Derived` parameter's input chain flows through a published literature value
+    /// whose underlying derivation used the scored dataset as its primary measurement.
+    ///
+    /// This is the harder form of anti-laundering: the derivation certificate cites a paper,
+    /// and the paper's value came from fitting the same observables being scored here.
+    /// The parameter earns derivation credit via a citation, but the cited number is not
+    /// truly independent — it is the scored data in disguise. Hard kill.
+    ///
+    /// Detection: raised when the knowledge-layer corpus flags the cited source as having
+    /// used the scored dataset as its primary data. Manually raised until the corpus
+    /// retrieval pipeline (S09 §knowledge layer) is operational.
+    LiteratureValueLaundering {
+        symbol: String,
+        /// The cited source whose derivation used the scored dataset.
+        cited_source: String,
+        detail: String,
+    },
+
     // --- V5 truth-binding reasons (claims must have computable consequences) ---
     /// The theory is distinct from ΛCDM via verified certificates, but the bound background still
     /// computes GR growth (an unbindable relation or an inversion domain error) — the claimed
@@ -1006,6 +1025,25 @@ mod tests {
         assert!(adjudicate(&t)
             .iter()
             .any(|r| matches!(r, VetoReason::ScreeningRecoveryUnphysical { .. })));
+    }
+
+    // ---- V8 Phase 5: LiteratureValueLaundering ----
+
+    #[test]
+    fn literature_value_laundering_is_a_kill() {
+        let kill = VetoReason::LiteratureValueLaundering {
+            symbol: "mu0".into(),
+            cited_source: "Planck2018-cosmological-parameters".into(),
+            detail: concat!(
+                "Planck 2018 Table 2 σ8 value is derived from the same CMB+BAO likelihood ",
+                "that is in the scored dataset; not an independent measurement."
+            )
+            .into(),
+        };
+        assert!(
+            kill.is_kill(),
+            "LiteratureValueLaundering must be a hard kill"
+        );
     }
 
     #[test]

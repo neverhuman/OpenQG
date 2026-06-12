@@ -92,8 +92,8 @@ pub use recombine_proof::{
 };
 pub use scorecard::{
     background_dof, score, score_with_observables, score_with_v5_context, scorecard_receipt,
-    total_free_dof, DataFitOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt,
-    ScorecardV4,
+    total_free_dof, ClaimClass, DataFitOutcome, GoFOutcome, LikelihoodMode, RubricComponent,
+    RubricV4, ScorecardReceipt, ScorecardV4,
 };
 pub use search_ledger::{SearchLedger, TrialsGate};
 pub use unification::{unification_report, DomainCheck, UnificationReport};

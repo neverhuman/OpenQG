@@ -25,6 +25,135 @@ use super::{
     MaterializedEvidenceAudit, Theory, UnificationClaim,
 };
 
+/// Evidential category a scorecard achieves, given data scale, instrument tier, and fit quality.
+///
+/// Derived automatically; cannot be upgraded by the proposer.
+/// Only data scale, solver quality, and trial-correction context determine the maximum class.
+///
+/// At n=23 (current compressed-likelihood scale), the default cap is `InterestingFit`.
+/// `PromotionCandidate` requires covariance-grade evidence + a promotion-grade solver.
+/// `DiscoveryClaim` additionally requires a sealed-holdout forecast from the prediction registry.
+/// `ExclusionClaim` is set via `ExclusionSentence`, not derived from a single scorecard.
+///
+/// Reference: S07 §8 "State the n=23 claim boundary in paper and receipts".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaimClass {
+    /// No actionable claim: data scale or instrument tier too low, or candidate is disqualified.
+    #[default]
+    Triage,
+    /// Compressed likelihoods, moderate evidence — notable but not promotion-grade.
+    /// n=23 with diagonal/BIC mode is capped here regardless of delta_lnz.
+    InterestingFit,
+    /// Covariance-grade evidence, ΔlnZ > 2, T1Emulator or higher, not boundary-pinned.
+    PromotionCandidate,
+    /// Promotion-grade nested sampling, ΔlnZ > 5 post-trials, rank-stable, sealed-holdout forecast.
+    /// Requires T2Boltzmann or higher; controlled by the prediction registry, not the scorecard.
+    DiscoveryClaim,
+    /// Full exclusion: set via `ExclusionSentence`, not derived from a scorecard.
+    ExclusionClaim,
+}
+
+impl ClaimClass {
+    /// Derive the claim class from scorecard context.
+    ///
+    /// - `n_observations`: number of data points in the scored likelihood (0 → `Triage`).
+    /// - `disqualified`: hard kill → `Triage` regardless of other factors.
+    /// - `boundary_hit`: best fit sits on a prior boundary → caps at `InterestingFit`.
+    pub fn derive(
+        n_observations: u32,
+        likelihood_mode: LikelihoodMode,
+        delta_lnz: f64,
+        instrument_tier: Option<crate::cosmology::ForwardTier>,
+        disqualified: bool,
+        boundary_hit: bool,
+    ) -> Self {
+        use crate::cosmology::ForwardTier;
+        if disqualified {
+            return ClaimClass::Triage;
+        }
+        // n=0 or n≤15 with diagonal mode → Triage (insufficient data scale).
+        if n_observations == 0
+            || (n_observations <= 15 && likelihood_mode == LikelihoodMode::Diagonal)
+        {
+            return ClaimClass::Triage;
+        }
+        // n≤30 with diagonal mode → InterestingFit (the n=23 wall from S07 §8).
+        if n_observations <= 30 && likelihood_mode == LikelihoodMode::Diagonal {
+            return ClaimClass::InterestingFit;
+        }
+        // Boundary-pinned improvement blocks promotion.
+        if boundary_hit {
+            return ClaimClass::InterestingFit;
+        }
+        let tier = instrument_tier.unwrap_or(ForwardTier::T0Formula);
+        if tier < ForwardTier::T1Emulator {
+            return ClaimClass::InterestingFit;
+        }
+        // Covariance mode + T1+ + ΔlnZ > 2 → PromotionCandidate.
+        // DiscoveryClaim requires a sealed-holdout forecast from the prediction registry —
+        // that gate is enforced externally, not here.
+        if delta_lnz > 2.0 {
+            return ClaimClass::PromotionCandidate;
+        }
+        ClaimClass::InterestingFit
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            ClaimClass::Triage => "triage",
+            ClaimClass::InterestingFit => "interesting_fit",
+            ClaimClass::PromotionCandidate => "promotion_candidate",
+            ClaimClass::DiscoveryClaim => "discovery_claim",
+            ClaimClass::ExclusionClaim => "exclusion_claim",
+        }
+    }
+
+    /// True when this class supports a publishable claim (PromotionCandidate or above).
+    pub fn is_publishable(self) -> bool {
+        self >= ClaimClass::PromotionCandidate
+    }
+}
+
+/// Absolute goodness-of-fit assessment for a theory on the scored dataset.
+///
+/// Unlike [`DataFitOutcome`] (deltas vs ΛCDM), this carries the absolute χ²/dof
+/// and global p-value that determine whether the model describes the data at all.
+/// A positive Bayes factor vs ΛCDM means nothing if both models are bad fits.
+///
+/// Reference: S07 §"The fourth failure is GoF".
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GoFOutcome {
+    /// χ² / effective degrees of freedom. Values > 2.0 indicate a poor absolute fit.
+    pub chi_sq_dof: f64,
+    /// Effective data modes (from covariance decomposition when available).
+    pub n_eff_modes: u32,
+    /// Global p-value from χ² distribution (`None` if covariance unavailable for CDF computation).
+    pub global_p_value: Option<f64>,
+    /// True when the absolute fit is acceptable: chi_sq_dof < 2.0 AND
+    /// (global_p_value is None or global_p_value ≥ 0.01).
+    pub gof_passed: bool,
+    /// True when the best fit sits on a prior boundary AND the chi_sq_dof is suspect.
+    /// Blocks promotion to PromotionCandidate even when ΔlnZ > 2.
+    pub boundary_pinned_unresolved: bool,
+}
+
+impl GoFOutcome {
+    /// Construct from a chi-squared statistic without a full CDF (conservative path).
+    pub fn from_chi_sq(chi_sq: f64, n_eff_modes: u32, boundary_hit: bool) -> Self {
+        let dof = n_eff_modes.max(1) as f64;
+        let chi_sq_dof = chi_sq / dof;
+        let gof_passed = chi_sq_dof < 2.0;
+        GoFOutcome {
+            chi_sq_dof,
+            n_eff_modes,
+            global_p_value: None,
+            gof_passed,
+            boundary_pinned_unresolved: boundary_hit && !gof_passed,
+        }
+    }
+}
+
 /// Pre-computed data-fit summary for a candidate, produced by the caller from `model_league`
 /// (covariance-aware ΔAIC / Δln Z vs ΛCDM) and `split_evaluate` (train/test generalization gap).
 /// `None` passed to [`score`] means "no data fit available" → the DataFit component scores 0
@@ -38,7 +167,7 @@ pub enum LikelihoodMode {
     Covariance,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DataFitOutcome {
     /// ΔAIC vs the ΛCDM reference (negative = candidate preferred).
     pub delta_aic: f64,
@@ -56,6 +185,14 @@ pub struct DataFitOutcome {
     /// V6: how many covariance blocks entered the likelihood (0 = pure diagonal).
     #[serde(default)]
     pub covariance_block_count: u32,
+    /// V8 Phase 5: number of data points that entered the scored likelihood.
+    /// Used to derive [`ClaimClass`] (n=23 wall). Zero means unknown (Triage).
+    #[serde(default)]
+    pub n_observations: u32,
+    /// V8 Phase 5: absolute goodness-of-fit assessment.
+    /// `None` when GoF has not been computed (legacy path).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gof_outcome: Option<GoFOutcome>,
 }
 
 impl DataFitOutcome {
@@ -70,6 +207,28 @@ impl DataFitOutcome {
     /// discriminating. See SYNTHESIS §5 Phase 0 item #3 and S07 §4.2.
     pub fn fit_gate_passed(&self) -> bool {
         self.delta_lnz > -2.0 || self.delta_aic <= 4.0
+    }
+
+    /// V8 Phase 5: absolute GoF gate. Returns `None` when `gof_outcome` is unavailable
+    /// (no kill raised). Returns `Some(false)` when GoF explicitly failed.
+    pub fn gof_gate_passed(&self) -> Option<bool> {
+        self.gof_outcome.as_ref().map(|g| g.gof_passed)
+    }
+
+    /// Derive the `ClaimClass` from this fit context.
+    pub fn claim_class(
+        &self,
+        instrument_tier: Option<crate::cosmology::ForwardTier>,
+        disqualified: bool,
+    ) -> ClaimClass {
+        ClaimClass::derive(
+            self.n_observations,
+            self.likelihood_mode,
+            self.delta_lnz,
+            instrument_tier,
+            disqualified,
+            self.boundary_hit,
+        )
     }
 }
 
@@ -158,6 +317,10 @@ pub struct ScorecardV4 {
     /// wired (Phase 1 #8 / #9 growth verdict pack).
     #[serde(default)]
     pub forecast_points: f64,
+    /// V8 Phase 5: evidential category derived from data scale + instrument tier + fit quality.
+    /// `Triage` for disqualified candidates or unknown n_observations.
+    #[serde(default)]
+    pub claim_class: ClaimClass,
 }
 
 /// A replay receipt: the canonical hash of the scorecard's inputs and of the scorecard itself, so a
@@ -550,13 +713,21 @@ pub fn score_with_observables(
 
     // V8 (Wave 0.4): evidence gate — kill a theory that is substantially worse than ΛCDM on
     // BOTH indicators. Covariance-mode lnZ is the primary signal; diagonal BIC is a gate only.
-    if let Some(f) = data_fit {
+    if let Some(ref f) = data_fit {
         if !f.fit_gate_passed() {
             kill.push(format!(
                 "data_fit_gate_failed: theory is substantially worse than ΛCDM \
                  (delta_lnz={:.2}, delta_aic={:.2}); covariance-aware evidence required to \
                  overcome this gate",
                 f.delta_lnz, f.delta_aic
+            ));
+        }
+        // V8 Phase 5: absolute GoF gate — a positive Bayes factor over a bad model is not evidence.
+        if let Some(false) = f.gof_gate_passed() {
+            kill.push(format!(
+                "gof_gate_failed: absolute fit is unacceptable \
+                 (chi_sq_dof={:.2}); must pass chi_sq_dof < 2.0 before reporting beats-ΛCDM",
+                f.gof_outcome.as_ref().map_or(0.0, |g| g.chi_sq_dof)
             ));
         }
     }
@@ -568,7 +739,7 @@ pub fn score_with_observables(
             kill_reasons: kill,
             evidence_audits,
             claim_graph_digest: digest,
-            data_fit,
+            data_fit: data_fit.clone(),
             unification_claimed,
             no_hidden_knob,
             free_dof: free,
@@ -581,6 +752,7 @@ pub fn score_with_observables(
             instrument_tier: None,
             trials_correction: None,
             forecast_points: 0.0,
+            claim_class: ClaimClass::Triage,
         };
     }
 
@@ -592,7 +764,7 @@ pub fn score_with_observables(
     // 2. Data fit — V8 (Wave 0.4) BIC demotion: diagonal (BIC/AIC-only) fits award 0 points;
     //    only covariance-aware Δln Z earns credit. Fit-set data → evidence gate, not score.
     //    Forecast points (Phase 1 item #3, prediction registry) will be added separately.
-    let c_df = match data_fit {
+    let c_df = match &data_fit {
         Some(f) => {
             let raw = if f.likelihood_mode == LikelihoodMode::Covariance {
                 data_fit_raw(f.delta_lnz)
@@ -658,7 +830,7 @@ pub fn score_with_observables(
 
     // 4. Robustness under judge — generalization gap (smaller = better); adversarial panel folds in
     //    here in M4+. None ⇒ 0.5 with full band (unknown).
-    let c_rob = match data_fit {
+    let c_rob = match &data_fit {
         Some(f) => {
             let raw = clamp01(1.0 / (1.0 + (f.generalization_gap.max(0.0) / 0.05)));
             component("robustness_under_judge", raw, raw, raw)
@@ -676,6 +848,13 @@ pub fn score_with_observables(
     let total: f64 = components.iter().map(|c| c.points).sum();
     let band_lo: f64 = components.iter().map(|c| c.band.0).sum();
     let band_hi: f64 = components.iter().map(|c| c.band.1).sum();
+
+    // V8 Phase 5: derive ClaimClass from data fit context (instrument_tier set later in
+    // score_with_v5_context; here we use None as a conservative default).
+    let claim_class = data_fit
+        .as_ref()
+        .map(|f| f.claim_class(None, false))
+        .unwrap_or(ClaimClass::Triage);
 
     ScorecardV4 {
         theory_id: theory.id.clone(),
@@ -696,6 +875,7 @@ pub fn score_with_observables(
         instrument_tier: None,
         trials_correction: None,
         forecast_points: 0.0,
+        claim_class,
     }
 }
 
@@ -728,7 +908,7 @@ pub fn score_with_v5_context(
         unification,
         store,
         evidence_schema,
-        data_fit,
+        data_fit.clone(),
         fit_observables,
     );
 
@@ -736,11 +916,17 @@ pub fn score_with_v5_context(
     sc.trials_correction = trials_correction;
     sc.forecast_points = forecast_points.max(0.0).min(30.0);
 
+    // Re-derive ClaimClass now that instrument_tier is known.
+    sc.claim_class = data_fit
+        .as_ref()
+        .map(|f| f.claim_class(instrument_tier, sc.disqualified))
+        .unwrap_or(ClaimClass::Triage);
+
     // InstrumentRisk gate: a sub-promotion-grade instrument cannot report strong evidence.
     if !sc.disqualified {
         if let Some(tier) = instrument_tier {
             if !tier.is_promotion_grade() {
-                if let Some(f) = data_fit {
+                if let Some(ref f) = data_fit {
                     if f.delta_lnz > 2.0 {
                         sc.disqualified = true;
                         sc.kill_reasons.push(format!(
@@ -869,6 +1055,8 @@ mod tests {
             boundary_hit: false,
             likelihood_mode: LikelihoodMode::Diagonal,
             covariance_block_count: 0,
+            n_observations: 23,
+            gof_outcome: None,
         }
     }
 
@@ -975,6 +1163,8 @@ mod tests {
             boundary_hit: false,
             likelihood_mode: LikelihoodMode::Diagonal,
             covariance_block_count: 0,
+            n_observations: 23,
+            gof_outcome: None,
         };
         let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(tie));
         assert!(!sc.disqualified);
@@ -1116,6 +1306,8 @@ mod tests {
             boundary_hit: false,
             likelihood_mode: LikelihoodMode::Covariance,
             covariance_block_count: 3,
+            n_observations: 23,
+            gof_outcome: None,
         }
     }
 
@@ -1299,5 +1491,132 @@ mod tests {
             0.0,
         );
         assert_eq!(sc.trials_correction, Some(gate));
+    }
+
+    // ---- V8 Phase 5: ClaimClass and GoFOutcome ----
+
+    #[test]
+    fn claim_class_n23_diagonal_is_interesting_fit() {
+        let cc = ClaimClass::derive(23, LikelihoodMode::Diagonal, 5.0, None, false, false);
+        assert_eq!(
+            cc,
+            ClaimClass::InterestingFit,
+            "n=23 diagonal must be capped at InterestingFit"
+        );
+    }
+
+    #[test]
+    fn claim_class_n15_diagonal_is_triage() {
+        let cc = ClaimClass::derive(15, LikelihoodMode::Diagonal, 5.0, None, false, false);
+        assert_eq!(cc, ClaimClass::Triage, "n≤15 diagonal must be Triage");
+    }
+
+    #[test]
+    fn claim_class_disqualified_is_triage() {
+        use crate::cosmology::ForwardTier;
+        let cc = ClaimClass::derive(
+            100,
+            LikelihoodMode::Covariance,
+            10.0,
+            Some(ForwardTier::T2Boltzmann),
+            true,
+            false,
+        );
+        assert_eq!(cc, ClaimClass::Triage, "disqualified must always be Triage");
+    }
+
+    #[test]
+    fn claim_class_boundary_hit_caps_at_interesting_fit() {
+        use crate::cosmology::ForwardTier;
+        let cc = ClaimClass::derive(
+            100,
+            LikelihoodMode::Covariance,
+            5.0,
+            Some(ForwardTier::T2Boltzmann),
+            false,
+            true,
+        );
+        assert_eq!(
+            cc,
+            ClaimClass::InterestingFit,
+            "boundary-hit blocks promotion"
+        );
+    }
+
+    #[test]
+    fn claim_class_covariance_strong_evidence_is_promotion_candidate() {
+        use crate::cosmology::ForwardTier;
+        let cc = ClaimClass::derive(
+            50,
+            LikelihoodMode::Covariance,
+            3.0,
+            Some(ForwardTier::T1Emulator),
+            false,
+            false,
+        );
+        assert_eq!(cc, ClaimClass::PromotionCandidate);
+        assert!(cc.is_publishable());
+    }
+
+    #[test]
+    fn scorecard_claim_class_set_on_survivor() {
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified);
+        assert_eq!(
+            sc.claim_class,
+            ClaimClass::InterestingFit,
+            "n=23 diagonal survivor → InterestingFit"
+        );
+    }
+
+    #[test]
+    fn gof_gate_kills_bad_absolute_fit() {
+        let (t, cg, obs, uni, store) = fixture();
+        let bad_gof = GoFOutcome::from_chi_sq(50.0, 10, false);
+        assert!(!bad_gof.gof_passed);
+        let mut fit = good_fit();
+        fit.likelihood_mode = LikelihoodMode::Covariance;
+        fit.delta_lnz = 3.0;
+        fit.gof_outcome = Some(bad_gof);
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(fit));
+        assert!(sc.disqualified, "chi_sq_dof=5.0 must kill the candidate");
+        assert!(sc
+            .kill_reasons
+            .iter()
+            .any(|r| r.contains("gof_gate_failed")));
+    }
+
+    #[test]
+    fn gof_gate_passes_when_outcome_missing() {
+        let (t, cg, obs, uni, store) = fixture();
+        let sc = score(&t, &cg, &obs, &uni, &store, "schema.v1", Some(good_fit()));
+        assert!(!sc.disqualified, "no gof_outcome → gate not triggered");
+    }
+
+    #[test]
+    fn gof_outcome_from_chi_sq_smoke() {
+        let g = GoFOutcome::from_chi_sq(20.0, 10, false);
+        assert_eq!(g.chi_sq_dof, 2.0);
+        assert!(!g.gof_passed);
+        let g2 = GoFOutcome::from_chi_sq(10.0, 10, false);
+        assert_eq!(g2.chi_sq_dof, 1.0);
+        assert!(g2.gof_passed);
+    }
+
+    #[test]
+    fn claim_class_label_round_trips() {
+        for cc in [
+            ClaimClass::Triage,
+            ClaimClass::InterestingFit,
+            ClaimClass::PromotionCandidate,
+            ClaimClass::DiscoveryClaim,
+            ClaimClass::ExclusionClaim,
+        ] {
+            assert!(!cc.label().is_empty());
+        }
+        assert!(!ClaimClass::Triage.is_publishable());
+        assert!(!ClaimClass::InterestingFit.is_publishable());
+        assert!(ClaimClass::PromotionCandidate.is_publishable());
     }
 }

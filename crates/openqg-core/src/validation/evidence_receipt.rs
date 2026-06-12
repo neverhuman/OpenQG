@@ -132,6 +132,110 @@ impl PriorEntry {
     }
 }
 
+/// Transform applied to a parameter before it enters the sampler.
+///
+/// Controls how the unit hypercube from the sampler maps to physical parameter space.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PriorTransform {
+    /// Linear mapping: physical = lo + (hi - lo) * u.
+    Linear,
+    /// Log-10 absolute-value mapping: physical = 10^(lo_log + (hi_log - lo_log) * u).
+    Log10Abs,
+    /// Logit unit mapping: physical = logit(u) scaled to (lo, hi).
+    LogitUnit,
+    /// Fixed derived value — not sampled; passed through as a constant.
+    DerivedFixed { value: f64 },
+}
+
+/// Prior density assigned to a parameter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PriorDensity {
+    /// Flat prior over the declared support.
+    Uniform,
+    /// Log-uniform prior (Jeffreys for scale parameters).
+    LogUniform,
+    /// Gaussian informative prior from an external experiment (not the scored dataset).
+    GaussianExternal { mean: f64, sigma: f64 },
+}
+
+/// Per-parameter prior specification for a nested-sampling run.
+///
+/// The prior registry is machine-owned: the LLM proposer may not set prior bounds.
+/// Bounds must come from the physics registry or an explicit analyst decision.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriorSpec {
+    pub name: String,
+    pub transform: PriorTransform,
+    pub support: [f64; 2],
+    pub density: PriorDensity,
+}
+
+/// Which backend sampler to invoke.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SamplerBackend {
+    UltraNest,
+    Dynesty,
+    PolyChord,
+    /// Internal deterministic quadrature — CI / unit tests only; not promotion-grade.
+    Internal,
+}
+
+/// Sampler-level configuration for one nested-sampling run.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SamplerSpec {
+    pub backend: SamplerBackend,
+    pub n_live: u32,
+    pub rng_seed: u64,
+    pub max_likelihood_calls: u64,
+    pub walltime_seconds: u64,
+}
+
+/// Request sent by Rust to the external nested-sampling subprocess.
+///
+/// Rust writes this JSON file; the child process reads it, runs the sampler against
+/// the deterministic likelihood service, and returns an [`EvidenceReceipt`].
+/// Rust validates hashes and GoF gates before accepting the receipt.
+///
+/// The process boundary isolates Rust policy from Python/Fortran sampler implementations.
+/// All hashes must match before a receipt is accepted by the Rust side.
+///
+/// Reference: S07 §"Evidence backbone: nested sampling by process boundary".
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvidenceRequest {
+    pub run_id: String,
+    pub model_id: String,
+    /// SHA-256 of the serialized theory / model specification.
+    pub model_fingerprint: String,
+    /// SHA-256 of the data manifest used to select observables.
+    pub data_manifest_hash: String,
+    /// SHA-256 of the likelihood function specification (covariance blocks + observable list).
+    pub likelihood_manifest_hash: String,
+    /// SHA-256 of the prior registry entry — locks the priors to this receipt.
+    pub prior_registry_hash: String,
+    /// Per-parameter prior specifications. Identical to the prior registry entry at this hash.
+    pub parameters: Vec<PriorSpec>,
+    pub sampler: SamplerSpec,
+}
+
+impl EvidenceRequest {
+    /// Content hash of this request, for binding a receipt to its exact run specification.
+    pub fn content_hash(&self) -> String {
+        let canonical = serde_json::to_string(self).unwrap_or_default();
+        crate::sha256_digest(canonical.as_bytes())
+    }
+
+    /// True when the request specifies a promotion-grade backend.
+    pub fn is_promotion_grade(&self) -> bool {
+        matches!(
+            self.sampler.backend,
+            SamplerBackend::UltraNest | SamplerBackend::Dynesty | SamplerBackend::PolyChord
+        )
+    }
+}
+
 /// Consistency check between two EvidenceReceipts from different solvers on the same
 /// theory + dataset. Returns `None` if the two receipts agree within combined uncertainty.
 pub fn cross_solver_tension(a: &EvidenceReceipt, b: &EvidenceReceipt) -> Option<f64> {
@@ -236,5 +340,56 @@ mod tests {
         let h2 = e.content_hash();
         assert_eq!(h1, h2);
         assert_eq!(h1.len(), 64);
+    }
+
+    // ---- V8 Phase 5: EvidenceRequest process contract ----
+
+    fn sample_request() -> EvidenceRequest {
+        EvidenceRequest {
+            run_id: "run-001".into(),
+            model_id: "planck-mu0-v1".into(),
+            model_fingerprint: "a".repeat(64),
+            data_manifest_hash: "b".repeat(64),
+            likelihood_manifest_hash: "c".repeat(64),
+            prior_registry_hash: "d".repeat(64),
+            parameters: vec![PriorSpec {
+                name: "mu0".into(),
+                transform: PriorTransform::Linear,
+                support: [-0.30, 0.00],
+                density: PriorDensity::Uniform,
+            }],
+            sampler: SamplerSpec {
+                backend: SamplerBackend::UltraNest,
+                n_live: 400,
+                rng_seed: 42,
+                max_likelihood_calls: 100_000,
+                walltime_seconds: 3600,
+            },
+        }
+    }
+
+    #[test]
+    fn evidence_request_content_hash_stable() {
+        let r = sample_request();
+        let h1 = r.content_hash();
+        let h2 = r.content_hash();
+        assert_eq!(h1, h2);
+        assert_eq!(h1.len(), 64);
+    }
+
+    #[test]
+    fn evidence_request_promotion_grade_backends() {
+        let mut r = sample_request();
+        assert!(r.is_promotion_grade());
+        r.sampler.backend = SamplerBackend::Internal;
+        assert!(!r.is_promotion_grade());
+    }
+
+    #[test]
+    fn evidence_request_hash_changes_with_model() {
+        let r1 = sample_request();
+        let mut r2 = sample_request();
+        r2.model_id = "dark-scattering-v1".into();
+        assert_ne!(r1.content_hash(), r2.content_hash());
     }
 }

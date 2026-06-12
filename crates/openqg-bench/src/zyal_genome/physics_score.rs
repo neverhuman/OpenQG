@@ -118,6 +118,8 @@ pub(crate) fn score_candidate(
                 openqg_core::LikelihoodMode::Covariance
             },
             covariance_block_count: blocks.len() as u32,
+            n_observations: observables.len() as u32,
+            gof_outcome: None,
         })
     };
 
@@ -593,8 +595,12 @@ mod v6_covariance_tests {
         let base_cov = baseline_log_likelihood_cov(&obs, &blocks);
         let sc_cov = score_theory(&t, &obs, &blocks, base_cov);
 
-        let dlnz_diag = sc_diag.data_fit.map(|d| d.delta_lnz).unwrap_or(0.0);
-        let dlnz_cov = sc_cov.data_fit.map(|d| d.delta_lnz).unwrap_or(0.0);
+        let dlnz_diag = sc_diag
+            .data_fit
+            .as_ref()
+            .map(|d| d.delta_lnz)
+            .unwrap_or(0.0);
+        let dlnz_cov = sc_cov.data_fit.as_ref().map(|d| d.delta_lnz).unwrap_or(0.0);
         // The blocks must actually engage (different number), both finite — and the V6.1
         // empirical truth is recorded: the valley is CLOSED (both negative) and the calibrated
         // covariance punishes the drift harder than diagonal.
@@ -608,14 +614,12 @@ mod v6_covariance_tests {
             "the valley is closed and covariance bites harder: diag {dlnz_diag:.2} vs cov {dlnz_cov:.2}"
         );
         // And the mode is on the record — a headline number can never hide its likelihood again.
+        let cov_fit = sc_cov.data_fit.as_ref().unwrap();
         assert_eq!(
-            sc_cov.data_fit.unwrap().likelihood_mode,
+            cov_fit.likelihood_mode,
             openqg_core::LikelihoodMode::Covariance
         );
-        assert_eq!(
-            sc_cov.data_fit.unwrap().covariance_block_count as usize,
-            blocks.len()
-        );
+        assert_eq!(cov_fit.covariance_block_count as usize, blocks.len());
         println!("delta_lnz: diagonal {dlnz_diag:.2} -> covariance {dlnz_cov:.2}");
     }
 }

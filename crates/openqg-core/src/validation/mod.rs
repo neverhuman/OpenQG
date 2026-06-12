@@ -23,7 +23,10 @@ pub use data_tier::{
     check_value_firewall, DataTier, DataTierManifest, FirewallReport, FirewallViolation,
 };
 pub use engine_kpis::EngineKpis;
-pub use evidence_receipt::{cross_solver_tension, EvidenceReceipt, NestingSolver, PriorEntry};
+pub use evidence_receipt::{
+    cross_solver_tension, EvidenceReceipt, EvidenceRequest, NestingSolver, PriorDensity,
+    PriorEntry, PriorSpec, PriorTransform, SamplerBackend, SamplerSpec,
+};
 pub use forecast_registry::{ForecastEntry, ForecastStatus};
 pub use h0_panel::{
     canonical_h0_panel, load_h0_panel, score_h0_panel, ExternalPlausibilityReport,

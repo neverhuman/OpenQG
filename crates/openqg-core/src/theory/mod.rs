@@ -19,6 +19,7 @@ pub mod contenders;
 pub mod data_tier;
 pub mod derivation_trace;
 pub mod dim_vec;
+pub mod engine_kpi;
 pub mod evaluate;
 pub mod evidence;
 pub mod exclusion;
@@ -68,6 +69,7 @@ pub use derivation_trace::{
     TraceRigorPolicy, TraceStep, TraceStepKind, TraceVerdict,
 };
 pub use dim_vec::{dim_check_term, DimError, DimVec, TermAst};
+pub use engine_kpi::EngineKpiReport;
 pub use evaluate::{derivation_score, evaluate, evaluate_with_blocks, Evaluation};
 pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
@@ -111,7 +113,7 @@ pub use scorecard::{
     score_with_v5_context, scorecard_receipt, total_free_dof, ClaimClass, DataFitOutcome,
     GoFOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt, ScorecardV4,
 };
-pub use search_ledger::{SearchLedger, TrialsGate};
+pub use search_ledger::{Chi2DofGate, GoFNullReport, SearchLedger, TrialsGate};
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{
     adjudicate, algebra_structure_vetoes, is_adjudicated_out, obligation_vetoes, physics_kills,

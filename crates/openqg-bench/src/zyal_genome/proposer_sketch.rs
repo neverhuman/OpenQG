@@ -618,6 +618,13 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          e.g. with mu0 = 0.1, fsigma8@0.51 ≈ 0.418 (baseline ≈ 0.413, Δ = +0.005 ≥ \
          min_detectable 0.003). The claims[].obligations list MUST reference every obligation id \
          in obligations[] — an orphan obligation (referenced by no claim) earns zero credit.\n\
+         9. Obligation kind selection: use \"numeric_witness\" ONLY when you have a registry \
+         relation (one of the 7 in rule #2) to certify the value — if you do, fill `relation`, \
+         `inputs`, `expected`, `tolerance`. For textual or literature derivations use \
+         \"literature_equivalence\" (fill `citation`) or \"equation_match\" (fill equation_id, \
+         doi_anchor, formula_latex). Using \"numeric_witness\" without a registry `relation` \
+         causes an UnverifiedDerivation kill. For the NovelPrediction obligation, always use \
+         kind=\"novel_prediction\" (not \"numeric_witness\").\n\
          \n\
          ## MECHANISM LANE — sample {sample_index}: {lane_name}\n\
          {lane_brief}\n\

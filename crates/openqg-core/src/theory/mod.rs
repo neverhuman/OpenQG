@@ -27,6 +27,7 @@ pub mod holdout;
 pub mod league;
 pub mod mutation;
 pub mod obligation;
+pub mod pricing;
 pub mod profundity;
 pub mod proposal;
 pub mod recombine_proof;
@@ -84,6 +85,7 @@ pub use obligation::{
     dimensional_consistency, falsifier, limit_recovers_gr, DerivationObligation,
     DerivationObligationKind, LimitWitness, NovelPredictionWitness, ObligationOutcome,
 };
+pub use pricing::{PricingEntry, PricingLedger};
 pub use profundity::{
     DiscoveryClaimGate, DiscoveryClaimGateResult, MechanismOffTwin, ProfundityGate,
     MECHANISM_LOSS_THRESHOLD, NATURE_TIER_SIGMA, PROFUNDITY_DELTA_LNZ_MIN,

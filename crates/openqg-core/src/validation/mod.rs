@@ -23,7 +23,9 @@ pub use claims_linter::{lint_claims, ClaimFinding, ClaimLintReport};
 pub use data_tier::{
     check_value_firewall, DataTier, DataTierManifest, FirewallReport, FirewallViolation,
 };
-pub use engine_kpis::{EngineKpis, TimeToInvalidateStats};
+pub use engine_kpis::{
+    EngineKpis, ExploitEntry, ExploitReserve, TimeToInvalidateStats, ZTestReleaseVerdict,
+};
 pub use evidence_receipt::{
     cross_solver_tension, EvidenceReceipt, EvidenceRequest, NestingSolver, PriorDensity,
     PriorEntry, PriorSpec, PriorTransform, SamplerBackend, SamplerSpec,

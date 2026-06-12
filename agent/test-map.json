@@ -276,6 +276,27 @@
     },
     "agent/jankurai-badge.svg": {
       "command": "just score"
+    },
+    "data/manifest.json": {
+      "command": "just data-verify"
+    },
+    "managed-browsers.json": {
+      "command": "just fast"
+    },
+    "ops/jailgun/": {
+      "command": "just fast"
+    },
+    "ops/replay/": {
+      "command": "just fast"
+    },
+    "data/forecast-registry/": {
+      "command": "just fast"
+    },
+    "ops/seal-forecast.sh": {
+      "command": "just fast"
+    },
+    "data/tokenizer-registry.yml": {
+      "command": "just fast"
     }
   }
 }

@@ -267,6 +267,103 @@ impl EngineKpis {
     }
 }
 
+// ---- Exploit reserve (SYNTHESIS #19 verification) ----
+
+/// One entry in the sealed exploit reserve: an exploit class held back from release until the
+/// engine's catch rate is statistically confirmed to be significantly above chance.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExploitEntry {
+    /// The exploit class label (e.g. "instrument_bias", "data_leak", "anchor_exploit").
+    pub class: String,
+    /// Number of LOCOCV (leave-one-class-out cross-validation) trial runs for this class.
+    pub n_trials: u32,
+    /// Number of runs where the exploit was detected and blocked.
+    pub n_caught: u32,
+}
+
+/// Sealed exploit reserve: a set of exploit classes held back until the engine's catch rate
+/// passes a one-proportion z-test (H0: p = 0.5, no better than chance).
+///
+/// Before publicly announcing that the engine catches a given exploit class, the reserve gate
+/// must confirm statistical significance above the random baseline.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExploitReserve {
+    pub entries: Vec<ExploitEntry>,
+    /// Minimum z-score required to release an exploit class from the reserve.
+    /// A value of 1.96 corresponds to p < 0.05 (one-sided); 2.576 to p < 0.005.
+    pub release_z_threshold: f64,
+}
+
+/// Verdict from the z-test release gate for one exploit class.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ZTestReleaseVerdict {
+    pub class: String,
+    pub z_score: f64,
+    pub passes: bool,
+    pub n_caught: u32,
+    pub n_total: u32,
+    pub reason: String,
+}
+
+impl ExploitReserve {
+    pub fn new(release_z_threshold: f64) -> Self {
+        ExploitReserve {
+            entries: Vec::new(),
+            release_z_threshold,
+        }
+    }
+
+    /// One-proportion z-test: H0: p = 0.5 (catch rate no better than chance).
+    ///
+    /// z = (p_hat − 0.5) / sqrt(0.25 / n)
+    ///
+    /// A positive z means the engine catches more than 50% of exploit instances. A z above
+    /// `release_z_threshold` unlocks public disclosure of this exploit class.
+    pub fn z_test_release_gate(
+        &self,
+        class: &str,
+        n_caught: u32,
+        n_total: u32,
+    ) -> ZTestReleaseVerdict {
+        if n_total == 0 {
+            return ZTestReleaseVerdict {
+                class: class.into(),
+                z_score: 0.0,
+                passes: false,
+                n_caught,
+                n_total,
+                reason: "no trials: cannot compute z-score".into(),
+            };
+        }
+        let p_hat = n_caught as f64 / n_total as f64;
+        let se = (0.25_f64 / n_total as f64).sqrt();
+        let z = (p_hat - 0.5) / se;
+        let passes = z >= self.release_z_threshold;
+        ZTestReleaseVerdict {
+            class: class.into(),
+            z_score: z,
+            passes,
+            n_caught,
+            n_total,
+            reason: if passes {
+                format!(
+                    "z={:.2} ≥ threshold {:.2}; catch rate {:.1}% significantly above chance",
+                    z,
+                    self.release_z_threshold,
+                    p_hat * 100.0
+                )
+            } else {
+                format!(
+                    "z={:.2} < threshold {:.2}; catch rate {:.1}% not significantly above chance",
+                    z,
+                    self.release_z_threshold,
+                    p_hat * 100.0
+                )
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -447,5 +544,52 @@ mod tests {
         assert!((kpi.invalidation_rate - 0.5).abs() < 1e-9);
         assert!(kpi.peak_instrument_tier.is_none());
         assert!(kpi.time_to_invalidate_stats.is_none()); // no elapsed_ms on disq record
+    }
+
+    // ---- ExploitReserve z-test release gate ----
+
+    #[test]
+    fn z_test_zero_trials_does_not_pass() {
+        let reserve = ExploitReserve::new(1.96);
+        let verdict = reserve.z_test_release_gate("instrument_bias", 0, 0);
+        assert!(!verdict.passes);
+        assert_eq!(verdict.z_score, 0.0);
+        assert!(verdict.reason.contains("no trials"));
+    }
+
+    #[test]
+    fn z_test_all_caught_at_large_n_passes() {
+        // n=100, all caught: p_hat=1.0, z=(0.5/sqrt(0.25/100))=(0.5/0.05)=10
+        let reserve = ExploitReserve::new(1.96);
+        let verdict = reserve.z_test_release_gate("data_leak", 100, 100);
+        assert!(verdict.passes);
+        assert!((verdict.z_score - 10.0).abs() < 1e-9);
+        assert_eq!(verdict.n_caught, 100);
+        assert_eq!(verdict.n_total, 100);
+    }
+
+    #[test]
+    fn z_test_exactly_half_caught_fails() {
+        // p_hat=0.5, z=0 — at the null hypothesis boundary
+        let reserve = ExploitReserve::new(1.96);
+        let verdict = reserve.z_test_release_gate("anchor_exploit", 50, 100);
+        assert!(!verdict.passes);
+        assert!((verdict.z_score).abs() < 1e-9);
+    }
+
+    #[test]
+    fn z_test_below_threshold_does_not_pass() {
+        // n=4, 3 caught: p_hat=0.75, SE=sqrt(0.25/4)=0.25, z=(0.25/0.25)=1.0 < 1.96
+        let reserve = ExploitReserve::new(1.96);
+        let verdict = reserve.z_test_release_gate("small_sample", 3, 4);
+        assert!(!verdict.passes);
+        assert!((verdict.z_score - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn exploit_reserve_new_has_no_entries() {
+        let reserve = ExploitReserve::new(2.576);
+        assert!(reserve.entries.is_empty());
+        assert_eq!(reserve.release_z_threshold, 2.576);
     }
 }

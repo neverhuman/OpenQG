@@ -1,9 +1,10 @@
-//! V8 Wave 0.8: claim-level lint rules for the V4 claim graph.
+//! V8 Wave 0.8 / Phase 9: claim-level lint rules for the V4 claim graph.
 //!
-//! Three rules enforced before scoring:
+//! Four rules enforced before scoring:
 //! - `NO_EVIDENCE_HASH`                      — physics claim carries no content-bound evidence ref
 //! - `BEATS_LCDM_WITHOUT_TRIALS_CORRECTION`  — statement asserts beating the baseline; no trials correction
 //! - `FIT_SET_NOVELTY_CREDIT`                — novelty asserted from fit-set evidence only (no out-of-sample ref)
+//! - `MECHANISM_CLAIM_WITHOUT_ABLATION`      — mechanism attribution claimed without ablation study evidence
 //!
 //! Any fatal finding drives `disqualified = true` in the scorecard.
 
@@ -25,7 +26,7 @@ pub struct ClaimLintReport {
     pub fatal: bool,
 }
 
-/// Run all three lint rules over every physics claim in `cg`.
+/// Run all four lint rules over every physics claim in `cg`.
 pub fn lint_claims(cg: &ClaimGraph) -> ClaimLintReport {
     let mut findings = Vec::new();
 
@@ -33,6 +34,7 @@ pub fn lint_claims(cg: &ClaimGraph) -> ClaimLintReport {
         check_no_evidence_hash(claim, &mut findings);
         check_beats_lcdm_without_trials_correction(claim, &mut findings);
         check_fit_set_novelty_credit(claim, &mut findings);
+        check_mechanism_claim_without_ablation(claim, &mut findings);
     }
 
     let fatal = !findings.is_empty();
@@ -115,6 +117,46 @@ fn check_fit_set_novelty_credit(claim: &Claim, findings: &mut Vec<ClaimFinding>)
             message: format!(
                 "claim '{}' asserts novelty from fit-set evidence only (no out-of-sample or \
                  pre-registered forecast reference); fit-set superiority earns no novelty credit",
+                claim.id
+            ),
+        });
+    }
+}
+
+/// Rule MECHANISM_CLAIM_WITHOUT_ABLATION: a claim that attributes an effect to a specific
+/// mechanism ("mechanism explains", "due to", "caused by", "responsible for") must reference an
+/// ablation study. Without a MechanismOffTwin result (evidence path containing "ablation" or
+/// "mechanism_off"), the attribution is asserted but not tested.
+///
+/// This rule closes the loop between the claims linter and Phase 7's `DiscoveryClaimGate`:
+/// a `DiscoveryClaim` requires mechanism attribution ≥70%, which requires an ablation study.
+fn check_mechanism_claim_without_ablation(claim: &Claim, findings: &mut Vec<ClaimFinding>) {
+    if claim.evidence.is_empty() {
+        return; // NO_EVIDENCE_HASH already fires
+    }
+    let s = claim.statement.to_ascii_lowercase();
+    let asserts_mechanism =
+        (s.contains("mechanism") || s.contains("caused by") || s.contains("due to"))
+            && (s.contains("explains")
+                || s.contains("accounts for")
+                || s.contains("responsible")
+                || s.contains("drives")
+                || s.contains("produces"));
+    if !asserts_mechanism {
+        return;
+    }
+    let has_ablation = claim.evidence.iter().any(|e| {
+        let p = e.path.to_ascii_lowercase();
+        p.contains("ablation") || p.contains("mechanism_off") || p.contains("mechanism-off")
+    });
+    if !has_ablation {
+        findings.push(ClaimFinding {
+            claim_id: claim.id.clone(),
+            rule: "MECHANISM_CLAIM_WITHOUT_ABLATION",
+            message: format!(
+                "claim '{}' asserts mechanism attribution without a mechanism-off ablation study; \
+                 add an EvidenceRef pointing to a MechanismOffTwin result \
+                 (path containing 'ablation' or 'mechanism_off')",
                 claim.id
             ),
         });
@@ -273,6 +315,77 @@ mod tests {
                 .iter()
                 .any(|f| f.rule == "BEATS_LCDM_WITHOUT_TRIALS_CORRECTION"),
             "expected BEATS_LCDM_WITHOUT_TRIALS_CORRECTION finding"
+        );
+    }
+
+    // ---- Rule 4: MECHANISM_CLAIM_WITHOUT_ABLATION ----
+
+    #[test]
+    fn mechanism_claim_fires_without_ablation_evidence() {
+        let stmt =
+            "The scalar field mechanism explains the suppressed growth; due to kinetic energy";
+        let cg = single_claim_graph(physics_claim(
+            "c1",
+            stmt,
+            vec![bound_ref("sigma8-score.json")],
+        ));
+        let report = lint_claims(&cg);
+        assert!(report.fatal);
+        assert!(report
+            .findings
+            .iter()
+            .any(|f| f.rule == "MECHANISM_CLAIM_WITHOUT_ABLATION"));
+    }
+
+    #[test]
+    fn mechanism_claim_clean_when_ablation_evidence_present() {
+        let stmt =
+            "The scalar field mechanism explains the suppressed growth due to kinetic energy";
+        let cg = single_claim_graph(physics_claim(
+            "c1",
+            stmt,
+            vec![
+                bound_ref("score.json"),
+                bound_ref("mechanism_off-ablation-result.json"),
+            ],
+        ));
+        let report = lint_claims(&cg);
+        let found: Vec<_> = report
+            .findings
+            .iter()
+            .filter(|f| f.rule == "MECHANISM_CLAIM_WITHOUT_ABLATION")
+            .collect();
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn neutral_physics_claim_does_not_trigger_mechanism_rule() {
+        let stmt = "G_eff/G is derived from the nDGP braneworld action";
+        let cg = single_claim_graph(physics_claim("c1", stmt, vec![bound_ref("cert.json")]));
+        let report = lint_claims(&cg);
+        let found: Vec<_> = report
+            .findings
+            .iter()
+            .filter(|f| f.rule == "MECHANISM_CLAIM_WITHOUT_ABLATION")
+            .collect();
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn mechanism_rule_skips_claims_with_empty_evidence() {
+        // NO_EVIDENCE_HASH fires; mechanism rule should not double-fire
+        let stmt = "The mechanism explains the suppressed growth due to kinetic drag";
+        let cg = single_claim_graph(physics_claim("c1", stmt, vec![]));
+        let report = lint_claims(&cg);
+        assert!(report.fatal);
+        let mech_findings: Vec<_> = report
+            .findings
+            .iter()
+            .filter(|f| f.rule == "MECHANISM_CLAIM_WITHOUT_ABLATION")
+            .collect();
+        assert!(
+            mech_findings.is_empty(),
+            "should not double-fire: {mech_findings:?}"
         );
     }
 

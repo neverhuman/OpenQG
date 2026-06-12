@@ -593,7 +593,13 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          unexplained or conflicting modifications are kills.\n\
          4. Every physics claim needs ≥1 obligation; every cited evidence path needs content in \
          `evidence`.\n\
-         5. Novelty credit requires a computed, honest, DISTINCT prediction — no witness = 0.\n\
+         5. Novelty credit: NEVER claim an observable from the DATA BRIEF as a novel prediction — \
+         those are the scored training observables (fsigma8@X, s8, dv_over_rd@X, dm_over_rd@X, \
+         dh_over_rd@X, cmb_R, cmb_lA, bbn_yp); they are not novel. A valid novel prediction \
+         targets a future observable not yet in the data brief (e.g. an as-yet-unreleased \
+         BAO redshift bin). The declared value in NovelPredictionWitness MUST match what the \
+         engine computes from your theory parameters — declaring a value the engine does not \
+         reproduce is a FABRICATION KILL (>3× tolerance).\n\
          6. Background dials (w0, wa) moved off ΛCDM cost parsimony; prefer certified parameters.\n\
          7. Numbers must be JSON numbers, never strings. Omitted optional fields carry sentinels: \"\" / 0.0 \
          / [].\n\

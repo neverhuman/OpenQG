@@ -80,6 +80,14 @@ pub struct EvidenceReceipt {
 
     /// SHA-256 hash of the dataset used. Locks the data.
     pub data_hash: String,
+
+    /// V8 Phase 8: Laplace approximation cross-check against the nested-sampling result.
+    ///
+    /// When present, `disagreement_with_nested` in the diagnostic is filled with
+    /// `|ln_z_laplace − ln_z_nested|`. Values > 0.5 ln-units indicate the Laplace
+    /// approximation is unreliable for this candidate — the nested result stands.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub laplace_diagnostic: Option<crate::scoring::LaplaceDiagnostic>,
 }
 
 impl EvidenceReceipt {
@@ -102,6 +110,31 @@ impl EvidenceReceipt {
         } else {
             self.ln_z.abs() / self.ln_z_err
         }
+    }
+
+    /// Approximate global significance in units of σ for a positive ΔlnZ.
+    ///
+    /// This uses the relation σ ≈ ΔlnZ / ln_z_err, which holds when the evidence is large
+    /// compared to its uncertainty. Returns 0.0 when `ln_z ≤ 0` (no positive evidence) or
+    /// when `ln_z_err = 0` (degenerate run). This is an approximation; the rigorous route
+    /// is `SearchNullDistribution.p_value_post_search` converted via `erfinv`.
+    pub fn sigma_equivalent(&self) -> f64 {
+        if self.ln_z <= 0.0 || self.ln_z_err == 0.0 {
+            return 0.0;
+        }
+        self.ln_z / self.ln_z_err
+    }
+
+    /// Attach a Laplace diagnostic, filling in the `disagreement_with_nested` field
+    /// from the difference between the Laplace estimate and this receipt's `ln_z`.
+    ///
+    /// This is the standard way to attach a Laplace cross-check to a nested-sampling
+    /// receipt: compute the Laplace estimate, then call this method to record the comparison.
+    pub fn with_laplace_diagnostic(mut self, mut diag: crate::scoring::LaplaceDiagnostic) -> Self {
+        let disagreement = (diag.ln_z_estimate - self.ln_z).abs();
+        diag.disagreement_with_nested = Some(disagreement);
+        self.laplace_diagnostic = Some(diag);
+        self
     }
 }
 
@@ -265,6 +298,7 @@ mod tests {
             effective_n_samples: Some(480.0),
             prior_hash: "a".repeat(64),
             data_hash: "b".repeat(64),
+            laplace_diagnostic: None,
         }
     }
 
@@ -366,6 +400,85 @@ mod tests {
                 walltime_seconds: 3600,
             },
         }
+    }
+
+    #[test]
+    fn sigma_equivalent_positive_evidence() {
+        // ln_z = 6.0, ln_z_err = 1.2 → sigma = 5.0
+        let mut r = good_receipt(NestingSolver::UltraNest);
+        r.ln_z = 6.0;
+        r.ln_z_err = 1.2;
+        assert!((r.sigma_equivalent() - 5.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn sigma_equivalent_zero_when_evidence_negative() {
+        let mut r = good_receipt(NestingSolver::UltraNest);
+        r.ln_z = -3.0;
+        assert_eq!(r.sigma_equivalent(), 0.0);
+    }
+
+    #[test]
+    fn sigma_equivalent_zero_when_err_is_zero() {
+        let mut r = good_receipt(NestingSolver::UltraNest);
+        r.ln_z = 5.0;
+        r.ln_z_err = 0.0;
+        assert_eq!(r.sigma_equivalent(), 0.0);
+    }
+
+    #[test]
+    fn with_laplace_diagnostic_fills_disagreement() {
+        use crate::scoring::{LaplaceDiagnostic, LaplaceValidity};
+        let r = good_receipt(NestingSolver::UltraNest); // ln_z = -5.2
+        let diag = LaplaceDiagnostic {
+            ln_z_estimate: -4.8,
+            validity: LaplaceValidity::Valid,
+            disagreement_with_nested: None,
+        };
+        let enriched = r.with_laplace_diagnostic(diag);
+        let d = enriched.laplace_diagnostic.unwrap();
+        // |(-4.8) - (-5.2)| = 0.4
+        assert!((d.disagreement_with_nested.unwrap() - 0.4).abs() < 1e-9);
+        assert!(d.is_reliable()); // 0.4 <= 0.5 and Valid
+    }
+
+    #[test]
+    fn with_laplace_diagnostic_large_disagreement_is_unreliable() {
+        use crate::scoring::{LaplaceDiagnostic, LaplaceValidity};
+        let mut r = good_receipt(NestingSolver::UltraNest);
+        r.ln_z = -10.0;
+        let diag = LaplaceDiagnostic {
+            ln_z_estimate: -9.0,
+            validity: LaplaceValidity::Valid,
+            disagreement_with_nested: None,
+        };
+        let enriched = r.with_laplace_diagnostic(diag);
+        let d = enriched.laplace_diagnostic.unwrap();
+        // |(-9.0) - (-10.0)| = 1.0 > 0.5 → unreliable
+        assert!(!d.is_reliable());
+    }
+
+    #[test]
+    fn laplace_diagnostic_field_roundtrips_through_json() {
+        use crate::scoring::{LaplaceDiagnostic, LaplaceValidity};
+        let r = good_receipt(NestingSolver::UltraNest);
+        let diag = LaplaceDiagnostic {
+            ln_z_estimate: -5.0,
+            validity: LaplaceValidity::Valid,
+            disagreement_with_nested: Some(0.2),
+        };
+        let enriched = r.with_laplace_diagnostic(diag);
+        let json = serde_json::to_string(&enriched).unwrap();
+        let back: EvidenceReceipt = serde_json::from_str(&json).unwrap();
+        assert!(back.laplace_diagnostic.is_some());
+    }
+
+    #[test]
+    fn receipt_without_laplace_still_roundtrips() {
+        let r = good_receipt(NestingSolver::Dynesty);
+        let json = serde_json::to_string(&r).unwrap();
+        let back: EvidenceReceipt = serde_json::from_str(&json).unwrap();
+        assert!(back.laplace_diagnostic.is_none());
     }
 
     #[test]

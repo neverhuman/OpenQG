@@ -234,6 +234,37 @@ impl DiscoveryClaimGate {
         reasons
     }
 
+    /// Build a `DiscoveryClaimGate` from the Phase 5–7 evidence types.
+    ///
+    /// - `receipt`: the nested-sampling evidence receipt (provides ln_z → sigma, instrument tier)
+    /// - `null_dist`: the Phase 6 null distribution (provides post-search p-value)
+    /// - `gof_passed`: whether the absolute goodness-of-fit gate passed
+    /// - `has_sealed_forecast`: whether a pre-registered forecast exists in the registry
+    /// - `mechanism_off_twin`: optional ablation result; `None` → profundity gate will fail
+    /// - `trials_corrected_delta_ln_z`: ΔlnZ after look-elsewhere correction
+    pub fn from_evidence(
+        receipt: &crate::validation::EvidenceReceipt,
+        null_dist: &crate::validation::SearchNullDistribution,
+        gof_passed: bool,
+        has_sealed_forecast: bool,
+        mechanism_off_twin: Option<MechanismOffTwin>,
+        trials_corrected_delta_ln_z: f64,
+    ) -> Self {
+        let sigma = receipt.sigma_equivalent();
+        DiscoveryClaimGate {
+            profundity_gate: ProfundityGate {
+                sigma_significance: sigma,
+                delta_ln_z_corrected: trials_corrected_delta_ln_z,
+                mechanism_off_twin,
+            },
+            post_search_p_value: null_dist.p_value_post_search,
+            post_search_n_replications: null_dist.n_replications(),
+            gof_passed,
+            instrument_tier: ForwardTier::T2Boltzmann, // receipt implies Boltzmann-grade
+            has_sealed_forecast,
+        }
+    }
+
     /// Evaluate the gate and return a `DiscoveryClaimGateResult` recording the verdict.
     pub fn evaluate(&self) -> DiscoveryClaimGateResult {
         let passed = self.passes_all_gates();
@@ -500,5 +531,70 @@ mod tests {
             reasons.len() >= 3,
             "expected ≥3 blocking reasons: {reasons:?}"
         );
+    }
+
+    // ---- from_evidence factory ----
+
+    fn sample_receipt() -> crate::validation::EvidenceReceipt {
+        crate::validation::EvidenceReceipt {
+            solver: crate::validation::NestingSolver::UltraNest,
+            ln_z: 6.0,
+            ln_z_err: 1.0, // sigma = 6.0
+            n_live: 500,
+            n_iter: 10_000,
+            effective_n_samples: None,
+            prior_hash: "a".repeat(64),
+            data_hash: "b".repeat(64),
+            laplace_diagnostic: None,
+        }
+    }
+
+    fn sample_null_dist() -> crate::validation::SearchNullDistribution {
+        let reps: Vec<_> = (0..200)
+            .map(|i| crate::validation::NullReplication {
+                max_delta_ln_z: i as f64 * 0.01,
+                n_candidates: 100,
+                rng_seed: i as u64,
+            })
+            .collect();
+        crate::validation::SearchNullDistribution::new(5.0, reps)
+    }
+
+    #[test]
+    fn from_evidence_builds_gate_from_receipt_and_null() {
+        let receipt = sample_receipt();
+        let null = sample_null_dist();
+        let twin = MechanismOffTwin {
+            delta_ln_z_with_mechanism: 6.0,
+            delta_ln_z_without_mechanism: 0.8,
+            zeroed_parameters: vec!["mu0".into()],
+        };
+        let gate = DiscoveryClaimGate::from_evidence(&receipt, &null, true, true, Some(twin), 5.5);
+        // sigma = ln_z / ln_z_err = 6.0 / 1.0 = 6.0
+        assert!((gate.profundity_gate.sigma_significance - 6.0).abs() < 1e-9);
+        assert_eq!(gate.post_search_n_replications, 200);
+        assert_eq!(gate.post_search_p_value, 0.0);
+        assert!(gate.passes_all_gates());
+    }
+
+    #[test]
+    fn from_evidence_fails_when_no_sealed_forecast() {
+        let receipt = sample_receipt();
+        let null = sample_null_dist();
+        let gate = DiscoveryClaimGate::from_evidence(
+            &receipt,
+            &null,
+            true,
+            false, // no sealed forecast
+            Some(MechanismOffTwin {
+                delta_ln_z_with_mechanism: 6.0,
+                delta_ln_z_without_mechanism: 0.5,
+                zeroed_parameters: vec![],
+            }),
+            5.5,
+        );
+        assert!(!gate.passes_all_gates());
+        let reasons = gate.blocking_reasons();
+        assert!(reasons.iter().any(|r| r.contains("sealed forecast")));
     }
 }

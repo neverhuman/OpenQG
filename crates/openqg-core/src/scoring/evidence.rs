@@ -36,12 +36,15 @@
 //! Both return a *log* evidence with the SAME prior normalization, so their difference is the
 //! quantity to compare, and the analytic Gaussian test below pins both against a closed form.
 
+use serde::{Deserialize, Serialize};
+
 /// Whether a Laplace approximation is expected to be reliable.
 ///
 /// The Laplace approximation assumes a unimodal, near-Gaussian posterior. These flags encode when
 /// that assumption is known to be violated, so a caller can treat the estimate as a rough bound
 /// rather than a precision measurement.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LaplaceValidity {
     /// Posterior is approximately Gaussian at the optimum and well-contained in the box.
     Valid,
@@ -57,7 +60,7 @@ pub enum LaplaceValidity {
 /// This struct is attached to an `EvidenceReceipt` as a cross-check, NOT as the primary
 /// evidence. When `disagreement_with_nested` exceeds ~0.5 ln-units, the Laplace is unreliable
 /// and the nested-sampling receipt value should be used exclusively.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LaplaceDiagnostic {
     /// The Laplace estimate of ln Z.
     pub ln_z_estimate: f64,

@@ -261,6 +261,31 @@ pub struct RankStabilityReport {
 }
 
 impl RankStabilityReport {
+    /// Build a `RankStabilityReport` from raw jackknife results.
+    ///
+    /// Each tuple is `(perturbation_name, delta_ln_z, n_trials, null_holds, rank_stable)`.
+    /// `null_holds` is true when ΔlnZ under the perturbation remains below the exclusion
+    /// threshold (i.e., the null result survives the perturbation).
+    /// `rank_stable` is true when the champion remains rank-1 in ≥80% of jackknife draws.
+    pub fn from_jackknife_results(results: Vec<(String, f64, u32, bool, bool)>) -> Self {
+        RankStabilityReport {
+            results: results
+                .into_iter()
+                .map(
+                    |(perturbation_name, delta_ln_z, n_trials, null_holds, rank_stable)| {
+                        RankStabilityResult {
+                            perturbation_name,
+                            delta_ln_z,
+                            n_trials,
+                            null_holds,
+                            rank_stable,
+                        }
+                    },
+                )
+                .collect(),
+        }
+    }
+
     pub fn all_pass(&self) -> bool {
         self.results.iter().all(|r| r.null_holds && r.rank_stable)
     }
@@ -709,5 +734,44 @@ mod tests {
             EXCLUSION_MANDATORY_CAVEATS.len()
         );
         assert_eq!(sentence.strength, ExclusionStrength::Definitive);
+    }
+
+    #[test]
+    fn rank_stability_from_jackknife_results_all_pass() {
+        let report = RankStabilityReport::from_jackknife_results(vec![
+            ("leave-one-out-fsigma8".into(), -4.2, 22, true, true),
+            ("leave-one-out-bao".into(), -3.9, 22, true, true),
+            ("perturb-sigma8".into(), -4.0, 22, true, true),
+        ]);
+        assert_eq!(report.results.len(), 3);
+        assert!(report.all_pass());
+        assert!(report.summary().contains("3/3"));
+    }
+
+    #[test]
+    fn rank_stability_from_jackknife_results_partial_fail() {
+        let report = RankStabilityReport::from_jackknife_results(vec![
+            ("leave-one-out-fsigma8".into(), -4.2, 22, true, true),
+            ("perturb-h0".into(), 0.3, 22, false, false),
+        ]);
+        assert!(!report.all_pass());
+        assert!(report.summary().contains("1/2"));
+    }
+
+    #[test]
+    fn rank_stability_from_jackknife_preserves_field_values() {
+        let report = RankStabilityReport::from_jackknife_results(vec![(
+            "my-perturbation".into(),
+            -5.5,
+            23,
+            true,
+            false,
+        )]);
+        let r = &report.results[0];
+        assert_eq!(r.perturbation_name, "my-perturbation");
+        assert!((r.delta_ln_z - (-5.5)).abs() < 1e-12);
+        assert_eq!(r.n_trials, 23);
+        assert!(r.null_holds);
+        assert!(!r.rank_stable);
     }
 }

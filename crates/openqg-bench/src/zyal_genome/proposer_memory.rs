@@ -20,6 +20,24 @@ use openqg_core::cosmology::{BackgroundForwardModel, CosmologyParams, ForwardMod
 use openqg_core::ObservableRecord;
 use serde_json::Value;
 
+/// Controls how much of the per-observable pull data the LLM proposer receives.
+///
+/// S09 identifies the data brief as a contamination channel: a proposer that sees exact pulls
+/// per observable can tune parameters to hit the training data rather than making a genuine
+/// theoretical prediction. `BlindedToTensions` strips the individual pulls to eliminate this
+/// route, while still providing the proposer with enough structural information to work.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProposerBriefPolicy {
+    /// Report all pulls as computed — the default for exploratory runs.
+    FullPulls,
+    /// Report only the count and direction of significant tensions (|pull| > 1.5σ), not the
+    /// individual values. Prevents the proposer from chasing specific per-observable residuals.
+    SummaryOnly,
+    /// Strip all per-observable pulls and replace with a policy notice. Used when the proposer
+    /// must remain blind to the tension pattern to prevent post-hoc parameter fitting.
+    BlindedToTensions,
+}
+
 /// The verbatim directive that closes every data brief.
 const GOAL_LINE: &str = "GOAL: reduce the largest |pull| WITHOUT inflating the others.";
 
@@ -31,6 +49,72 @@ const GROWTH_NOTE_LINE: &str = "NOTE: the growth pulls are negative — growth m
 fn is_growth_id(observable_id: &str) -> bool {
     let id = observable_id.to_ascii_lowercase();
     id.contains("fsigma8") || id.contains("sigma8") || id == "s8"
+}
+
+/// Policy-aware DATA BRIEF builder.
+///
+/// Under `BlindedToTensions`, all per-observable pull values are stripped and replaced with a
+/// firewall notice. The proposer receives the count of significant tensions but no pull magnitudes
+/// or signs — it cannot reverse-engineer which parameters to shift. Deterministic given policy.
+pub(crate) fn build_data_brief_with_policy(
+    observables: &[ObservableRecord],
+    policy: ProposerBriefPolicy,
+) -> String {
+    match policy {
+        ProposerBriefPolicy::FullPulls => build_data_brief(observables),
+        ProposerBriefPolicy::SummaryOnly => {
+            let model = BackgroundForwardModel;
+            let ids: Vec<String> = observables
+                .iter()
+                .map(|o| o.observable_id.clone())
+                .collect();
+            let predicted: BTreeMap<String, f64> = model
+                .predict(&CosmologyParams::planck_lcdm(), &ids)
+                .map(|preds| {
+                    preds
+                        .into_iter()
+                        .map(|p| (p.observable_id, p.value))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let mut n_significant = 0usize;
+            for o in observables {
+                if let Some(&pred) = predicted.get(&o.observable_id) {
+                    if o.uncertainty > 0.0 {
+                        let pull = (o.value - pred) / o.uncertainty;
+                        if pull.is_finite() && pull.abs() > 1.5 {
+                            n_significant += 1;
+                        }
+                    }
+                }
+            }
+            let mut out = String::new();
+            out.push_str("## DATA BRIEF — summary mode (individual pulls withheld)\n");
+            out.push_str(&format!(
+                "  {}/{} observables show |pull| > 1.5σ vs ΛCDM\n",
+                n_significant,
+                observables.len()
+            ));
+            out.push_str(GOAL_LINE);
+            out.push('\n');
+            out
+        }
+        ProposerBriefPolicy::BlindedToTensions => {
+            let mut out = String::new();
+            out.push_str("## DATA BRIEF — BLINDED (S09 data-brief firewall active)\n");
+            out.push_str(
+                "  Per-observable pull values have been withheld to prevent post-hoc parameter\n",
+            );
+            out.push_str(
+                "  fitting. Propose mechanisms from theoretical motivation alone. Do not attempt\n",
+            );
+            out.push_str("  to infer tension directions from observable names or ordering.\n");
+            out.push_str(&format!("  N_observables: {}\n", observables.len()));
+            out.push_str(GOAL_LINE);
+            out.push('\n');
+            out
+        }
+    }
 }
 
 /// The computed DATA BRIEF: predict the Planck-ΛCDM baseline on the actual observables and report
@@ -743,6 +827,52 @@ mod tests {
                 "truncated mid-line: {line:?}"
             );
         }
+    }
+
+    #[test]
+    fn blinded_policy_contains_no_pull_values() {
+        let obs = brief_observables();
+        let brief = build_data_brief_with_policy(&obs, ProposerBriefPolicy::BlindedToTensions);
+        assert!(
+            brief.contains("BLINDED"),
+            "blinded brief must announce the firewall: {brief}"
+        );
+        assert!(
+            !brief.contains("σ"),
+            "no pull sigma markers may appear in blinded brief: {brief}"
+        );
+        assert!(
+            !brief.contains("LARGEST TENSION"),
+            "no tension markers in blinded brief: {brief}"
+        );
+        assert!(
+            brief.contains("N_observables"),
+            "count of observables must be reported: {brief}"
+        );
+    }
+
+    #[test]
+    fn summary_policy_reports_count_not_individual_pulls() {
+        let obs = brief_observables();
+        let brief = build_data_brief_with_policy(&obs, ProposerBriefPolicy::SummaryOnly);
+        assert!(
+            brief.contains("summary mode"),
+            "summary brief header expected: {brief}"
+        );
+        assert!(
+            !brief.contains("LARGEST TENSION"),
+            "no individual tension markers in summary mode: {brief}"
+        );
+    }
+
+    #[test]
+    fn full_pulls_policy_matches_build_data_brief() {
+        let obs = brief_observables();
+        assert_eq!(
+            build_data_brief_with_policy(&obs, ProposerBriefPolicy::FullPulls),
+            build_data_brief(&obs),
+            "FullPulls policy must be identical to build_data_brief"
+        );
     }
 
     #[test]

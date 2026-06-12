@@ -10,8 +10,10 @@
 //! flexibility (the Occam factor). The league's headline `Δln Z ≈ −½ ΔBIC` is the *Schwarz*
 //! approximation (Schwarz 1978): asymptotically valid but it drops the Occam-factor prefactor and
 //! is known to mis-rank near-degenerate extensions (Trotta 2008, *Bayes in the sky*, Contemp.
-//! Phys. 49, 71, arXiv:0803.4089, §3–4). **This module supersedes BIC for any quoted model
-//! comparison** with two deterministic, mutually-checking estimators:
+//! Phys. 49, 71, arXiv:0803.4089, §3–4). These estimators are **diagnostic approximations only**
+//! — they supply fast cross-checks but do NOT replace nested sampling for any formal model
+//! comparison. Promotion-grade ΔlnZ must come from an `EvidenceReceipt` produced by UltraNest or
+//! Dynesty (see `validation::evidence_receipt`). The two estimators here are:
 //!
 //! 1. [`laplace_log_evidence`] — the **Laplace approximation** (Laplace 1774; see Trotta 2008
 //!    eq. 12, MacKay 2003 *Information Theory, Inference & Learning Algorithms* §27):
@@ -33,6 +35,49 @@
 //!
 //! Both return a *log* evidence with the SAME prior normalization, so their difference is the
 //! quantity to compare, and the analytic Gaussian test below pins both against a closed form.
+
+/// Whether a Laplace approximation is expected to be reliable.
+///
+/// The Laplace approximation assumes a unimodal, near-Gaussian posterior. These flags encode when
+/// that assumption is known to be violated, so a caller can treat the estimate as a rough bound
+/// rather than a precision measurement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LaplaceValidity {
+    /// Posterior is approximately Gaussian at the optimum and well-contained in the box.
+    Valid,
+    /// MAP sits within `tol` of a box boundary; the Gaussian tail is artificially truncated.
+    BoundaryPinned,
+    /// Evidence of a secondary mode (e.g., the Hessian eigenvalue ratio > 10); the Laplace
+    /// estimate reflects only the dominant mode, not the full integral.
+    MultimodalPosterior,
+}
+
+/// Diagnostic summary of a Laplace evidence approximation.
+///
+/// This struct is attached to an `EvidenceReceipt` as a cross-check, NOT as the primary
+/// evidence. When `disagreement_with_nested` exceeds ~0.5 ln-units, the Laplace is unreliable
+/// and the nested-sampling receipt value should be used exclusively.
+#[derive(Debug, Clone)]
+pub struct LaplaceDiagnostic {
+    /// The Laplace estimate of ln Z.
+    pub ln_z_estimate: f64,
+    /// Whether the approximation is expected to be reliable.
+    pub validity: LaplaceValidity,
+    /// |ln Z_laplace − ln Z_nested|, if both estimates are available.
+    /// `None` when only Laplace is available (no nested receipt to compare against).
+    pub disagreement_with_nested: Option<f64>,
+}
+
+impl LaplaceDiagnostic {
+    /// True when the Laplace estimate is trustworthy enough to cite in a diagnostic table.
+    ///
+    /// Criteria: validity is `Valid` AND either there is no nested estimate to compare against,
+    /// or the disagreement is ≤ 0.5 ln-units.
+    pub fn is_reliable(&self) -> bool {
+        self.validity == LaplaceValidity::Valid
+            && self.disagreement_with_nested.map_or(true, |d| d <= 0.5)
+    }
+}
 
 /// Result of a Laplace evidence estimate, carrying the decomposition so a caller can audit it.
 #[derive(Debug, Clone)]
@@ -378,5 +423,55 @@ mod tests {
         );
         // The gap is exactly ln(wide width / narrow width) = ln(10/1) = ln 10.
         assert!(((narrow.log_evidence - wide.log_evidence) - 10.0_f64.ln()).abs() < 1e-6);
+    }
+
+    #[test]
+    fn laplace_diagnostic_valid_no_disagreement_is_reliable() {
+        let d = LaplaceDiagnostic {
+            ln_z_estimate: -12.3,
+            validity: LaplaceValidity::Valid,
+            disagreement_with_nested: None,
+        };
+        assert!(d.is_reliable());
+    }
+
+    #[test]
+    fn laplace_diagnostic_boundary_pinned_is_not_reliable() {
+        let d = LaplaceDiagnostic {
+            ln_z_estimate: -12.3,
+            validity: LaplaceValidity::BoundaryPinned,
+            disagreement_with_nested: None,
+        };
+        assert!(!d.is_reliable());
+    }
+
+    #[test]
+    fn laplace_diagnostic_multimodal_is_not_reliable() {
+        let d = LaplaceDiagnostic {
+            ln_z_estimate: -12.3,
+            validity: LaplaceValidity::MultimodalPosterior,
+            disagreement_with_nested: Some(0.1),
+        };
+        assert!(!d.is_reliable());
+    }
+
+    #[test]
+    fn laplace_diagnostic_large_disagreement_is_not_reliable() {
+        let d = LaplaceDiagnostic {
+            ln_z_estimate: -12.3,
+            validity: LaplaceValidity::Valid,
+            disagreement_with_nested: Some(0.6),
+        };
+        assert!(!d.is_reliable(), "disagreement > 0.5 must be unreliable");
+    }
+
+    #[test]
+    fn laplace_diagnostic_small_disagreement_is_reliable() {
+        let d = LaplaceDiagnostic {
+            ln_z_estimate: -12.3,
+            validity: LaplaceValidity::Valid,
+            disagreement_with_nested: Some(0.4),
+        };
+        assert!(d.is_reliable());
     }
 }

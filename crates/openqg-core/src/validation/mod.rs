@@ -10,6 +10,7 @@ pub mod hash;
 pub mod knowledge;
 pub mod manifest;
 pub mod rigor;
+pub mod search_statistics;
 #[path = "runbook.rs"]
 pub mod zyal;
 
@@ -40,4 +41,8 @@ pub use knowledge::{
 };
 pub use manifest::*;
 pub use rigor::{text_rigor, trace_rigor, RigorFactor, RigorScore};
+pub use search_statistics::{
+    NullReplication, PostSearchVerdict, SearchNullDistribution, DISCOVERY_P_VALUE_THRESHOLD,
+    MIN_NULL_REPLICATIONS,
+};
 pub use zyal::*;

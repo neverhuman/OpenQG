@@ -1010,6 +1010,7 @@ mod tests {
             inputs: vec![("beta".into(), 2.0)],
             expected: 1.0 + 1.0 / 6.0,
             tolerance: 1e-9,
+            ..Default::default()
         };
         t.terms.push(crate::theory::Term {
             name: "dgp_brane".into(),

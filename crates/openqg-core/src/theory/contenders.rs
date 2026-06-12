@@ -232,6 +232,7 @@ pub fn human_contenders() -> ContenderSuite {
             inputs: vec![("beta".into(), 2.0)],
             expected: 1.0 + 1.0 / 6.0,
             tolerance: 1e-9,
+            ..Default::default()
         };
         let mut theory = Theory::baseline_lcdm();
         theory.id = "real_modification_program".into();
@@ -468,6 +469,7 @@ pub fn decoy_contenders() -> ContenderSuite {
             inputs: vec![("beta".into(), 2.0)],
             expected: 1.0,
             tolerance: 1e-6,
+            ..Default::default()
         };
         t.parameters.push(Parameter {
             symbol: "geff".into(),

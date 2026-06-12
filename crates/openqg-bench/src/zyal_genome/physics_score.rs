@@ -344,6 +344,7 @@ mod tests {
             inputs: vec![("mu0".into(), -0.1)],
             expected: 0.9,
             tolerance: 1e-9,
+            ..Default::default()
         };
         t.parameters.push(openqg_core::theory::Parameter {
             symbol: "geff_over_g".into(),
@@ -483,6 +484,7 @@ mod v6_gate_tests {
                     inputs: vec![("mu0".into(), -0.1)],
                     expected: 0.9,
                     tolerance: 1e-9,
+                    ..Default::default()
                 },
             ),
         });
@@ -692,6 +694,7 @@ mod v6_novelty_tests {
                     inputs: vec![("mu0".into(), -0.1)],
                     expected: 0.9,
                     tolerance: 1e-9,
+                    ..Default::default()
                 },
             ),
         }); // ...properly certified — so the FABRICATED WITNESS is what kills, nothing else

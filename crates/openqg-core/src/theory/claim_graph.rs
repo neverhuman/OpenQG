@@ -611,6 +611,7 @@ mod tests {
             inputs: vec![("beta".into(), 0.1)],
             expected: 1.02,
             tolerance: 1e-9,
+            ..Default::default()
         };
         certified.parameters.push(Parameter {
             symbol: "g_eff".into(),

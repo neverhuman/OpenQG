@@ -781,6 +781,7 @@ mod tests {
             inputs: vec![("beta".into(), 0.1)],
             expected: 1.02,
             tolerance: 1e-9,
+            ..Default::default()
         };
         let t = mg_with_alpha_m(Provenance::derived_certified(
             "coupled-DE fifth force",
@@ -802,6 +803,7 @@ mod tests {
             inputs: vec![("beta".into(), 0.1)],
             expected: 1.5,
             tolerance: 1e-3,
+            ..Default::default()
         };
         let t = mg_with_alpha_m(Provenance::derived_certified(
             "coupled-DE fifth force",

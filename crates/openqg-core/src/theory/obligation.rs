@@ -346,6 +346,10 @@ fn certificate_counterexample(cert: &DerivedCertificate) -> String {
             "relation '{}' declares an unusable tolerance {}",
             cert.relation, cert.tolerance
         ),
+        CertificateOutcome::AntiLaunderingKill { detail } => format!(
+            "relation '{}' killed by anti-laundering gate: {detail}",
+            cert.relation
+        ),
         // Verified certificates have no counterexample; report neutrally for completeness.
         CertificateOutcome::Verified { .. } => {
             format!("relation '{}' verifies (no counterexample)", cert.relation)
@@ -481,6 +485,7 @@ mod tests {
             inputs: vec![("beta".into(), 2.0)],
             expected,
             tolerance: tol,
+            ..Default::default()
         }
     }
 
@@ -527,6 +532,7 @@ mod tests {
             inputs: vec![("h".into(), 0.674)],
             expected: 67.4,
             tolerance: 1e-6,
+            ..Default::default()
         });
         assert!(trivial.check().is_verified(), "the cert still verifies");
         assert_eq!(trivial.effective_rigor_weight(), 0.0, "but earns no rigor");
@@ -611,6 +617,7 @@ mod tests {
             inputs: vec![("beta".into(), 0.1)],
             expected: 1.02,
             tolerance: 1e-12,
+            ..Default::default()
         });
         assert!(pass.check().is_verified(), "{:?}", pass.check());
 
@@ -620,6 +627,7 @@ mod tests {
             inputs: vec![("beta".into(), 0.1)],
             expected: 1.5,
             tolerance: 1e-3,
+            ..Default::default()
         });
         assert!(!fail.check().is_verified());
     }

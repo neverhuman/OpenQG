@@ -175,6 +175,7 @@ pub(crate) fn fixture_proposal() -> ProposalDoc {
         inputs: vec![("beta".into(), 2.0)],
         expected: geff,
         tolerance: 1e-6,
+        ..Default::default()
     };
 
     let mut theory = Theory::baseline_lcdm();

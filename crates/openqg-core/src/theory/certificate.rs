@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 /// A machine-checkable certificate that a `Derived` parameter's value equals a closed-form function
 /// of its declared inputs. The oracle ([`Self::verify`]) is deterministic and self-contained — it
 /// never consults wall-clock, RNG, or external state.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct DerivedCertificate {
     /// Name of the closed-form relation in the registry (see [`relation_registry`]).
     pub relation: String,
@@ -30,6 +30,15 @@ pub struct DerivedCertificate {
     /// Absolute tolerance |computed − expected| ≤ tolerance for the certificate to verify. A
     /// non-finite or negative tolerance never verifies (guards against a "tolerance = ∞" cheat).
     pub tolerance: f64,
+    /// V8 Phase 2 (#10): provenance labels for each input. When present, the anti-laundering
+    /// gate checks that no input has `AssumptionStrength::ScoredDataEstimate`.
+    /// When absent (legacy certificates), inputs default to `PublishedLiterature` strength.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub input_provenance: Vec<crate::theory::derivation_trace::InputProvenance>,
+    /// V8 Phase 2 (#10): optional typed derivation trace. When present, `check()` also runs
+    /// the anti-laundering gate against the trace.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<crate::theory::derivation_trace::DerivationTrace>,
 }
 
 /// Outcome of running a certificate through the oracle, with enough detail for a receipt/diagnostic.
@@ -46,6 +55,9 @@ pub enum CertificateOutcome {
     MissingOrInvalidInput { detail: String },
     /// The declared tolerance is not a usable non-negative finite number.
     InvalidTolerance,
+    /// V8 Phase 2 (#10): an input or trace step has `ScoredDataEstimate` provenance.
+    /// This is a hard kill — the certificate cannot earn derivation credit.
+    AntiLaunderingKill { detail: String },
 }
 
 impl DerivedCertificate {
@@ -69,7 +81,27 @@ impl DerivedCertificate {
 
     /// Run the deterministic oracle: recompute `expected` from `inputs` via the named registry
     /// relation and report a detailed [`CertificateOutcome`].
+    ///
+    /// V8 Phase 2: the anti-laundering gate runs FIRST. If any `input_provenance` entry has
+    /// `AssumptionStrength::ScoredDataEstimate`, or the attached `trace` has such a step,
+    /// the certificate is killed before even checking the math.
     pub fn check(&self) -> CertificateOutcome {
+        // Anti-laundering gate (Phase 2 #10): check input_provenance entries.
+        if !self.input_provenance.is_empty() {
+            if let Some(detail) =
+                crate::theory::derivation_trace::check_input_provenance(&self.input_provenance)
+            {
+                return CertificateOutcome::AntiLaunderingKill { detail };
+            }
+        }
+        // Anti-laundering gate: check the attached trace (if any).
+        if let Some(trace) = &self.trace {
+            use crate::theory::derivation_trace::TraceVerdict;
+            if let TraceVerdict::AntiLaunderingKill { detail, .. } = trace.verdict() {
+                return CertificateOutcome::AntiLaunderingKill { detail };
+            }
+        }
+
         if !(self.tolerance.is_finite() && self.tolerance >= 0.0) {
             return CertificateOutcome::InvalidTolerance;
         }
@@ -90,7 +122,7 @@ impl DerivedCertificate {
         }
     }
 
-    /// Boolean oracle: `true` iff the certificate verifies. Convenience over [`Self::check`].
+    /// Boolean oracle: `true` iff the certificate verifies (no anti-laundering kill, math agrees).
     pub fn verify(&self) -> bool {
         matches!(self.check(), CertificateOutcome::Verified { .. })
     }
@@ -412,6 +444,7 @@ mod tests {
             inputs: inputs.iter().map(|(n, v)| (n.to_string(), *v)).collect(),
             expected,
             tolerance: tol,
+            ..Default::default()
         }
     }
 

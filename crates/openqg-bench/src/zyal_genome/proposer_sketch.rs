@@ -152,7 +152,7 @@ fn sector_strings() -> Vec<String> {
 }
 
 fn obligation_kind_strings() -> Vec<String> {
-    // The supported kinds only — positivstellensatz/lean_sketch are unsupported stubs that earn
+    // The supported kinds only — positivstellensatz/lean_sketch are machine-unverified and earn
     // nothing; excluding them from the schema steers the model away at generation time.
     [
         DerivationObligationKind::Dimensional,
@@ -328,6 +328,7 @@ pub(crate) fn expand_sketch(sketch: &ProposalSketch) -> Result<ProposalDoc> {
                         inputs: sketch_inputs(&p.inputs),
                         expected: p.expected,
                         tolerance: p.tolerance,
+                        ..Default::default()
                     },
                 )
             }
@@ -425,6 +426,7 @@ pub(crate) fn expand_sketch(sketch: &ProposalSketch) -> Result<ProposalDoc> {
             inputs: sketch_inputs(&o.inputs),
             expected: o.expected,
             tolerance: o.tolerance,
+            ..Default::default()
         })
         .filter(|c| !c.relation.is_empty());
         let limit = (kind == DerivationObligationKind::Limit).then(|| LimitWitness {
@@ -587,7 +589,7 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          `evidence`.\n\
          5. Novelty credit requires a computed, honest, DISTINCT prediction — no witness = 0.\n\
          6. Background dials (w0, wa) moved off ΛCDM cost parsimony; prefer certified parameters.\n\
-         7. Numbers must be JSON numbers, never strings. Unused fields carry sentinels: \"\" / 0.0 \
+         7. Numbers must be JSON numbers, never strings. Omitted optional fields carry sentinels: \"\" / 0.0 \
          / [].\n\
          \n\
          ## MECHANISM LANE — sample {sample_index}: {lane_name}\n\

@@ -15,6 +15,8 @@ pub mod binding;
 pub mod certificate;
 pub mod claim_graph;
 pub mod contenders;
+pub mod derivation_trace;
+pub mod dim_vec;
 pub mod evaluate;
 pub mod evidence;
 pub mod fingerprint;
@@ -48,6 +50,11 @@ pub use contenders::{
     decoy_contenders, decoy_false_positive_rate, human_contenders, score_contender, Contender,
     ContenderSuite, ExpectedVerdict, MapEvidenceStore,
 };
+pub use derivation_trace::{
+    check_input_provenance, AssumptionStrength, DerivationTrace, InputProvenance, TraceStep,
+    TraceStepKind, TraceVerdict,
+};
+pub use dim_vec::{dim_check_term, DimError, DimVec, TermAst};
 pub use evaluate::{derivation_score, evaluate, evaluate_with_blocks, Evaluation};
 pub use evidence::{
     audit_bytes, EvidenceRef, EvidenceStore, EvidenceTier, MaterializedEvidenceAudit,
@@ -385,6 +392,7 @@ mod serde_tests {
             inputs: vec![("beta".into(), 0.1)],
             expected: 1.02,
             tolerance: 1e-9,
+            ..Default::default()
         };
         let p = Provenance::derived_certified("coupled-DE fifth force", cert.clone());
         let json = serde_json::to_string(&p).unwrap();

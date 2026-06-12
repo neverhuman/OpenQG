@@ -712,6 +712,7 @@ mod tests {
             inputs: inputs.iter().map(|(n, v)| (n.to_string(), *v)).collect(),
             expected,
             tolerance: 1e-6,
+            ..Default::default()
         };
         t.parameters.push(Parameter {
             symbol: "bound_param".into(),

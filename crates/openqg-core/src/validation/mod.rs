@@ -4,6 +4,7 @@ pub mod data_tier;
 pub mod engine_kpis;
 pub mod evidence_receipt;
 pub mod forecast_registry;
+pub mod h0_panel;
 pub mod hash;
 pub mod knowledge;
 pub mod manifest;
@@ -19,6 +20,10 @@ pub use data_tier::{
 pub use engine_kpis::EngineKpis;
 pub use evidence_receipt::{cross_solver_tension, EvidenceReceipt, NestingSolver, PriorEntry};
 pub use forecast_registry::{ForecastEntry, ForecastStatus};
+pub use h0_panel::{
+    canonical_h0_panel, load_h0_panel, score_h0_panel, ExternalPlausibilityReport,
+    H0CalibratorFamily, H0FamilyResidual, H0PanelEntry, H0PanelScore,
+};
 pub use hash::*;
 pub use knowledge::{
     append_lessons, distill_lessons, read_lessons, KillRecord, KnowledgeLesson, LessonConclusion,

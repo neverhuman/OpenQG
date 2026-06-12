@@ -1,4 +1,5 @@
 pub mod bench;
+pub mod budget_router;
 pub mod cli;
 pub mod data;
 pub mod data_audit;

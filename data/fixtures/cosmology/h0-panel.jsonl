@@ -1,0 +1,7 @@
+{"family":"sh0es_cepheids","h0_central":73.17,"h0_stat":0.86,"h0_sys":0.70,"combined_sigma":1.109,"reference":"Riess et al. 2022 / SH0ES JWST 2025 arXiv:2509.01667","data_id":"sh0es-cepheid-h0-2025","include_in_combined":true}
+{"family":"cchp_jwst_trgb","h0_central":70.39,"h0_stat":1.22,"h0_sys":1.37,"combined_sigma":1.834,"reference":"Freedman et al. 2024 TRGB arXiv:2408.06153","data_id":"cchp-jwst-trgb-2024","include_in_combined":true}
+{"family":"jwst_jagb","h0_central":67.80,"h0_stat":2.17,"h0_sys":1.64,"combined_sigma":2.716,"reference":"Freedman et al. 2024 JAGB arXiv:2408.06153","data_id":"cchp-jwst-jagb-2024","include_in_combined":true}
+{"family":"tdcosmo_strong_lens","h0_central":67.4,"h0_stat":4.1,"h0_sys":3.2,"combined_sigma":5.211,"reference":"TDCOSMO IV Birrer et al. arXiv:2007.02941 (flexible MST)","data_id":"tdcosmo-iv-flexible-2020","include_in_combined":false}
+{"family":"megamaser_cosmology_project","h0_central":73.9,"h0_stat":3.0,"h0_sys":0.0,"combined_sigma":3.0,"reference":"Pesce et al. 2020 arXiv:2001.09213","data_id":"mcp-maser-2020","include_in_combined":true}
+{"family":"lvk_sirens","h0_central":70.0,"h0_stat":12.0,"h0_sys":0.0,"combined_sigma":12.0,"reference":"GW170817 + GWTC-3 dark sirens LVK Phys.Rev.X.13.041039","data_id":"lvk-sirens-2023","include_in_combined":false}
+{"family":"bao_bbn_inverse_ladder","h0_central":68.5,"h0_stat":0.8,"h0_sys":0.2,"combined_sigma":0.825,"reference":"DESI DR1/DR2 BAO+BBN arXiv:2404.03002 arXiv:2503.14738","data_id":"desi-bao-bbn-inverse-2025","include_in_combined":true}

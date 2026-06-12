@@ -27,6 +27,7 @@ pub mod holdout;
 pub mod league;
 pub mod mutation;
 pub mod obligation;
+pub mod profundity;
 pub mod proposal;
 pub mod recombine_proof;
 pub mod scorecard;
@@ -82,6 +83,10 @@ pub use mutation::{flip_to_quintic_decoy, inject_free_parameter, mutate, recombi
 pub use obligation::{
     dimensional_consistency, falsifier, limit_recovers_gr, DerivationObligation,
     DerivationObligationKind, LimitWitness, NovelPredictionWitness, ObligationOutcome,
+};
+pub use profundity::{
+    DiscoveryClaimGate, DiscoveryClaimGateResult, MechanismOffTwin, ProfundityGate,
+    MECHANISM_LOSS_THRESHOLD, NATURE_TIER_SIGMA, PROFUNDITY_DELTA_LNZ_MIN,
 };
 pub use proposal::{
     parse_proposal, proposal_into_theory, proposal_receipt, proposal_to_theory, ProposalReceipt,

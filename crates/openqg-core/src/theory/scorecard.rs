@@ -21,8 +21,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    obligation_vetoes, physics_kills, Claim, ClaimGraph, DerivationObligation, EvidenceStore,
-    MaterializedEvidenceAudit, Theory, UnificationClaim,
+    obligation_vetoes, physics_kills, profundity, Claim, ClaimGraph, DerivationObligation,
+    EvidenceStore, MaterializedEvidenceAudit, Theory, UnificationClaim,
 };
 
 /// Evidential category a scorecard achieves, given data scale, instrument tier, and fit quality.
@@ -112,6 +112,18 @@ impl ClaimClass {
     /// True when this class supports a publishable claim (PromotionCandidate or above).
     pub fn is_publishable(self) -> bool {
         self >= ClaimClass::PromotionCandidate
+    }
+
+    /// Attempt to upgrade a `PromotionCandidate` to a `DiscoveryClaim` if all gates pass.
+    ///
+    /// This is the only code path that can return `DiscoveryClaim`; `derive()` never does.
+    /// A class below `PromotionCandidate` is returned unchanged regardless of gate state.
+    pub fn try_upgrade_to_discovery(self, gate: &super::profundity::DiscoveryClaimGate) -> Self {
+        if self >= ClaimClass::PromotionCandidate && gate.passes_all_gates() {
+            ClaimClass::DiscoveryClaim
+        } else {
+            self
+        }
     }
 }
 
@@ -321,6 +333,12 @@ pub struct ScorecardV4 {
     /// `Triage` for disqualified candidates or unknown n_observations.
     #[serde(default)]
     pub claim_class: ClaimClass,
+    /// V8 Phase 7: result of the discovery-class gate aggregation. `Some` when the engine ran all
+    /// five sub-gates (profundity, post-search p-value, GoF, instrument tier, sealed forecast).
+    /// `None` means the candidate was not evaluated against the full discovery gate (e.g., it was
+    /// disqualified early or the null distribution has not been computed yet).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovery_gate_result: Option<profundity::DiscoveryClaimGateResult>,
 }
 
 /// A replay receipt: the canonical hash of the scorecard's inputs and of the scorecard itself, so a
@@ -753,6 +771,7 @@ pub fn score_with_observables(
             trials_correction: None,
             forecast_points: 0.0,
             claim_class: ClaimClass::Triage,
+            discovery_gate_result: None,
         };
     }
 
@@ -876,6 +895,7 @@ pub fn score_with_observables(
         trials_correction: None,
         forecast_points: 0.0,
         claim_class,
+        discovery_gate_result: None,
     }
 }
 
@@ -1618,5 +1638,87 @@ mod tests {
         assert!(!ClaimClass::Triage.is_publishable());
         assert!(!ClaimClass::InterestingFit.is_publishable());
         assert!(ClaimClass::PromotionCandidate.is_publishable());
+    }
+
+    fn passing_discovery_gate() -> super::profundity::DiscoveryClaimGate {
+        use super::profundity::{DiscoveryClaimGate, MechanismOffTwin, ProfundityGate};
+        DiscoveryClaimGate {
+            profundity_gate: ProfundityGate {
+                sigma_significance: 5.2,
+                delta_ln_z_corrected: 6.0,
+                mechanism_off_twin: Some(MechanismOffTwin {
+                    delta_ln_z_with_mechanism: 6.0,
+                    delta_ln_z_without_mechanism: 0.8,
+                    zeroed_parameters: vec!["mu0".into()],
+                }),
+            },
+            post_search_p_value: 0.001,
+            post_search_n_replications: 300,
+            gof_passed: true,
+            instrument_tier: crate::cosmology::ForwardTier::T2Boltzmann,
+            has_sealed_forecast: true,
+        }
+    }
+
+    #[test]
+    fn try_upgrade_promotion_candidate_with_passing_gate_yields_discovery_claim() {
+        let gate = passing_discovery_gate();
+        let cc = ClaimClass::PromotionCandidate.try_upgrade_to_discovery(&gate);
+        assert_eq!(cc, ClaimClass::DiscoveryClaim);
+    }
+
+    #[test]
+    fn try_upgrade_interesting_fit_stays_interesting_fit_even_with_passing_gate() {
+        let gate = passing_discovery_gate();
+        let cc = ClaimClass::InterestingFit.try_upgrade_to_discovery(&gate);
+        assert_eq!(
+            cc,
+            ClaimClass::InterestingFit,
+            "below PromotionCandidate cannot upgrade"
+        );
+    }
+
+    #[test]
+    fn try_upgrade_triage_stays_triage_with_passing_gate() {
+        let gate = passing_discovery_gate();
+        let cc = ClaimClass::Triage.try_upgrade_to_discovery(&gate);
+        assert_eq!(cc, ClaimClass::Triage);
+    }
+
+    #[test]
+    fn try_upgrade_fails_when_gate_blocks_missing_forecast() {
+        use super::profundity::DiscoveryClaimGate;
+        let mut gate = passing_discovery_gate();
+        gate.has_sealed_forecast = false;
+        let cc = ClaimClass::PromotionCandidate.try_upgrade_to_discovery(&gate);
+        assert_eq!(
+            cc,
+            ClaimClass::PromotionCandidate,
+            "blocked gate must not upgrade"
+        );
+    }
+
+    #[test]
+    fn discovery_gate_result_evaluate_records_pass() {
+        let gate = passing_discovery_gate();
+        let result = gate.evaluate();
+        assert!(result.passed);
+        assert!(result.blocking_reasons.is_empty());
+        assert_eq!(result.mechanism_attribution_passed, Some(true));
+    }
+
+    #[test]
+    fn discovery_gate_result_evaluate_records_failure_reasons() {
+        use super::profundity::DiscoveryClaimGate;
+        let mut gate = passing_discovery_gate();
+        gate.has_sealed_forecast = false;
+        gate.gof_passed = false;
+        let result = gate.evaluate();
+        assert!(!result.passed);
+        assert!(
+            result.blocking_reasons.len() >= 2,
+            "expected ≥2 blocking reasons: {:?}",
+            result.blocking_reasons
+        );
     }
 }

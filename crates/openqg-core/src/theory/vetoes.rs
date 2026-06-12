@@ -547,6 +547,58 @@ pub fn is_adjudicated_out(theory: &Theory) -> bool {
     !adjudicate(theory).is_empty()
 }
 
+/// V8 Phase 2 (#13): algebra-based structural generation check.
+///
+/// For every `Derived` parameter with a `DerivedCertificate`, look up the relation in the
+/// `openqg-algebra` theorem catalog. If the relation is a mechanism relation and no corresponding
+/// action term is present in `algebra`, add a `StructurallyUngenerated` veto.
+///
+/// This is layered on top of the existing name-based term check in `adjudicate()`: the name
+/// check catches term-label tricks; the algebra check requires an actual action IR entry.
+///
+/// When `algebra` is `None`, no additional vetoes are added (backward compat — theories that
+/// pre-date V8 have no algebra IR).
+pub fn algebra_structure_vetoes(
+    theory: &Theory,
+    algebra: Option<&openqg_algebra::AlgebraTheory>,
+) -> Vec<VetoReason> {
+    use openqg_algebra::verdict::check_structural_generation;
+    use openqg_algebra::verdict::StructureVerdict;
+
+    let mut reasons = Vec::new();
+    for param in &theory.parameters {
+        if let Provenance::Derived {
+            certificate: Some(cert),
+            ..
+        } = &param.provenance
+        {
+            let relation = cert.relation.as_str();
+            // Only check mechanism relations; background/phenomonly are acceptable without an
+            // action (and StructurallyUngenerated would be misleading for h0_from_h etc.).
+            if !openqg_algebra::catalog::relation_is_mechanism(relation) {
+                continue;
+            }
+            match check_structural_generation(relation, algebra) {
+                StructureVerdict::StructurallyUngenerated { reason } => {
+                    reasons.push(VetoReason::StructurallyUngenerated {
+                        field: param.symbol.clone(),
+                        detail: format!(
+                            "V8 algebra gate: parameter '{}' claims relation '{relation}' \
+                             but no generating action term is present in the AlgebraTheory. \
+                             {}",
+                            param.symbol, reason
+                        ),
+                    });
+                }
+                StructureVerdict::StructurallyGenerated { .. }
+                | StructureVerdict::PhenomenologyOnly { .. }
+                | StructureVerdict::UnknownRelation => {}
+            }
+        }
+    }
+    reasons
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::{AlphaBasis, Parameter, Provenance, Stability, Term, Theory};

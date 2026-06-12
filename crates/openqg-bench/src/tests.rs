@@ -245,4 +245,127 @@ mod tests {
             "expected at least 4 anchor artifacts, found {checked}"
         );
     }
+
+    // V8 Phase 2 (#13): algebra structural generation acceptance tests.
+    // Spec S03 rank 1: mechanism relations without generating actions are structurally ungenerated.
+
+    #[test]
+    fn theorem_registry_relations_from_algebra_all_covered() {
+        use openqg_algebra::{relation_is_mechanism, relation_theorem, theorem_catalog};
+        let catalog = theorem_catalog();
+        let mechanism_relations = [
+            "ndgp_geff_over_g",
+            "ndgp_beta_from_omega_rc",
+            "dark_scattering_growth_drag",
+            "fr_largescale_geff_over_g",
+            "fr_alpha_m",
+            "coupled_de_geff_over_g",
+        ];
+        for rel in mechanism_relations {
+            assert!(
+                relation_is_mechanism(rel),
+                "'{rel}' must be a mechanism relation in the catalog"
+            );
+            let entry =
+                relation_theorem(rel).expect("every mechanism relation must have a catalog entry");
+            assert!(
+                !entry.assumptions.is_empty(),
+                "catalog entry for '{rel}' must list physical assumptions"
+            );
+        }
+        // Non-mechanism relations.
+        for rel in ["planck_mu0_geff", "flat_universe_omega_lambda", "h0_from_h"] {
+            assert!(
+                !relation_is_mechanism(rel),
+                "'{rel}' must NOT be a mechanism relation"
+            );
+        }
+        // Full catalog must cover all 9 registered relations.
+        assert_eq!(
+            catalog.len(),
+            9,
+            "catalog must cover all 9 registered relations"
+        );
+    }
+
+    // Spec S03 rank 2: deleting the generating action while keeping the derived parameter
+    // must fail with StructurallyUngenerated.
+    #[test]
+    fn missing_ndgp_action_yields_structurally_ungenerated_veto() {
+        use openqg_core::theory::{algebra_structure_vetoes, VetoReason};
+        use openqg_core::{DerivedCertificate, Parameter, Provenance, Theory};
+
+        // Build a theory that claims ndgp_geff_over_g but provides NO AlgebraTheory.
+        let mut theory = Theory::baseline_lcdm();
+        theory.parameters.push(Parameter {
+            symbol: "geff_over_g".into(),
+            value: 1.1,
+            physical_meaning: "effective gravitational coupling ratio".into(),
+            provenance: Provenance::derived_certified(
+                "nDGP subhorizon G_eff from brane-bending mode",
+                DerivedCertificate {
+                    relation: "ndgp_geff_over_g".into(),
+                    inputs: vec![("beta".into(), 1.5)],
+                    expected: 1.0 + 1.0 / (3.0 * 1.5),
+                    tolerance: 1e-9,
+                    ..Default::default()
+                },
+            ),
+        });
+
+        // Without an algebra → StructurallyUngenerated.
+        let vetoes = algebra_structure_vetoes(&theory, None);
+        assert!(
+            !vetoes.is_empty(),
+            "no AlgebraTheory for mechanism relation must yield StructurallyUngenerated veto"
+        );
+        assert!(
+            vetoes
+                .iter()
+                .any(|v| matches!(v, VetoReason::StructurallyUngenerated { .. })),
+            "veto must be StructurallyUngenerated; got: {vetoes:?}"
+        );
+    }
+
+    // Spec S03 rank 2: with the correct DGP algebra, the gate passes.
+    #[test]
+    fn ndgp_action_algebra_passes_structural_gate() {
+        use openqg_algebra::{AlgebraTheory, BraneTerm, GravitySector, SCHEMA_VERSION};
+        use openqg_core::theory::{algebra_structure_vetoes, VetoReason};
+        use openqg_core::{DerivedCertificate, Parameter, Provenance, Theory};
+
+        let mut theory = Theory::baseline_lcdm();
+        theory.parameters.push(Parameter {
+            symbol: "geff_over_g".into(),
+            value: 1.0 + 1.0 / (3.0 * 1.5),
+            physical_meaning: "nDGP effective gravitational coupling".into(),
+            provenance: Provenance::derived_certified(
+                "nDGP subhorizon G_eff/G = 1 + 1/(3 beta)",
+                DerivedCertificate {
+                    relation: "ndgp_geff_over_g".into(),
+                    inputs: vec![("beta".into(), 1.5)],
+                    expected: 1.0 + 1.0 / (3.0 * 1.5),
+                    tolerance: 1e-9,
+                    ..Default::default()
+                },
+            ),
+        });
+
+        let mut algebra = AlgebraTheory {
+            schema_version: SCHEMA_VERSION.into(),
+            fields: vec![],
+            gravity: GravitySector::EinsteinHilbert,
+            scalar_terms: vec![],
+            brane_terms: vec![BraneTerm::NormalDgp { omega_rc: 0.25 }],
+            matter_couplings: vec![],
+            action_fingerprint: String::new(),
+        };
+        algebra.compute_fingerprint();
+
+        let vetoes = algebra_structure_vetoes(&theory, Some(&algebra));
+        assert!(
+            vetoes.is_empty(),
+            "DGP theory with matching AlgebraTheory must pass structural gate; got: {vetoes:?}"
+        );
+    }
 }

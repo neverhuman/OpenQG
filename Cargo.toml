@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/domain",
+  "crates/openqg-algebra",
   "crates/openqg-core",
   "crates/openqg-data",
   "crates/openqg-bench",

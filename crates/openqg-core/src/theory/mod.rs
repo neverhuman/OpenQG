@@ -86,8 +86,8 @@ pub use scorecard::{
 pub use search_ledger::{SearchLedger, TrialsGate};
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{
-    adjudicate, is_adjudicated_out, obligation_vetoes, physics_kills, run_veto_cascade,
-    run_veto_cascade_full, tensor_speed_excess_at, VetoReason,
+    adjudicate, algebra_structure_vetoes, is_adjudicated_out, obligation_vetoes, physics_kills,
+    run_veto_cascade, run_veto_cascade_full, tensor_speed_excess_at, VetoReason,
 };
 
 use crate::cosmology::CosmologyParams;

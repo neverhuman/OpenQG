@@ -12,6 +12,7 @@
 use super::obligation::{DerivationObligation, DerivationObligationKind, ObligationOutcome};
 use super::qsa_gate::QsaEpsilonGate;
 use super::screening::check_screening_plausibility;
+use super::search_volume::SearchVolumeSpec;
 use super::{Provenance, Theory};
 
 /// GW170817 bound: c_GW = c forces the tensor-speed excess α_T to ~0. We allow a 1% structural
@@ -215,6 +216,27 @@ pub enum VetoReason {
         omega_rc: f64,
     },
 
+    // --- V8 Phase 30 (SYNTHESIS #20): search-volume scope diagnostic ---
+    /// V8 Phase 30 (SYNTHESIS #20): a named theory parameter falls outside the preregistered
+    /// search volume for the C_growth-suppression(V8) exclusion campaign.
+    ///
+    /// Checked against `SearchVolumeSpec::v8_growth_suppression()`. Only mechanism-specific
+    /// parameters registered in the spec generate violations; parameters not in the spec (e.g.
+    /// pure α-basis modifiers) are silently ignored.
+    ///
+    /// This is a *diagnostic*, not a kill — the theory is valid physics; it just lies outside
+    /// the declared exclusion volume and cannot be counted toward the exclusion claim.
+    OutOfSearchVolume {
+        /// The parameter symbol that triggered the violation.
+        symbol: String,
+        /// The declared parameter value.
+        value: f64,
+        /// The preregistered lower bound.
+        lo: f64,
+        /// The preregistered upper bound.
+        hi: f64,
+    },
+
     /// The theory is distinct from ΛCDM via verified certificates, but the bound background still
     /// computes GR growth (an unbindable relation or an inversion domain error) — the claimed
     /// modification has no computable consequence, which is exactly the credit-without-risk
@@ -245,6 +267,7 @@ impl VetoReason {
             self,
             VetoReason::UncertifiedDerivedParameter { .. }
                 | VetoReason::NdgpNormalBranchEnhancesGrowth { .. }
+                | VetoReason::OutOfSearchVolume { .. }
         )
     }
 }
@@ -432,6 +455,28 @@ pub fn run_veto_cascade_full(theory: &Theory) -> Vec<VetoReason> {
         {
             reasons.push(VetoReason::NdgpNormalBranchEnhancesGrowth {
                 omega_rc: bg.ndgp_omega_rc,
+            });
+        }
+    }
+
+    // 10. V8 Phase 30 (SYNTHESIS #20): search-volume scope diagnostic.
+    //     For every named parameter in `theory.parameters`, check whether its value
+    //     falls within the preregistered C_growth-suppression(V8) search volume. Only
+    //     symbols registered in the spec (mu0, A_drag, w0) generate violations; others
+    //     are silently ignored. Emitted as a *diagnostic* (non-kill).
+    {
+        let spec = SearchVolumeSpec::v8_growth_suppression();
+        let param_pairs: Vec<(&str, f64)> = theory
+            .parameters
+            .iter()
+            .map(|p| (p.symbol.as_str(), p.value))
+            .collect();
+        for v in spec.check_params(&param_pairs) {
+            reasons.push(VetoReason::OutOfSearchVolume {
+                symbol: v.symbol,
+                value: v.value,
+                lo: v.lo,
+                hi: v.hi,
             });
         }
     }
@@ -1438,6 +1483,108 @@ mod tests {
             !all.iter()
                 .any(|r| matches!(r, VetoReason::NdgpNormalBranchEnhancesGrowth { .. })),
             "Ω_rc = 0 (GR limit) must not emit the nDGP enhancement diagnostic"
+        );
+    }
+
+    // ---- V8 Phase 30: search-volume scope diagnostic ----
+
+    fn theory_with_param(symbol: &str, value: f64) -> Theory {
+        let mut t = baseline();
+        t.parameters.push(Parameter {
+            symbol: symbol.into(),
+            value,
+            physical_meaning: "test parameter".into(),
+            provenance: Provenance::Derived {
+                mechanism: "test mechanism".into(),
+                certificate: None,
+            },
+        });
+        t
+    }
+
+    #[test]
+    fn parameter_outside_search_volume_emits_scope_diagnostic() {
+        // mu0 = -0.5 is outside the declared box [-0.30, 0.0].
+        let t = theory_with_param("mu0", -0.5);
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            all.iter().any(|r| matches!(r,
+                VetoReason::OutOfSearchVolume { symbol, value, lo, hi }
+                if symbol == "mu0" && (*value - (-0.5)).abs() < 1e-9
+                    && (*lo - (-0.30)).abs() < 1e-9 && (*hi).abs() < 1e-9
+            )),
+            "mu0 = -0.5 (outside [-0.30, 0.0]) must emit OutOfSearchVolume diagnostic"
+        );
+    }
+
+    #[test]
+    fn parameter_inside_search_volume_no_scope_diagnostic() {
+        // mu0 = -0.15 is inside [-0.30, 0.0].
+        let t = theory_with_param("mu0", -0.15);
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            !all.iter().any(
+                |r| matches!(r, VetoReason::OutOfSearchVolume { symbol, .. } if symbol == "mu0")
+            ),
+            "mu0 = -0.15 (inside the box) must not emit OutOfSearchVolume"
+        );
+    }
+
+    #[test]
+    fn out_of_search_volume_is_not_a_kill() {
+        let r = VetoReason::OutOfSearchVolume {
+            symbol: "mu0".into(),
+            value: -0.5,
+            lo: -0.30,
+            hi: 0.0,
+        };
+        assert!(
+            !r.is_kill(),
+            "OutOfSearchVolume must be a non-fatal diagnostic"
+        );
+        // Verify it does not appear in the kill-only cascade.
+        let t = theory_with_param("mu0", -0.5);
+        let kills = run_veto_cascade(&t);
+        assert!(
+            !kills
+                .iter()
+                .any(|r| matches!(r, VetoReason::OutOfSearchVolume { .. })),
+            "OutOfSearchVolume must be filtered from the kill cascade"
+        );
+    }
+
+    #[test]
+    fn parameter_not_in_spec_does_not_emit_scope_diagnostic() {
+        // "alpha_M0" is not in the V8 search volume spec → no scope diagnostic.
+        let t = theory_with_param("alpha_M0", 99.0);
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            !all.iter()
+                .any(|r| matches!(r, VetoReason::OutOfSearchVolume { symbol, .. } if symbol == "alpha_M0")),
+            "unregistered parameter must not emit OutOfSearchVolume"
+        );
+    }
+
+    #[test]
+    fn a_drag_outside_spec_range_emits_scope_diagnostic() {
+        // A_drag = -1.0 is below the declared lower bound [0.0, 10.0].
+        // Note: negative drag is also caught by PhantomDrag kill, but both may fire.
+        let mut t = baseline();
+        t.parameters.push(Parameter {
+            symbol: "A_drag".into(),
+            value: -1.0,
+            physical_meaning: "dark scattering amplitude".into(),
+            provenance: Provenance::Derived {
+                mechanism: "Simpson 2010 cross-section".into(),
+                certificate: None,
+            },
+        });
+        let all = run_veto_cascade_full(&t);
+        assert!(
+            all.iter().any(|r| matches!(r,
+                VetoReason::OutOfSearchVolume { symbol, .. } if symbol == "A_drag"
+            )),
+            "A_drag = -1.0 (below [0.0, 10.0]) must emit OutOfSearchVolume diagnostic"
         );
     }
 }

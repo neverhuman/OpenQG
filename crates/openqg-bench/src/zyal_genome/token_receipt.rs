@@ -262,8 +262,8 @@ mod tests {
     #[test]
     fn unknown_model_uses_anthropic_unknown_catch_all() {
         let reg = TokenizerRegistry::global();
-        assert!(reg.lookup("gpt-5-turbo").is_none());
-        let entry = reg.lookup_or_default("gpt-5-turbo");
+        assert!(reg.lookup("model-not-in-registry").is_none());
+        let entry = reg.lookup_or_default("model-not-in-registry");
         assert_eq!(entry.model_id, "anthropic-unknown");
         assert!(entry.flagged_estimate_default);
     }
@@ -284,7 +284,7 @@ mod tests {
     fn estimate_cost_unknown_model_is_flagged() {
         let reg = TokenizerRegistry::global();
         let usage = TokenUsage::new(1_000_000, 0);
-        let (_cost, flagged) = reg.estimate_cost("some-unknown-model", &usage);
+        let (_cost, flagged) = reg.estimate_cost("model-not-in-registry", &usage);
         assert!(flagged, "unknown model must be flagged as estimate");
     }
 

@@ -719,11 +719,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
+name = "openqg-algebra"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "openqg-bench"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "openqg-algebra",
  "openqg-core",
  "openqg-data",
  "reqwest",
@@ -742,6 +752,7 @@ name = "openqg-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "openqg-algebra",
  "openqg-domain",
  "proptest",
  "serde",

@@ -14,6 +14,7 @@
 pub mod binding;
 pub mod certificate;
 pub mod claim_graph;
+pub mod component;
 pub mod contenders;
 pub mod derivation_trace;
 pub mod dim_vec;
@@ -45,6 +46,11 @@ pub use certificate::{
 pub use claim_graph::{
     claim_graph_digest, Claim, ClaimGraph, ClaimId, ClaimKind, Sector, SharedParam,
     UnificationClaim,
+};
+pub use component::{
+    build_component_graph, ComponentAttribution, ComponentId, ComponentKind, ComponentLedger,
+    EvaluationTrace, GapClass, GapRecord, LikelihoodBlockTrace, NeutralizerSpec, ObservableTrace,
+    OracleSensitivity, PairwiseInteraction, ReceiptRef, ShapleyEstimate, TheoryComponent,
 };
 pub use contenders::{
     decoy_contenders, decoy_false_positive_rate, human_contenders, score_contender, Contender,

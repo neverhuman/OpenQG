@@ -5,6 +5,7 @@ pub mod engine_kpis;
 pub mod evidence_receipt;
 pub mod forecast_registry;
 pub mod hash;
+pub mod knowledge;
 pub mod manifest;
 pub mod rigor;
 #[path = "runbook.rs"]
@@ -19,6 +20,11 @@ pub use engine_kpis::EngineKpis;
 pub use evidence_receipt::{cross_solver_tension, EvidenceReceipt, NestingSolver, PriorEntry};
 pub use forecast_registry::{ForecastEntry, ForecastStatus};
 pub use hash::*;
+pub use knowledge::{
+    append_lessons, distill_lessons, read_lessons, KillRecord, KnowledgeLesson, LessonConclusion,
+    LessonConfidence, LessonScope, LessonTrigger, NumericOrigin, Predicate, RedactionState,
+    RetrievalPacket, ValueOriginAudit,
+};
 pub use manifest::*;
 pub use rigor::{text_rigor, trace_rigor, RigorFactor, RigorScore};
 pub use zyal::*;

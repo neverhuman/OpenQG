@@ -576,12 +576,17 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          1. The engine COMPUTES all physics from your bound background — declared numbers are \
          honesty attestations checked against the computed truth. Fabrication (>3× tolerance) \
          is a kill; honest-but-wrong is a demotion.\n\
-         2. Only these registry relations verify: {relations}. EXACT input keys per relation \
-         (a missing/renamed key = failed certificate = kill): planck_mu0_geff needs \
-         [mu0]; ndgp_geff_over_g needs [beta]; ndgp_beta_from_omega_rc needs [omega_rc, \
-         omega_m] (optional omega_r, omega_k, w0); coupled_de_geff_over_g needs [beta]; \
-         dark_scattering_growth_drag needs [a_drag, w0, omega_de0]; fr_alpha_m needs [f_R, \
-         a_f_R_prime]. To set a background MG dial (e.g. mu0) you MUST include a \
+         2. Only these registry relations verify: {relations}. EXACT input keys AND \
+         expected-value formulas (wrong 'expected' = FailedDerivationCertificate kill):\n\
+         - planck_mu0_geff: inputs=[mu0]; expected = 1.0 + mu0\n\
+         - ndgp_geff_over_g: inputs=[beta]; expected = 1.0 + 1.0/(3.0*beta); beta>0 suppresses growth; beta<0 enhances\n\
+         - ndgp_beta_from_omega_rc: inputs=[omega_rc, omega_m, (opt)omega_r, omega_k, w0=-1]; \
+         expected = 1 + (1/sqrt(omega_rc)) * (1 + D1/3) where D1 = -0.5*(3*Om + 4*Or + 2*Ok + 3*(1+w0)*(1-Om-Or-Ok))\n\
+         - coupled_de_geff_over_g: inputs=[beta]; expected = 1.0 + 2.0*beta^2\n\
+         - dark_scattering_growth_drag: inputs=[a_drag, w0, omega_de0]; expected = a_drag*(1+w0)*omega_de0\n\
+         - fr_alpha_m: inputs=[f_R, a_f_R_prime]; expected = a_f_R_prime/(1.0 + f_R)\n\
+         - fr_largescale_geff_over_g: inputs=[regime]; expected = 4/3 if regime=1.0, 1.0 if regime=0.0\n\
+         To set a background MG dial (e.g. mu0) you MUST include a \
          derived_certified parameter whose certificate input equals that background value — \
          an uncertified background modification is an automatic kill.\n\
          3. A certified modified-gravity claim is BOUND into the background the model integrates; \

@@ -88,6 +88,9 @@ impl ForwardModel for SubprocessForwardModel {
             tier: super::ForwardTier::T2Boltzmann,
             // The provenance hash should be filled by the adapter (code+data versions); empty here.
             provenance_hash: String::new(),
+            // The concrete adapter should inject a SolverManifest before the score is accepted.
+            // Left None here so the adapter can fill it after obtaining the binary SHA-256.
+            solver_manifest: None,
         }
     }
 }

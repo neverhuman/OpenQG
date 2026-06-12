@@ -121,6 +121,11 @@ pub struct ForwardManifest {
     /// Content hash of the external code + data the predictions depend on. Empty for a pure,
     /// deterministic in-repo model that needs no external inputs.
     pub provenance_hash: String,
+    /// V8 Phase 26 (SYNTHESIS #6): for T2/T3 scores, the pinned Boltzmann solver binary.
+    /// `None` for T0/T1 scores (no external solver). Presence is required for promotion-grade
+    /// claims; `check_instrument_risk` enforces this.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub solver_manifest: Option<SolverManifest>,
 }
 
 fn default_forward_tier() -> ForwardTier {
@@ -449,6 +454,8 @@ impl ForwardModel for BackgroundForwardModel {
             tier: ForwardTier::T1Emulator,
             // Pure, deterministic, no external inputs ⇒ no external provenance to hash.
             provenance_hash: String::new(),
+            // No external Boltzmann solver — T1 in-repo model.
+            solver_manifest: None,
         }
     }
 }

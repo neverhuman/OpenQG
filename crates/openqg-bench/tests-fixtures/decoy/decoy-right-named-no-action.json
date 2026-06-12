@@ -1,0 +1,30 @@
+{
+  "_comment": "Decoy: correct term name + correct mass dimension, zero free Lorentz indices, but NO action derivation. Catches S03 hole: a right-named dim-4 candidate with no symbolic action must be disqualified. The mechanism string is empty (fails the mechanism_ok check in proposal_into_theory, demoting to Free, which the veto kills).",
+  "id": "decoy-right-named-no-action",
+  "parameters": [
+    {
+      "symbol": "mu0",
+      "value": -0.12,
+      "provenance": "derived",
+      "mechanism": "",
+      "derived_from": ["Omega_m"],
+      "physical_meaning": "gravitational slip at z=0 — claims derivation but provides no action"
+    }
+  ],
+  "alpha": {
+    "alpha_m": 0.0,
+    "alpha_b": 0.0,
+    "alpha_k": 0.0,
+    "alpha_t": 0.0
+  },
+  "stability": {
+    "q_s": 0.5,
+    "sound_speed_sq": 1.0,
+    "kinetic_coefficient": 1.0,
+    "tensor_speed_excess": 0.0
+  },
+  "background": {
+    "h": 0.674,
+    "omega_m": 0.315
+  }
+}

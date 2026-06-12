@@ -50,6 +50,80 @@ mod tests {
         assert!(validate_release_manifest(&manifest).is_err());
     }
 
+    // V8 Wave 0.3: decoy fixture regression tests — each fixture in tests-fixtures/decoy/
+    // must be rejected (disqualified/vetoed). These lock the S03/S06 jailgun gaps.
+
+    #[test]
+    fn decoy_right_named_no_action_is_vetoed() {
+        // decoy-right-named-no-action.json: correct term name/dimension, but mechanism = "".
+        // proposal_into_theory demotes mu0 to Free → FreeParameter veto kills it.
+        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests-fixtures/decoy/decoy-right-named-no-action.json");
+        let json = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+        let receipt = openqg_core::proposal_receipt(&json, "fixture:decoy-right-named-no-action");
+        assert!(
+            receipt.vetoed,
+            "decoy-right-named-no-action must be vetoed; reasons={:?}",
+            receipt.veto_reasons
+        );
+        assert!(
+            receipt.demoted_parameters.contains(&"mu0".to_string()),
+            "mu0 (empty mechanism) must be demoted: {:?}",
+            receipt.demoted_parameters
+        );
+    }
+
+    #[test]
+    fn decoy_fit_only_claim_is_vetoed() {
+        // decoy-fit-only-claim.json: w0 and wa both have provenance "fit" (unrecognised →
+        // Free) → FreeParameter veto kills the theory before reaching the claims linter.
+        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests-fixtures/decoy/decoy-fit-only-claim.json");
+        let json = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+        let receipt = openqg_core::proposal_receipt(&json, "fixture:decoy-fit-only-claim");
+        assert!(
+            receipt.vetoed,
+            "decoy-fit-only-claim must be vetoed; reasons={:?}",
+            receipt.veto_reasons
+        );
+    }
+
+    #[test]
+    fn claims_linter_rejects_fit_only_claim_graph() {
+        // The claims linter (Wave 0.8) catches BEATS_LCDM_WITHOUT_TRIALS_CORRECTION +
+        // NO_EVIDENCE_HASH for a claim asserting fit-set BIC superiority.
+        let stmt = "This theory beats ΛCDM with ΔBIC = -6.2 on the fit-set BAO+CMB data";
+        let report = openqg_core::validation::lint_claims(&openqg_core::ClaimGraph {
+            claims: vec![openqg_core::Claim {
+                id: "claim-beats-lcdm-fit-only".into(),
+                sector: openqg_core::Sector::Background,
+                kind: openqg_core::ClaimKind::Physics,
+                statement: stmt.into(),
+                evidence: vec![],
+                obligations: vec!["ob".into()],
+                depends_on: vec![],
+            }],
+        });
+        assert!(
+            report.fatal,
+            "fit-only-claim must be flagged by the claims linter"
+        );
+        assert!(
+            report.findings.iter().any(|f| f.rule == "NO_EVIDENCE_HASH"),
+            "expected NO_EVIDENCE_HASH; got {:?}",
+            report.findings
+        );
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|f| f.rule == "BEATS_LCDM_WITHOUT_TRIALS_CORRECTION"),
+            "expected BEATS_LCDM_WITHOUT_TRIALS_CORRECTION"
+        );
+    }
+
     // Phase 0: the on-disk tension fixture must parse, leave real headroom over the
     // baseline, and correctly calibrate the anchor/decoy set via the real scoring engine.
     #[test]

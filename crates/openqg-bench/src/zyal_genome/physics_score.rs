@@ -402,13 +402,52 @@ mod tests {
 mod v6_gate_tests {
     use openqg_core::{physics_kills, Theory, VetoReason};
 
+    // V5 campaign champion (thy-m22ea) inlined. Source file deleted in Wave 0.6 artifact hygiene.
+    // alpha_m=-0.35 / Vainshtein screening declared but screening_recovery=null / drifted background.
+    const V5_CHAMPION_JSON: &str = r#"{
+  "alpha": {
+    "alpha_b": -0.009130982153605888,
+    "alpha_k": -0.47755097529613977,
+    "alpha_m": -0.3488053977712303,
+    "alpha_t": 0.0
+  },
+  "background": {
+    "fr_log10_fr0": -30.0,
+    "fr_n": 1.0,
+    "h": 0.7176575652249619,
+    "mg_family": "none",
+    "mu0": 0.0,
+    "n_eff": 3.046,
+    "ndgp_omega_rc": 0.0,
+    "omega_b_h2": 0.02237,
+    "omega_k": 0.0,
+    "omega_m": 0.2822055296326261,
+    "sigma8": 0.811,
+    "sum_mnu": 0.06,
+    "w0": -1.1443535961059987,
+    "wa": 0.0
+  },
+  "id": "thy-m22ea",
+  "parameters": [
+    {"physical_meaning": "present-day expansion rate",  "provenance": "fundamental", "symbol": "H0",      "value": 67.4},
+    {"physical_meaning": "total matter density today",  "provenance": "fundamental", "symbol": "Omega_m", "value": 0.315}
+  ],
+  "screening": "vainshtein",
+  "screening_recovery": null,
+  "stability": {"has_nondegenerate_higher_derivatives": false, "kinetic_coefficient": 1.0, "q_s": 1.0, "sound_speed_sq": 1.0},
+  "terms": [
+    {"free_lorentz_indices": 0, "mass_dimension": 4, "name": "einstein_hilbert"},
+    {"free_lorentz_indices": 0, "mass_dimension": 4, "name": "cosmological_constant"}
+  ]
+}"#;
+
     /// THE V6 acceptance regression (review-01's go/no-go): the V5 campaign champion — a
     /// 54.999-point candidate with unprovenanced alpha drift, a bare screening label
     /// (screening_recovery=null), and a drifted background — must be rejected by the unified
     /// physics gate. If this candidate ever passes again, V6 has regressed to V5's exploit.
     #[test]
     fn the_v5_champion_is_rejected_by_the_unified_gate() {
-        let raw = include_str!("../../tests-fixtures/v5-champion-chunk1.json");
+        let raw = V5_CHAMPION_JSON;
         let theory: Theory = serde_json::from_str(raw).expect("the vendored champion parses");
         let kills = physics_kills(&theory);
         assert!(
@@ -456,6 +495,24 @@ mod v6_gate_tests {
 mod v6_drift_tests {
     use openqg_core::{background_dof, Theory};
 
+    // V5 champion inlined (same source as v6_gate_tests::V5_CHAMPION_JSON — duplicated here
+    // because sibling test modules cannot share private items without pub re-exports).
+    const V5_CHAMPION_JSON: &str = r#"{
+  "alpha": {"alpha_b": -0.009130982153605888, "alpha_k": -0.47755097529613977, "alpha_m": -0.3488053977712303, "alpha_t": 0.0},
+  "background": {"fr_log10_fr0": -30.0, "fr_n": 1.0, "h": 0.7176575652249619, "mg_family": "none", "mu0": 0.0, "n_eff": 3.046, "ndgp_omega_rc": 0.0, "omega_b_h2": 0.02237, "omega_k": 0.0, "omega_m": 0.2822055296326261, "sigma8": 0.811, "sum_mnu": 0.06, "w0": -1.1443535961059987, "wa": 0.0},
+  "id": "thy-m22ea",
+  "parameters": [
+    {"physical_meaning": "present-day expansion rate", "provenance": "fundamental", "symbol": "H0", "value": 67.4},
+    {"physical_meaning": "total matter density today", "provenance": "fundamental", "symbol": "Omega_m", "value": 0.315}
+  ],
+  "screening": "vainshtein", "screening_recovery": null,
+  "stability": {"has_nondegenerate_higher_derivatives": false, "kinetic_coefficient": 1.0, "q_s": 1.0, "sound_speed_sq": 1.0},
+  "terms": [
+    {"free_lorentz_indices": 0, "mass_dimension": 4, "name": "einstein_hilbert"},
+    {"free_lorentz_indices": 0, "mass_dimension": 4, "name": "cosmological_constant"}
+  ]
+}"#;
+
     /// V6 P2: background drift is a costed degree of freedom. The V5 champions moved h/Ω_m/w0
     /// with zero parsimony cost; each moved coordinate now counts.
     #[test]
@@ -480,8 +537,7 @@ mod v6_drift_tests {
     /// And the vendored V5 champion itself pays: its drift is no longer invisible.
     #[test]
     fn the_v5_champion_pays_background_dof() {
-        let raw = include_str!("../../tests-fixtures/v5-champion-chunk1.json");
-        let theory: Theory = serde_json::from_str(raw).unwrap();
+        let theory: Theory = serde_json::from_str(V5_CHAMPION_JSON).unwrap();
         assert!(
             background_dof(&theory) >= 3,
             "the champion moved h/omega_m/w0 (+ sigma8/wa drift): got {}",
@@ -682,12 +738,33 @@ mod v6_novelty_tests {
 mod v7_gate_tests {
     use openqg_core::{physics_kills, Theory, VetoReason};
 
+    // V6 campaign survivor (ndgp-proposed-fixed-rc) inlined. Source file deleted in Wave 0.6
+    // artifact hygiene. Bound-nDGP coupling with no brane term — rejected by the term registry.
+    const V6_SURVIVOR_JSON: &str = r#"{
+  "alpha": {"alpha_b": 0.0, "alpha_k": 0.0, "alpha_m": 0.0, "alpha_t": 0.0},
+  "background": {"drag_a": 0.0, "fr_log10_fr0": -30.0, "fr_n": 1.0, "h": 0.674, "mg_family": "none", "mu0": 0.0, "n_eff": 3.046, "ndgp_omega_rc": 0.0, "omega_b_h2": 0.02237, "omega_k": 0.0, "omega_m": 0.315, "sigma8": 0.811, "sum_mnu": 0.06, "w0": -1.0, "wa": 0.0},
+  "id": "ndgp-proposed-fixed-rc",
+  "parameters": [
+    {"physical_meaning": "present-day expansion rate", "provenance": "fundamental", "symbol": "H0", "value": 67.4},
+    {"physical_meaning": "total matter density today", "provenance": "fundamental", "symbol": "Omega_m", "value": 0.315},
+    {"physical_meaning": "linear effective gravitational coupling (nDGP normal branch)",
+     "provenance": {"derived": {"certificate": {"expected": 1.1666666666666667, "inputs": [["beta", 2.0]], "relation": "ndgp_geff_over_g", "tolerance": 0.000001}, "mechanism": "nDGP braneworld linear coupling"}},
+     "symbol": "geff_over_g", "value": 1.1666666666666667}
+  ],
+  "screening": null, "screening_recovery": null,
+  "stability": {"has_nondegenerate_higher_derivatives": false, "kinetic_coefficient": 1.0, "q_s": 1.0, "sound_speed_sq": 1.0},
+  "terms": [
+    {"free_lorentz_indices": 0, "mass_dimension": 4, "name": "einstein_hilbert"},
+    {"free_lorentz_indices": 0, "mass_dimension": 4, "name": "cosmological_constant"}
+  ]
+}"#;
+
     /// THE V7 acceptance regression (review-07): the V6 campaign's lone survivor — a bound-nDGP
     /// lineage with no brane term — must be rejected. "If V6.1 disqualifies drifted dials
     /// without terms, it should also reject a bound nDGP dial without a term."
     #[test]
     fn the_v6_survivor_is_rejected_by_the_term_registry() {
-        let raw = include_str!("../../tests-fixtures/v6-survivor-chunk6.json");
+        let raw = V6_SURVIVOR_JSON;
         let theory: Theory = serde_json::from_str(raw).expect("vendored survivor parses");
         let kills = physics_kills(&theory);
         assert!(

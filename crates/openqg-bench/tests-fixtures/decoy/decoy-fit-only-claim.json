@@ -1,0 +1,49 @@
+{
+  "_comment": "Decoy: the only 'evidence' for novelty is a BIC improvement on the fit-set. No pre-registered forecast, no evidence hash on the novelty claim. Must be disqualified by claims linter rules FIT_SET_NOVELTY_CREDIT and NO_EVIDENCE_HASH.",
+  "id": "decoy-fit-only-claim",
+  "parameters": [
+    {
+      "symbol": "w0",
+      "value": -1.12,
+      "provenance": "fit",
+      "mechanism": "CPL dark energy equation of state at z=0",
+      "derived_from": []
+    },
+    {
+      "symbol": "wa",
+      "value": 0.35,
+      "provenance": "fit",
+      "mechanism": "CPL time derivative of w",
+      "derived_from": []
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "claim-beats-lcdm-fit-only",
+      "text": "This theory beats ΛCDM with ΔBIC = -6.2 on the fit-set BAO+CMB data",
+      "evidence": [
+        {
+          "type": "bic_improvement",
+          "delta_bic": -6.2,
+          "dataset": "fit-set-bao-cmb"
+        }
+      ]
+    }
+  ],
+  "alpha": {
+    "alpha_m": 0.0,
+    "alpha_b": 0.0,
+    "alpha_k": 0.0,
+    "alpha_t": 0.0
+  },
+  "stability": {
+    "q_s": 0.5,
+    "sound_speed_sq": 1.0,
+    "kinetic_coefficient": 1.0,
+    "tensor_speed_excess": 0.0
+  },
+  "background": {
+    "h": 0.681,
+    "omega_m": 0.308
+  }
+}

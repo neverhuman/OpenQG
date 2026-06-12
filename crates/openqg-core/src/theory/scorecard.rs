@@ -440,6 +440,18 @@ pub fn score_with_observables(
         kill.push(format!("obligation: {v:?}"));
     }
 
+    // --- Gate 3.5: claim-graph lint (V8 Wave 0.8) — catches NO_EVIDENCE_HASH,
+    //     BEATS_LCDM_WITHOUT_TRIALS_CORRECTION, FIT_SET_NOVELTY_CREDIT ---
+    {
+        let report = crate::validation::lint_claims(cg);
+        for f in &report.findings {
+            kill.push(format!(
+                "claim_lint[{}] on {}: {}",
+                f.rule, f.claim_id, f.message
+            ));
+        }
+    }
+
     // --- Gate 4: if it claims unification, it must not hide a per-sector knob ---
     let unification_claimed = !unification.shared.is_empty();
     let no_hidden_knob = unification.no_hidden_knob_test(theory);

@@ -60,7 +60,11 @@
     "crates/domain/AGENTS.md": "domain",
     "python/ai-service/": "python/ai-service",
     "reports/releases/draft/": "workspace",
-    "tips/": "seed"
+    "tips/": "seed",
+    "paper/": "workspace",
+    "managed-browsers.json": "ops",
+    "data/forecast-registry/": "workspace",
+    "data/tokenizer-registry.yml": "workspace"
   },
   "workspace": "openqg"
 }

@@ -586,6 +586,8 @@ pub(crate) fn build_router_prompt(lane: Lane, sample_index: usize, extra_section
          - dark_scattering_growth_drag: inputs=[a_drag, w0, omega_de0]; expected = a_drag*(1+w0)*omega_de0\n\
          - fr_alpha_m: inputs=[f_R, a_f_R_prime]; expected = a_f_R_prime/(1.0 + f_R)\n\
          - fr_largescale_geff_over_g: inputs=[regime]; expected = 4/3 if regime=1.0, 1.0 if regime=0.0\n\
+         - flat_universe_omega_lambda: inputs=[omega_m, (opt)omega_r=0, omega_k=0]; expected = 1.0-omega_m-omega_r-omega_k (certifies Omega_Lambda, NOT w0 or any other param)\n\
+         - h0_from_h: inputs=[h]; expected = 100*h (certifies H0 from reduced-h; earns zero rigor, pure definition)\n\
          To set a background MG dial (e.g. mu0) you MUST include a \
          derived_certified parameter whose certificate input equals that background value — \
          an uncertified background modification is an automatic kill.\n\

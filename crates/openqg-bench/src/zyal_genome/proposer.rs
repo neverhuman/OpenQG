@@ -170,6 +170,10 @@ impl Proposer for BudgetedProposer<'_> {
     fn drain_attempts(&self) -> Vec<super::theory_population::ProposalAttemptRecord> {
         self.inner.drain_attempts()
     }
+
+    fn drain_token_receipts(&self) -> Vec<super::token_receipt::LlmCallReceipt> {
+        self.inner.drain_token_receipts()
+    }
 }
 
 /// The reference derivation-rich proposal (also used as the canonical test vector).

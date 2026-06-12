@@ -36,6 +36,7 @@ pub mod proposal;
 pub mod recombine_proof;
 pub mod scorecard;
 pub mod search_ledger;
+pub mod search_volume;
 pub mod sectors;
 pub mod unification;
 pub mod unification_data;
@@ -120,6 +121,7 @@ pub use scorecard::{
     GoFOutcome, LikelihoodMode, RubricComponent, RubricV4, ScorecardReceipt, ScorecardV4,
 };
 pub use search_ledger::{Chi2DofGate, GoFNullReport, SearchLedger, TrialsGate};
+pub use search_volume::{OutOfScopeViolation, SearchParamBox, SearchVolumeSpec};
 pub use unification::{unification_report, DomainCheck, UnificationReport};
 pub use vetoes::{
     adjudicate, algebra_structure_vetoes, is_adjudicated_out, obligation_vetoes, physics_kills,

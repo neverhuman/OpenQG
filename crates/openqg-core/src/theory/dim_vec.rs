@@ -214,6 +214,64 @@ impl TermAst {
     }
 }
 
+/// A dimensional mismatch between a `Term`'s declared `mass_dimension` and what its `TermAst`
+/// computes — returned by `validate_action_terms_with_ast` as a kill-level violation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DimCheckViolation {
+    /// Name of the term that failed the check.
+    pub term_name: String,
+    /// Mass dimension asserted in the `Term` struct (proposer-supplied).
+    pub asserted: i32,
+    /// Mass dimension computed from the `TermAst` expression.
+    pub computed: i32,
+    /// Human-readable detail (full DimVec or inner DimError).
+    pub detail: String,
+}
+
+/// Cross-check all `Term.mass_dimension` values against the corresponding `TermAst` expressions.
+///
+/// For each `Term`, this looks up its name in `asts`. If an AST is found and the computed
+/// mass dimension differs from the declared `mass_dimension`, a [`DimCheckViolation`] is
+/// recorded. Terms with no matching AST are skipped (no AST = no check).
+///
+/// # Closes
+/// SYNTHESIS #12: a proposer can forge `mass_dimension: 4` on a term whose expression
+/// actually evaluates to dimension 5. This function catches that mismatch before the theory
+/// reaches the veto cascade.
+pub fn validate_action_terms_with_ast(
+    terms: &[super::Term],
+    asts: &[(String, TermAst)],
+) -> Vec<DimCheckViolation> {
+    let mut violations = Vec::new();
+    for term in terms {
+        let ast_entry = asts.iter().find(|(name, _)| name == &term.name);
+        let Some((_, ast)) = ast_entry else {
+            continue;
+        };
+        match ast.mass_dim() {
+            Ok(computed) if computed == term.mass_dimension => {}
+            Ok(computed) => violations.push(DimCheckViolation {
+                term_name: term.name.clone(),
+                asserted: term.mass_dimension,
+                computed,
+                detail: format!(
+                    "TermAst dimension {} ≠ asserted {}; full DimVec: {}",
+                    computed,
+                    term.mass_dimension,
+                    ast.dim().unwrap(),
+                ),
+            }),
+            Err(e) => violations.push(DimCheckViolation {
+                term_name: term.name.clone(),
+                asserted: term.mass_dimension,
+                computed: 0,
+                detail: format!("DimError: {}", e.detail),
+            }),
+        }
+    }
+    violations
+}
+
 /// Check that a `Term`'s asserted `mass_dimension` matches what its `TermAst` computes.
 ///
 /// Returns `None` when they agree (or `ast` is `None`), or `Some(kill_reason)` when they
@@ -432,5 +490,102 @@ mod tests {
         };
         let result = dim_check_term("exp_h0_term", 0, Some(&bad));
         assert!(result.is_some(), "exp(H0) must produce a kill reason");
+    }
+
+    // ---- validate_action_terms_with_ast ----
+
+    fn dim4_ast() -> TermAst {
+        TermAst::Power {
+            base: Box::new(TermAst::Scalar { dim: DimVec::MASS }),
+            exponent: 4,
+        }
+    }
+    fn dim5_ast() -> TermAst {
+        TermAst::Power {
+            base: Box::new(TermAst::Scalar { dim: DimVec::MASS }),
+            exponent: 5,
+        }
+    }
+    fn make_term(name: &str, mass_dim: i32) -> crate::theory::Term {
+        crate::theory::Term {
+            name: name.into(),
+            mass_dimension: mass_dim,
+            free_lorentz_indices: 0,
+        }
+    }
+
+    #[test]
+    fn validate_empty_inputs_returns_no_violations() {
+        let violations = validate_action_terms_with_ast(&[], &[]);
+        assert!(violations.is_empty());
+    }
+
+    #[test]
+    fn validate_no_ast_means_no_check() {
+        let terms = vec![make_term("R", 4)];
+        let violations = validate_action_terms_with_ast(&terms, &[]);
+        assert!(violations.is_empty(), "no AST = no check");
+    }
+
+    #[test]
+    fn validate_agreement_produces_no_violation() {
+        let terms = vec![make_term("R^2", 4)];
+        let asts = vec![("R^2".into(), dim4_ast())];
+        let violations = validate_action_terms_with_ast(&terms, &asts);
+        assert!(violations.is_empty());
+    }
+
+    #[test]
+    fn validate_catches_forged_dim4_term_with_dim5_ast() {
+        // SYNTHESIS #12 "forged dim-4 term with dim-5 expression"
+        let terms = vec![make_term("forged", 4)];
+        let asts = vec![("forged".into(), dim5_ast())];
+        let violations = validate_action_terms_with_ast(&terms, &asts);
+        assert_eq!(violations.len(), 1);
+        assert_eq!(violations[0].term_name, "forged");
+        assert_eq!(violations[0].asserted, 4);
+        assert_eq!(violations[0].computed, 5);
+        assert!(violations[0].detail.contains("5"));
+    }
+
+    #[test]
+    fn validate_multiple_terms_partial_ast_coverage() {
+        let terms = vec![
+            make_term("good", 4),
+            make_term("forged", 4),
+            make_term("no-ast", 4),
+        ];
+        let asts = vec![("good".into(), dim4_ast()), ("forged".into(), dim5_ast())];
+        let violations = validate_action_terms_with_ast(&terms, &asts);
+        assert_eq!(violations.len(), 1, "only forged should violate");
+        assert_eq!(violations[0].term_name, "forged");
+    }
+
+    #[test]
+    fn validate_dim_error_produces_violation() {
+        // exp(H0) has a DimError — must register as a violation.
+        let terms = vec![make_term("bad-exp", 0)];
+        let h0_ast = TermAst::Exp {
+            argument: Box::new(TermAst::Scalar {
+                dim: DimVec::INVERSE_TIME,
+            }),
+        };
+        let asts = vec![("bad-exp".into(), h0_ast)];
+        let violations = validate_action_terms_with_ast(&terms, &asts);
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].detail.contains("DimError"));
+    }
+
+    #[test]
+    fn validate_violation_serde_round_trip() {
+        let v = DimCheckViolation {
+            term_name: "test".into(),
+            asserted: 4,
+            computed: 5,
+            detail: "TermAst dimension 5 ≠ asserted 4".into(),
+        };
+        let json = serde_json::to_string(&v).unwrap();
+        let back: DimCheckViolation = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, v);
     }
 }

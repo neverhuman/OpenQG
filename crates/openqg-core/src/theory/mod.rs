@@ -71,7 +71,9 @@ pub use derivation_trace::{
     check_input_provenance, trace_rigor, AssumptionStrength, DerivationTrace, InputProvenance,
     TraceRigorPolicy, TraceStep, TraceStepKind, TraceVerdict,
 };
-pub use dim_vec::{dim_check_term, DimError, DimVec, TermAst};
+pub use dim_vec::{
+    dim_check_term, validate_action_terms_with_ast, DimCheckViolation, DimError, DimVec, TermAst,
+};
 pub use engine_kpi::EngineKpiReport;
 pub use evaluate::{derivation_score, evaluate, evaluate_with_blocks, Evaluation};
 pub use evidence::{

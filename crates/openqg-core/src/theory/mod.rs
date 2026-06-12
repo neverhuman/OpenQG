@@ -33,6 +33,7 @@ pub mod obligation;
 pub mod pricing;
 pub mod profundity;
 pub mod proposal;
+pub mod qsa_gate;
 pub mod recombine_proof;
 pub mod scorecard;
 pub mod search_ledger;
@@ -112,6 +113,7 @@ pub use proposal::{
     parse_proposal, proposal_into_theory, proposal_receipt, proposal_to_theory, ProposalReceipt,
     TheoryProposal,
 };
+pub use qsa_gate::{QsaDecision, QsaEpsilonGate, QsaGateOutcome};
 pub use recombine_proof::{
     proof_summary, recombination_compatible, CompatCheck, CompatibilityProof,
 };

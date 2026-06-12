@@ -488,6 +488,38 @@ pub(crate) fn assemble_memory(runs_root: &Path, current_records: &[Value]) -> Pr
                 .to_string(),
         );
     }
+    if has_class("hidden_knob") {
+        dont_lines.push(
+            "change any background parameter (w0, mu0, omega_rc, fr_*, alpha_*, beta) without a \
+             DerivedCertificate in a derived_certified parameter — every off-ΛCDM dial MUST be \
+             wrapped in a certificate linking it to a registry relation"
+                .to_string(),
+        );
+    }
+    if has_class("unexplained_modification") {
+        dont_lines.push(
+            "set background MG fields (mu0, ndgp_omega_rc, fr_fR0, mg_family) directly in the \
+             theory without a matching derived_certified parameter whose certificate input equals \
+             that value — unexplained modifications are automatic kills"
+                .to_string(),
+        );
+    }
+    if has_class("conflicting_modification") {
+        dont_lines.push(
+            "declare a background value that conflicts with what the registry relation computes \
+             from your certificate inputs — the engine re-derives and kills on mismatch; make \
+             background values CONSISTENT with your certificate's expected output"
+                .to_string(),
+        );
+    }
+    if has_class("unimplemented_modification") {
+        dont_lines.push(
+            "certify a modification that the engine cannot integrate (e.g. ndgp_geff_over_g with \
+             beta <= 0, or fr_largescale_geff_over_g with a non-binary regime, or any relation \
+             with out-of-domain inputs) — check domain constraints in rule #2 before certifying"
+                .to_string(),
+        );
+    }
     // The diversity directive: when one family dominates the promotable pool, push outward.
     if let Some((dominant, count)) = families.iter().max_by_key(|(_, c)| **c) {
         let total: usize = families.values().sum();

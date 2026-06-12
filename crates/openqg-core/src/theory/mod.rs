@@ -63,7 +63,10 @@ pub use contenders::{
     decoy_contenders, decoy_false_positive_rate, human_contenders, score_contender, Contender,
     ContenderSuite, ExpectedVerdict, MapEvidenceStore,
 };
-pub use data_tier::{DataTierKind, DataTierManifest, DatasetRecord};
+pub use data_tier::{
+    audit_double_count, canonical_overlap_rules, DataTierKind, DataTierManifest,
+    DatasetOverlapRule, DatasetRecord, DoubleCountReport,
+};
 pub use derivation_trace::{
     check_input_provenance, trace_rigor, AssumptionStrength, DerivationTrace, InputProvenance,
     TraceRigorPolicy, TraceStep, TraceStepKind, TraceVerdict,

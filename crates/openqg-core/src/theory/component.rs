@@ -467,6 +467,193 @@ pub fn build_component_graph(
     }
 }
 
+/// Discounted-UCB priority for a gap in the bandit router (SYNTHESIS #14).
+///
+/// Extends `GapRecord` with a time-discount factor (effort decays on unaddressed gaps to
+/// encourage diverse exploration) and a UCB exploration bonus (arms with fewer attempts
+/// receive a higher bonus). The bandit router picks the gap with the highest `total_priority`.
+///
+/// Formula: `total_priority = base_priority × discount_factor + ucb_bonus`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GapPriority {
+    /// Stable key of the gap (matches `GapRecord.gap_id`).
+    pub gap_id: String,
+    /// The component this gap targets.
+    pub component_id: ComponentId,
+    /// Semantic class of the gap.
+    pub gap_class: GapClass,
+    /// Raw priority from the component ledger.
+    pub base_priority: f64,
+    /// Exponential discount applied per attempt: `exp(-decay_rate × attempts)`.
+    pub discount_factor: f64,
+    /// UCB exploration bonus: `exploration_c × sqrt(ln(total_campaign_calls + 1) / (attempts + 1))`.
+    pub ucb_bonus: f64,
+    /// Final routable priority: `base_priority × discount_factor + ucb_bonus`.
+    pub total_priority: f64,
+    /// Number of focused re-proposal attempts targeting this gap.
+    pub attempts: u32,
+    /// Number of attempts that improved the score.
+    pub successes: u32,
+}
+
+impl GapPriority {
+    /// True when at least one attempt has succeeded for this gap.
+    pub fn has_any_success(&self) -> bool {
+        self.successes > 0
+    }
+
+    /// Empirical success rate (0.0 when no attempts).
+    pub fn success_rate(&self) -> f64 {
+        if self.attempts == 0 {
+            0.0
+        } else {
+            self.successes as f64 / self.attempts as f64
+        }
+    }
+}
+
+/// Kill reason for a `FocusedPatchSketch` that violates anti-laundering rules (SYNTHESIS #14).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum FocusedPatchKillReason {
+    /// The target component has a frozen digest; patching it directly is prohibited.
+    /// Changes must go through the derivation sandbox.
+    FrozenDigestMutation {
+        component_id: String,
+        frozen_digest: String,
+        patch_digest: String,
+    },
+    /// The patch shifts a DOF to a sibling component without re-pricing — a disguised
+    /// relabeling that launders complexity.
+    DofLaunderingShift {
+        original_symbol: String,
+        shifted_to_component: String,
+        detail: String,
+    },
+}
+
+/// A patch proposal targeting one weak component (SYNTHESIS #14).
+///
+/// `FocusedPatchSketch` is the structured interface between the gap-routing bandit and the
+/// proposer: the router identifies the gap, the proposer fills in the patch details, and
+/// `validate()` applies the anti-laundering gate before the patch enters the scoring loop.
+///
+/// A sketch that fails `validate()` is killed before physics scoring; its `kill_reason`
+/// maps directly to a `VetoReason::DofLaunderingKill` or `FrozenDigestMutationKill` in the
+/// downstream veto cascade.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FocusedPatchSketch {
+    /// Unique ID for this patch sketch.
+    pub sketch_id: String,
+    /// The component being patched.
+    pub target_component: ComponentId,
+    /// The gap this patch addresses.
+    pub target_gap_id: String,
+    /// Human-readable description of the proposed change.
+    pub proposed_change: String,
+    /// If the target component has a frozen digest (set by the derivation sandbox), patching
+    /// it directly is prohibited. Set `Some(digest)` to enable the mutation kill.
+    pub frozen_digest: Option<String>,
+    /// Content digest of the component in the CURRENT ledger.
+    pub current_digest: String,
+    /// Content digest of the component AFTER the proposed change.
+    pub patch_digest: String,
+    /// True when the patch shifts a DOF from one component to a sibling without repricing.
+    pub is_dof_shift_to_sibling: bool,
+    /// If DOF shift: the original symbol that is being relabeled.
+    pub original_dof_symbol: Option<String>,
+    /// Anti-laundering verdict. `None` = clean (sketch may proceed); `Some(_)` = killed.
+    pub kill_reason: Option<FocusedPatchKillReason>,
+}
+
+impl FocusedPatchSketch {
+    /// True when the sketch has passed the anti-laundering gate.
+    pub fn is_safe(&self) -> bool {
+        self.kill_reason.is_none()
+    }
+
+    /// Run the anti-laundering gate and set `kill_reason` if any violation is found.
+    ///
+    /// Call this before entering the sketch into the scoring loop. Once killed, the sketch
+    /// is immutable — re-calling `validate()` on an already-killed sketch is a no-op.
+    pub fn validate(&mut self) {
+        if self.kill_reason.is_some() {
+            return; // already killed
+        }
+        // Gate 1: frozen-digest mutation — target must not have a frozen digest.
+        if let Some(ref frozen) = self.frozen_digest {
+            if *frozen != self.patch_digest {
+                self.kill_reason = Some(FocusedPatchKillReason::FrozenDigestMutation {
+                    component_id: self.target_component.stable_key.clone(),
+                    frozen_digest: frozen.clone(),
+                    patch_digest: self.patch_digest.clone(),
+                });
+                return;
+            }
+        }
+        // Gate 2: DOF-laundering shift — DOFs must not be silently moved between components.
+        if self.is_dof_shift_to_sibling {
+            let sym = self
+                .original_dof_symbol
+                .clone()
+                .unwrap_or_else(|| "unknown".into());
+            self.kill_reason = Some(FocusedPatchKillReason::DofLaunderingShift {
+                original_symbol: sym,
+                shifted_to_component: self.target_component.stable_key.clone(),
+                detail: "DOF relabeled to sibling during focused patch — re-price required".into(),
+            });
+        }
+    }
+}
+
+/// Compute discounted-UCB gap priorities from a component ledger (SYNTHESIS #14).
+///
+/// # Parameters
+/// - `ledger`: the champion's component ledger containing `gaps`.
+/// - `attempts_per_gap`: map from `gap_id` → `(attempts, successes)` from campaign history.
+/// - `total_campaign_calls`: total number of focused-patch attempts across ALL gaps this campaign.
+/// - `exploration_c`: UCB exploration constant (S04 recommends 0.3–1.0; default 0.5).
+/// - `decay_rate`: exponential discount per attempt (default 0.1 → 10-step gap halves to ~0.37).
+///
+/// Returns gaps sorted by `total_priority` descending.
+pub fn compute_gap_priorities(
+    ledger: &ComponentLedger,
+    attempts_per_gap: &BTreeMap<String, (u32, u32)>,
+    total_campaign_calls: u64,
+    exploration_c: f64,
+    decay_rate: f64,
+) -> Vec<GapPriority> {
+    let mut priorities: Vec<GapPriority> = ledger
+        .gaps
+        .iter()
+        .map(|gap| {
+            let (attempts, successes) =
+                attempts_per_gap.get(&gap.gap_id).copied().unwrap_or((0, 0));
+            let discount_factor = (-decay_rate * attempts as f64).exp();
+            let ucb_bonus = exploration_c
+                * ((total_campaign_calls as f64 + 1.0).ln() / (attempts as f64 + 1.0)).sqrt();
+            let total_priority = gap.priority * discount_factor + ucb_bonus;
+            GapPriority {
+                gap_id: gap.gap_id.clone(),
+                component_id: gap.component_id.clone(),
+                gap_class: gap.gap_class,
+                base_priority: gap.priority,
+                discount_factor,
+                ucb_bonus,
+                total_priority,
+                attempts,
+                successes,
+            }
+        })
+        .collect();
+    priorities.sort_by(|a, b| {
+        b.total_priority
+            .partial_cmp(&a.total_priority)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    priorities
+}
+
 /// Return the GR-limit value for the output of a relation (for MechanismOffKeepCost).
 fn gr_limit_for_relation(relation: &str) -> f64 {
     match relation {
@@ -583,5 +770,156 @@ mod tests {
         let ledger = planck_mu0_ledger();
         assert_eq!(ledger.full_trace.total_score_points(), 26.0);
         assert!(ledger.full_trace.mean_abs_pull().is_none()); // no observables in minimal build
+    }
+
+    // ---- GapPriority + compute_gap_priorities (SYNTHESIS #14) ----
+
+    fn ledger_with_gaps() -> ComponentLedger {
+        let mut l = planck_mu0_ledger();
+        let cid = ComponentId::new(ComponentKind::Relation, "rel:planck_mu0_geff", "payload");
+        l.gaps.push(GapRecord {
+            gap_id: "gap-rigor-mu0".into(),
+            component_id: cid.clone(),
+            gap_class: GapClass::Rigor,
+            priority: 0.8,
+            evidence_shortfall: 0.0,
+            rigor_shortfall: 0.3,
+            novelty_shortfall: 0.0,
+            interaction_risk: 0.0,
+            description: "mu0 cert rigor low".into(),
+            focus_hint: "upgrade cert to T2".into(),
+        });
+        l.gaps.push(GapRecord {
+            gap_id: "gap-evidence-fs8".into(),
+            component_id: cid,
+            gap_class: GapClass::Evidence,
+            priority: 0.5,
+            evidence_shortfall: 0.4,
+            rigor_shortfall: 0.0,
+            novelty_shortfall: 0.0,
+            interaction_risk: 0.0,
+            description: "fσ8 evidence thin".into(),
+            focus_hint: "add eBOSS ref".into(),
+        });
+        l
+    }
+
+    #[test]
+    fn compute_gap_priorities_sorts_by_total_priority() {
+        let ledger = ledger_with_gaps();
+        let attempts = BTreeMap::new();
+        let prios = compute_gap_priorities(&ledger, &attempts, 10, 0.5, 0.1);
+        assert_eq!(prios.len(), 2);
+        // Without prior attempts, higher base_priority + same UCB bonus → top gap first
+        assert!(prios[0].total_priority >= prios[1].total_priority);
+    }
+
+    #[test]
+    fn ucb_bonus_increases_for_unattempted_gaps() {
+        let ledger = ledger_with_gaps();
+        let mut attempts = BTreeMap::new();
+        // Mark the top gap as heavily attempted
+        attempts.insert("gap-rigor-mu0".to_string(), (20u32, 5u32));
+        let prios = compute_gap_priorities(&ledger, &attempts, 100, 1.0, 0.0);
+        // With decay_rate=0, discount=1.0; UCB bonus drives unattempted gap up.
+        // gap-evidence-fs8 has 0 attempts → higher UCB than gap-rigor-mu0 (20 attempts)
+        let rigor_prio = prios.iter().find(|p| p.gap_id == "gap-rigor-mu0").unwrap();
+        let ev_prio = prios
+            .iter()
+            .find(|p| p.gap_id == "gap-evidence-fs8")
+            .unwrap();
+        assert!(
+            ev_prio.ucb_bonus > rigor_prio.ucb_bonus,
+            "unattempted gap must have higher UCB; rigor={} ev={}",
+            rigor_prio.ucb_bonus,
+            ev_prio.ucb_bonus
+        );
+    }
+
+    #[test]
+    fn success_rate_correct() {
+        let gp = GapPriority {
+            gap_id: "g1".into(),
+            component_id: ComponentId::new(ComponentKind::Relation, "r", "p"),
+            gap_class: GapClass::Rigor,
+            base_priority: 0.5,
+            discount_factor: 1.0,
+            ucb_bonus: 0.2,
+            total_priority: 0.7,
+            attempts: 4,
+            successes: 1,
+        };
+        assert!((gp.success_rate() - 0.25).abs() < 1e-10);
+        assert!(gp.has_any_success());
+    }
+
+    // ---- FocusedPatchSketch (SYNTHESIS #14) ----
+
+    fn clean_sketch() -> FocusedPatchSketch {
+        let cid = ComponentId::new(ComponentKind::Parameter, "param:mu0", "p");
+        FocusedPatchSketch {
+            sketch_id: "s1".into(),
+            target_component: cid,
+            target_gap_id: "gap-rigor-mu0".into(),
+            proposed_change: "upgrade mu0 cert to T2Boltzmann".into(),
+            frozen_digest: None,
+            current_digest: "digest-a".into(),
+            patch_digest: "digest-b".into(),
+            is_dof_shift_to_sibling: false,
+            original_dof_symbol: None,
+            kill_reason: None,
+        }
+    }
+
+    #[test]
+    fn clean_sketch_is_safe_after_validate() {
+        let mut s = clean_sketch();
+        s.validate();
+        assert!(s.is_safe());
+        assert!(s.kill_reason.is_none());
+    }
+
+    #[test]
+    fn frozen_digest_mutation_kills_sketch() {
+        let mut s = clean_sketch();
+        s.frozen_digest = Some("frozen-digest-X".into()); // patch_digest = "digest-b" ≠ frozen
+        s.validate();
+        assert!(!s.is_safe());
+        assert!(matches!(
+            s.kill_reason,
+            Some(FocusedPatchKillReason::FrozenDigestMutation { .. })
+        ));
+    }
+
+    #[test]
+    fn frozen_digest_matching_patch_digest_is_safe() {
+        let mut s = clean_sketch();
+        s.frozen_digest = Some("digest-b".into()); // matches patch_digest
+        s.validate();
+        assert!(s.is_safe(), "matching digest must not kill");
+    }
+
+    #[test]
+    fn dof_laundering_shift_kills_sketch() {
+        let mut s = clean_sketch();
+        s.is_dof_shift_to_sibling = true;
+        s.original_dof_symbol = Some("mu0".into());
+        s.validate();
+        assert!(!s.is_safe());
+        assert!(matches!(
+            s.kill_reason,
+            Some(FocusedPatchKillReason::DofLaunderingShift { .. })
+        ));
+    }
+
+    #[test]
+    fn validate_is_idempotent_on_killed_sketch() {
+        let mut s = clean_sketch();
+        s.is_dof_shift_to_sibling = true;
+        s.original_dof_symbol = Some("mu0".into());
+        s.validate();
+        let first_kill = s.kill_reason.clone();
+        s.validate(); // second call must not change anything
+        assert_eq!(s.kill_reason, first_kill);
     }
 }

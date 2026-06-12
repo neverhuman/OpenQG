@@ -53,8 +53,9 @@ pub use claim_graph::{
     UnificationClaim,
 };
 pub use component::{
-    build_component_graph, ComponentAttribution, ComponentId, ComponentKind, ComponentLedger,
-    EvaluationTrace, GapClass, GapRecord, LikelihoodBlockTrace, NeutralizerSpec, ObservableTrace,
+    build_component_graph, compute_gap_priorities, ComponentAttribution, ComponentId,
+    ComponentKind, ComponentLedger, EvaluationTrace, FocusedPatchKillReason, FocusedPatchSketch,
+    GapClass, GapPriority, GapRecord, LikelihoodBlockTrace, NeutralizerSpec, ObservableTrace,
     OracleSensitivity, PairwiseInteraction, ReceiptRef, ShapleyEstimate, TheoryComponent,
 };
 pub use contenders::{
